@@ -961,10 +961,15 @@ function SourcesScreen(props: {
               {selectedSource.action === "consent" ? "Request Client Consent" : selectedSource.action === "upload" ? "Upload File" : "Use Secure Upload Link"}
             </button>
             {selectedSource.category === "upload" ? (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                <a href="/samples/fynny-sample-bank-statement.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Bank CSV</a>
-                <a href="/samples/fynny-sample-sales-register.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Sales CSV</a>
-                <a href="/samples/fynny-sample-gst-summary.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">GST CSV</a>
+              <div className="mt-4 rounded-2xl border border-[#eadada] bg-white/70 p-3">
+                <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5f5e5e]">Sample data for testing</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <a href="/samples/fynny-aster-foods-correlated-test-pack.zip" download className="rounded-full bg-[#700018] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617]">Aster Foods Pack</a>
+                  <a href="/samples/aster-foods/test_scenarios.md" target="_blank" rel="noreferrer" className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Scenario Guide</a>
+                  <a href="/samples/fynny-sample-bank-statement.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Bank CSV</a>
+                  <a href="/samples/fynny-sample-sales-register.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Sales CSV</a>
+                  <a href="/samples/fynny-sample-gst-summary.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">GST CSV</a>
+                </div>
               </div>
             ) : null}
             {selectedSource.action === "manual" ? <p className="mt-3 text-center text-xs leading-5 text-[#5f5e5e]">For MVP, WhatsApp stays safe: use upload links, mobile portal, or forwarded files. Fynny will not request full WhatsApp access.</p> : null}

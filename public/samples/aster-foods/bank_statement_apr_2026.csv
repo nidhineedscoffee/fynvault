@@ -1,0 +1,11 @@
+transaction_date,description,reference_no,debit,credit,balance
+2026-04-02,Opening balance brought forward,OPEN-APR,0,1250000,1250000
+2026-04-10,NEFT Receipt Fresh Basket AFPL/26-27/001,UTR-APR-001,0,920400,2170400
+2026-04-12,Vendor payment Spice Traders PB/APR/001,UTR-APR-002,613600,0,1556800
+2026-04-15,RTGS Receipt RetailMart South AFPL/26-27/002,UTR-APR-003,0,731600,2288400
+2026-04-18,Payment Karnataka Cold Chain PB/APR/003,UTR-APR-004,212400,0,2076000
+2026-04-21,Consulting fee LedgerPro PB/APR/006 after TDS,UTR-APR-005,97200,0,1978800
+2026-04-24,UPI Collection Bengaluru Organic AFPL/26-27/003,UPI-APR-006,0,365800,2344600
+2026-04-27,GST challan March 2026,CPIN-APR-GST,132000,0,2212600
+2026-04-30,Payroll April salary transfer,PAY-APR-001,324100,0,1888500
+2026-04-30,Bank charges,,1450,0,1887050

@@ -1,0 +1,8 @@
+bill_no,bill_date,vendor_name,vendor_gstin,expense_category,taxable_value,cgst,sgst,igst,total_amount,payment_status
+PB/APR/001,2026-04-03,Spice Traders Pvt Ltd,29AABCS1234A1Z9,Inventory,520000,46800.0,46800.0,0.0,613600.0,Paid
+PB/APR/002,04-04-2026,Packaging Solutions India,29AABCP4444A1Z8,Packaging,145000,13050.0,13050.0,0.0,171100.0,Paid
+PB/APR/003,2026-04-08,Karnataka Cold Chain Logistics,29AACCK2222B1Z1,Freight,180000,16200.0,16200.0,0.0,212400.0,Paid
+PB/APR/004,11/04/2026,Bengaluru Warehousing Co,29AACCB3333C1Z2,Warehouse Rent,210000,18900.0,18900.0,0.0,247800.0,Paid
+PB/APR/005,2026-04-16,NutriGrain Suppliers,29AACCN5555D1Z6,Inventory,460000,41400.0,41400.0,0.0,542800.0,Paid
+PB/APR/006,2026-04-21,LedgerPro Consultants,29AACCL9999G1Z5,Professional Fees,90000,8100.0,8100.0,0.0,106200.0,Paid
+PB/APR/007,25-04-2026,Tamil Nadu Packaging Co,33AAACT3333H1Z1,Packaging,125000,0.0,0.0,22500.0,147500.0,Unpaid

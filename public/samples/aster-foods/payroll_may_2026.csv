@@ -1,0 +1,6 @@
+employee_id,employee_name,department,gross_salary,pf,professional_tax,tds,net_salary,payment_date
+E001,Rahul Nair,Sales,72000,2160,200,0,69640,2026-05-31
+E002,Meera Iyer,Finance,85000,2160,200,2500,80140,2026-05-31
+E003,Arjun Rao,Operations,68000,2040,200,0,65760,2026-05-31
+E004,Sneha Kulkarni,Warehouse,52000,1560,200,0,50240,2026-05-31
+E005,Prakash Gowda,Logistics,58000,1740,200,0,56060,2026-05-31

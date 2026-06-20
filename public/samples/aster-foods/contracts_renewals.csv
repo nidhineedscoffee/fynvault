@@ -1,0 +1,6 @@
+customer_name,contract_start_date,contract_end_date,monthly_value,renewal_status,notes
+Fresh Basket India Pvt Ltd,2025-07-01,2026-07-15,900000,Upcoming Renewal,Renewal due within 30 days of 2026-06-30; top revenue customer
+RetailMart South LLP,2025-09-01,2026-09-30,720000,Active,Second largest customer
+DailyNeeds Supermart,2026-01-01,2026-12-31,500000,Active,Credit terms require review after overdue May invoice
+GreenCart Retail,2026-03-01,2026-08-31,330000,Active,Stable monthly order pattern
+Coimbatore Foods Trading,2026-04-01,2026-10-31,410000,Active,IGST interstate customer

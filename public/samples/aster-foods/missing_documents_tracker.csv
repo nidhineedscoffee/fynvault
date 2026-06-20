@@ -1,0 +1,8 @@
+period,document_type,expected,received,status,notes
+2026-04,Sales Register,1,1,Complete,Uploaded and parsed
+2026-04,Purchase Register,1,1,Complete,Uploaded and parsed
+2026-05,Sales Register,1,1,Complete,Contains duplicate invoice seed for June validation
+2026-05,Purchase Register,1,0,Incomplete,Marked incomplete; May vendor bills need client confirmation
+2026-05,Bank Statement,1,1,Complete,Bank narrations vary by payment mode
+2026-06,Bank Statement,1,1,Complete,Contains payroll and GST payment trails
+2026-Q1,TDS Challan,1,0,Missing,June TDS deposit pending evidence

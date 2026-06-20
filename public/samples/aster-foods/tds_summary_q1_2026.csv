@@ -1,0 +1,6 @@
+deductee_name,payment_date,payment_type,gross_amount,tds_section,tds_rate,tds_amount,deposit_status
+LedgerPro Consultants,2026-04-21,Professional Fees,90000,194J,10,9000,Deposited
+LedgerPro Consultants,2026-05-28,Professional Fees,100000,194J,10,10000,Deposited
+LedgerPro Consultants,2026-06-25,Professional Fees,130000,194J,10,13000,Pending
+Karnataka Cold Chain Logistics,2026-04-18,Contractor Freight,180000,194C,1,1800,Deposited
+Karnataka Cold Chain Logistics,2026-06-20,Contractor Freight,230000,194C,1,2300,Pending

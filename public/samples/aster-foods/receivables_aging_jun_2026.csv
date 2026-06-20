@@ -1,0 +1,8 @@
+customer_name,invoice_no,invoice_date,due_date,outstanding_amount,aging_bucket,risk_level
+Udupi Fresh Mart,AFPL/26-27/007,22/04/2026,2026-05-22,106800,31-60 Days,Medium
+DailyNeeds Supermart,AFPL/26-27/DUP-01,2026-05-14,2026-06-13,566400,1-30 Days,Medium
+Udupi Fresh Mart,AFPL/26-27/015,2026-05-22,2026-06-21,306800,1-30 Days,Medium
+RetailMart South LLP,AFPL/26-27/018,04-06-2026,2026-07-04,396800,Not Due,Low
+Bengaluru Organic Stores,AFPL/26-27/DUP-01,2026-06-06,2026-07-06,424800,Not Due,High
+DailyNeeds Supermart,AFPL/26-27/021,2026-06-14,2026-07-14,613600,Not Due,Low
+Udupi Fresh Mart,AFPL/26-27/023,2026-06-22,2026-07-22,348100,Not Due,Low

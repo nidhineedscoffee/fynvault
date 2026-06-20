@@ -1,0 +1,6 @@
+vendor_name,bill_no,bill_date,due_date,outstanding_amount,aging_bucket,priority
+Tamil Nadu Packaging Co,PB/APR/007,25-04-2026,2026-05-10,147500,45+ Days,High
+NutriGrain Suppliers,PB/MAY/005,15/05/2026,2026-05-30,613600,31-45 Days,High
+Spice Traders Pvt Ltd,PB/JUN/001,2026-06-03,2026-06-18,755200,1-30 Days,Medium
+Packaging Solutions India,PB/JUN/002,06-06-2026,2026-06-21,212400,1-30 Days,Medium
+NutriGrain Suppliers,PB/JUN/005,2026-06-16,2026-07-01,660800,Not Due,Medium

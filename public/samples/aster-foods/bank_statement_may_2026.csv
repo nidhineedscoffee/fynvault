@@ -1,0 +1,11 @@
+transaction_date,description,reference_no,debit,credit,balance
+2026-05-03,Opening balance brought forward,OPEN-MAY,0,0,1887050
+2026-05-05,Receipt DailyNeeds AFPL/26-27/005,UTR-MAY-001,0,531000,2418050
+2026-05-08,Vendor payment Packaging PB/APR/002,UTR-MAY-002,171100,0,2246950
+2026-05-10,Receipt GreenCart Retail AFPL/26-27/004,UTR-MAY-003,0,342200,2589150
+2026-05-12,Warehouse rent Bengaluru Warehousing PB/APR/004,UTR-MAY-004,247800,0,2341350
+2026-05-16,Receipt Mysuru Food Hub AFPL/26-27/006,UTR-MAY-005,0,271400,2612750
+2026-05-20,Vendor payment Spice Trader PB/MAY/001,UTR-MAY-006,696200,0,1916550
+2026-05-24,Partial receipt Udupi Fresh AFPL/26-27/007,UTR-MAY-007,0,200000,2116550
+2026-05-27,Receipt Coimbatore Foods AFPL/26-27/008,UTR-MAY-008,0,436600,2553150
+2026-05-31,Payroll May salary transfer,PAY-MAY-001,324100,0,2229050

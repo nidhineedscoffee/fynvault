@@ -1,0 +1,14 @@
+transaction_date,description,reference_no,debit,credit,balance
+2026-06-02,Opening balance brought forward,OPEN-JUN,0,0,2229050
+2026-06-04,Receipt Fresh Basket AFPL/26-27/009,UTR-JUN-001,0,1014800,3243850
+2026-06-06,Receipt RetailMart South AFPL/26-27/010,UTR-JUN-002,0,814200,4058050
+2026-06-09,Vendor payment Packaging PB/MAY/002,UTR-JUN-003,188800,0,3869250
+2026-06-12,Vendor payment Cold Chain PB/MAY/003,UTR-JUN-004,241900,0,3627350
+2026-06-15,Receipt Bengaluru Organic AFPL/26-27/011,UTR-JUN-005,0,389400,4016750
+2026-06-18,GST challan April 2026,CPIN-JUN-GST,0,0,4016750
+2026-06-18,GST payment April net GST,CPIN-JUN-GST,513000,0,3503750
+2026-06-20,Receipt GreenCart AFPL/26-27/012,UTR-JUN-006,0,365800,3869550
+2026-06-23,Payment Apex Digital Ads PB/MAY/006,UTR-JUN-007,135700,0,3733850
+2026-06-25,Consulting fee LedgerPro PB/JUN/007 after TDS,UTR-JUN-008,140400,0,3593450
+2026-06-27,Receipt Mysuru Food Hub AFPL/26-27/014,UTR-JUN-009,0,330400,3923850
+2026-06-30,Payroll June salary transfer with variable incentive,PAY-JUN-001,393100,0,3530750
