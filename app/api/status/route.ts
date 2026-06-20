@@ -6,7 +6,7 @@ export async function GET() {
 
   return NextResponse.json({
     app: "Fynny",
-    mode: Object.values(providers).every(Boolean) ? "production_configured" : "demo_or_partial_config",
+    mode: Object.values(providers).every(Boolean) ? "production_configured" : "configuration_required",
     appUrl: env.NEXT_PUBLIC_APP_URL,
     providers,
     missing: {
@@ -42,9 +42,9 @@ export async function GET() {
       exports: "/api/clients/:id/exports",
       advisory: "/api/clients/:id/advisory",
       clientPortal: "/api/client-portal/:id",
-      consentRequest: "/api/clients/:id/consent/request",
-      consentList: "/api/clients/:id/consent",
       dataSources: "/api/clients/:id/data-sources",
+      dataSourceConnect: "/api/clients/:id/data-sources/connect",
+      dataSourceSync: "/api/clients/:id/data-sources/sync",
       zohoSync: "/api/sync/zoho",
       gmailSync: "/api/sync/gmail"
     }

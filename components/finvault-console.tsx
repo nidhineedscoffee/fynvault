@@ -348,9 +348,6 @@ export function FinvaultConsole() {
       if (payload.ok === false) {
         setSourceNotice({ tone: "error", title: "Upload could not be queued", body: payload.error ?? "Please try again with another file." });
       } else {
-        if (payload.data?.id) {
-          await readJson<{ ok?: boolean; error?: string }>(`/api/documents/${payload.data.id}/process`, { method: "POST" }).catch(() => ({ ok: false }));
-        }
         setSourceNotice({ tone: "success", title: "Document queued for processing", body: `${file.name} has entered collection and validation. CSV previews are captured for testing without storing unrelated data.` });
         await refreshClient(clientId);
         await refresh();

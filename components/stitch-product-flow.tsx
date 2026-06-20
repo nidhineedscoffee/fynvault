@@ -67,7 +67,7 @@ export function StitchProductFlow() {
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-[#f7f9fb]">
-      <h1 className="sr-only">FinVault product flow: {screen.title}</h1>
+      <h1 className="sr-only">Fynny product flow: {screen.title}</h1>
       <img
         key={screen.slug}
         src={imagePath}
@@ -77,14 +77,14 @@ export function StitchProductFlow() {
       />
       <button
         type="button"
-        aria-label="Previous FinVault screen"
+        aria-label="Previous Fynny screen"
         onClick={() => goTo(index - 1)}
         className="absolute left-0 top-0 h-full w-1/3 cursor-w-resize opacity-0 focus:opacity-0"
         disabled={index === 0}
       />
       <button
         type="button"
-        aria-label="Next FinVault screen"
+        aria-label="Next Fynny screen"
         onClick={() => goTo(index + 1)}
         className="absolute right-0 top-0 h-full w-2/3 cursor-e-resize opacity-0 focus:opacity-0"
         disabled={index === stitchScreens.length - 1}

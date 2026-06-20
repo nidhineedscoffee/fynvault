@@ -50,7 +50,7 @@ const copy: Record<AgenticLoadingVariant, { headline: string; subtext: string }>
   },
   publishing: {
     headline: "Publishing to client workspace...",
-    subtext: "Moving approved outputs into client visibility."
+    subtext: "Moving verified outputs into client visibility."
   },
   ready: {
     headline: "Intelligence Ready",

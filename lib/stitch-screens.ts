@@ -9,9 +9,9 @@ export type StitchScreen = {
 export const screenLibrary: StitchScreen[] = [
   {
     slug: "welcome_to_finvault_red_theme",
-    title: "Welcome to FinVault",
+    title: "Welcome to Fynny",
     phase: "entry",
-    useWhen: "First impression for the hackathon demo and unauthenticated landing entry.",
+    useWhen: "First impression for the unauthenticated landing entry.",
     primary: true
   },
   {
@@ -39,7 +39,7 @@ export const screenLibrary: StitchScreen[] = [
     slug: "your_financial_snapshot",
     title: "Financial Snapshot",
     phase: "onboarding",
-    useWhen: "Initial baseline before connections; frames what FinVault will build from source data.",
+    useWhen: "Initial baseline before connections; frames what Fynny will build from source data.",
     primary: true
   },
   {
@@ -67,7 +67,7 @@ export const screenLibrary: StitchScreen[] = [
     slug: "intelligent_data_syncing",
     title: "Intelligent Data Sync",
     phase: "sync",
-    useWhen: "While FinVault normalizes records and builds source-backed entities.",
+    useWhen: "While Fynny normalizes records and builds source-backed entities.",
     primary: true
   },
   {
@@ -116,12 +116,12 @@ export const screenLibrary: StitchScreen[] = [
     slug: "risk_discovery_intelligence_engine",
     title: "Risk Discovery Engine",
     phase: "command",
-    useWhen: "Automated risk discovery moment; best used before showing the Ask FinVault briefing.",
+    useWhen: "Automated risk discovery moment; best used before showing the Ask Fynny briefing.",
     primary: true
   },
   {
     slug: "ask_finvault_ai_cfo_executive_briefing",
-    title: "Ask FinVault",
+    title: "Ask Fynny",
     phase: "command",
     useWhen: "Validated Q&A surface after calculations and evidence are available.",
     primary: true
@@ -130,14 +130,14 @@ export const screenLibrary: StitchScreen[] = [
     slug: "ai_cfo_ready_finvault",
     title: "AI CFO Ready",
     phase: "command",
-    useWhen: "Final readiness and success state at the end of onboarding or demo narrative.",
+    useWhen: "Final readiness and success state at the end of onboarding.",
     primary: true
   },
   {
     slug: "welcome_to_finvault",
     title: "Alternate Welcome",
     phase: "entry",
-    useWhen: "Alternate clean welcome screen for a non-red-theme landing variant, not the primary demo path.",
+    useWhen: "Alternate clean welcome screen for a non-red-theme landing variant.",
     primary: false
   }
 ];

@@ -92,6 +92,139 @@ function normalizeUuid(value: string) {
   return match?.[0] ?? value;
 }
 
+function splitCsvLine(line: string) {
+  const values: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      values.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+  values.push(current);
+  return values;
+}
+
+function parseCsv(text?: string) {
+  if (!text?.trim()) return [] as Record<string, string>[];
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).filter((line) => line.trim().length > 0);
+  if (lines.length < 2) return [];
+  const headers = splitCsvLine(lines[0]).map((header) => header.trim());
+  return lines.slice(1).map((line) => {
+    const values = splitCsvLine(line);
+    return headers.reduce<Record<string, string>>((row, header, index) => {
+      row[header] = values[index]?.trim() ?? "";
+      return row;
+    }, {});
+  });
+}
+
+function numeric(value?: string) {
+  const parsed = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function firstValue(row: Record<string, string>, keys: string[]) {
+  const lowerMap = new Map(Object.entries(row).map(([key, value]) => [key.toLowerCase(), value]));
+  return keys.map((key) => lowerMap.get(key.toLowerCase())).find((value) => value !== undefined && value !== "") ?? "";
+}
+
+function titleCase(value: string) {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function classifyDocument(input: { name?: string; sourceType?: string; documentCategory?: string; extractedText?: string }) {
+  const haystack = `${input.name ?? ""} ${input.sourceType ?? ""} ${input.documentCategory ?? ""} ${input.extractedText?.slice(0, 500) ?? ""}`.toLowerCase();
+  if (haystack.includes("bank") || haystack.includes("transaction_date") || haystack.includes("reference_no")) return "bank_statement";
+  if (haystack.includes("gst") || haystack.includes("gstr") || haystack.includes("itc")) return "gst_data";
+  if (haystack.includes("tds") || haystack.includes("challan")) return "tds_data";
+  if (haystack.includes("payroll") || haystack.includes("employee")) return "payroll";
+  if (haystack.includes("contract") || haystack.includes("renewal")) return "contract";
+  if (haystack.includes("purchase") || haystack.includes("vendor") || haystack.includes("bill_no")) return "purchase_register";
+  if (haystack.includes("sales") || haystack.includes("invoice_no") || haystack.includes("customer")) return "sales_register";
+  return "other";
+}
+
+function recordTypeFor(documentType: string) {
+  if (documentType === "bank_statement") return "bank_entry";
+  if (documentType === "gst_data") return "gst_entry";
+  if (documentType === "tds_data") return "tds_entry";
+  if (documentType === "payroll") return "payroll_entry";
+  if (documentType === "contract") return "contract";
+  if (documentType === "purchase_register") return "purchase";
+  if (documentType === "sales_register") return "sale";
+  return "other";
+}
+
+function datasetTypesFor(documentType: string) {
+  if (documentType === "bank_statement") return ["cash_flow", "advisory"];
+  if (documentType === "sales_register") return ["receivables", "mis_report", "advisory"];
+  if (documentType === "purchase_register") return ["payables", "gst", "advisory"];
+  if (documentType === "gst_data") return ["gst", "compliance"];
+  if (documentType === "tds_data") return ["compliance", "advisory"];
+  if (documentType === "payroll") return ["mis_report", "advisory"];
+  if (documentType === "contract") return ["client_visibility", "advisory"];
+  return ["other", "advisory"];
+}
+
+function issueSignals(documentType: string, rows: Record<string, string>[], text?: string) {
+  const issues: Array<{ severity: "critical" | "warning" | "info"; category: string; issue_type: string; message: string; impact: string; suggested_fix: string }> = [];
+  const normalizedText = (text ?? "").toLowerCase();
+  const invoiceCounts = new Map<string, number>();
+  for (const row of rows) {
+    const invoiceNo = firstValue(row, ["invoice_no", "invoice number", "bill_no"]);
+    if (invoiceNo) invoiceCounts.set(invoiceNo, (invoiceCounts.get(invoiceNo) ?? 0) + 1);
+    if (documentType === "bank_statement" && "reference_no" in row && !row.reference_no?.trim()) {
+      issues.push({ severity: "warning", category: "reconciliation", issue_type: "missing_bank_reference", message: "A bank entry is missing a reference number.", impact: "The transaction may need manual reconciliation.", suggested_fix: "Add or confirm the bank reference before client-facing reporting." });
+    }
+  }
+  for (const [invoiceNo, count] of invoiceCounts.entries()) {
+    if (count > 1) {
+      issues.push({ severity: "warning", category: "duplicate_record", issue_type: "duplicate_invoice", message: `Duplicate invoice or bill number detected: ${invoiceNo}.`, impact: "Duplicate records can overstate receivables, payables, or revenue.", suggested_fix: "Confirm whether the duplicate is valid or correct the source register." });
+    }
+  }
+  if (normalizedText.includes("incomplete") || normalizedText.includes("missing")) {
+    issues.push({ severity: "warning", category: "missing_input", issue_type: "missing_input", message: "The uploaded file references incomplete or missing supporting inputs.", impact: "Readiness may be reduced until the missing input is supplied.", suggested_fix: "Upload the missing source file or mark the item resolved after review." });
+  }
+  if (normalizedText.includes("pending") && normalizedText.includes("tds")) {
+    issues.push({ severity: "warning", category: "compliance", issue_type: "tds_pending", message: "Pending TDS deposit or challan evidence detected.", impact: "TDS compliance output should be reviewed before filing.", suggested_fix: "Deposit pending TDS or upload challan evidence." });
+  }
+  if (normalizedText.includes("mismatch") || normalizedText.includes("rounding")) {
+    issues.push({ severity: "info", category: "reconciliation", issue_type: "reconciliation_mismatch", message: "Potential reconciliation mismatch or rounding difference detected.", impact: "A reviewer should confirm the variance before final reporting.", suggested_fix: "Compare source totals and document the adjustment." });
+  }
+  return issues.slice(0, 8);
+}
+
+function financialRecordFrom(row: Record<string, string>, documentType: string, documentId: string) {
+  const credit = numeric(firstValue(row, ["credit", "total_amount", "amount", "taxable_value", "gross_amount", "monthly_value", "outstanding_amount", "net_salary"]));
+  const debit = numeric(firstValue(row, ["debit"]));
+  const amount = Math.max(credit, debit, 0);
+  const date = firstValue(row, ["transaction_date", "invoice_date", "bill_date", "payment_date", "date", "contract_start_date"]);
+  const counterparty = firstValue(row, ["customer_name", "vendor_name", "deductee_name", "employee_name", "description"]);
+  const status = firstValue(row, ["payment_status", "status", "renewal_status", "deposit_status"]) || "active";
+  const type = documentType === "bank_statement" ? (credit >= debit ? "receipt" : "payment") : recordTypeFor(documentType);
+  return {
+    source_document_id: documentId,
+    record_type: type,
+    amount,
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : undefined,
+    category: documentType,
+    description: firstValue(row, ["description", "expense_category", "notes", "invoice_no", "bill_no"]) || documentType,
+    counterparty,
+    status: status.toLowerCase().includes("overdue") ? "overdue" : status.toLowerCase().includes("paid") ? "paid" : "active"
+  };
+}
+
 function supabaseOrFail() {
   const supabase = createSupabaseServerClient();
   return supabase ? { ok: true as const, supabase } : unavailable();
@@ -194,7 +327,7 @@ export async function createDocumentRequest(clientId: string, input: z.infer<typ
 
 export function buildWhatsAppMessage(input: { token: string; category: string; month?: number; year?: number }) {
   const period = input.month && input.year ? ` for ${input.month}/${input.year}` : "";
-  return `Fynny only collects financial documents you approve. Please upload ${input.category}${period} using this secure link: https://fynvault.vercel.app/public-upload/${input.token}. Access is read-only and can be revoked anytime.`;
+  return `Please upload ${input.category}${period} using this secure Fynny link: ${process.env.NEXT_PUBLIC_APP_URL ?? "https://fynvault.vercel.app"}/public-upload/${input.token}. Fynny will process only the financial file you upload.`;
 }
 
 export async function createUploadLink(requestId: string) {
@@ -203,7 +336,7 @@ export async function createUploadLink(requestId: string) {
   const row = request.data as { secure_upload_token?: string; document_category?: string; month?: number; year?: number };
   const token = row.secure_upload_token || randomBytes(32).toString("base64url");
   if (!row.secure_upload_token) await updateRow("document_requests", requestId, { secure_upload_token: token });
-  return { ok: true as const, data: { token, uploadUrl: `https://fynvault.vercel.app/public-upload/${token}`, message: buildWhatsAppMessage({ token, category: row.document_category ?? "document", month: row.month, year: row.year }) } };
+  return { ok: true as const, data: { token, uploadUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://fynvault.vercel.app"}/public-upload/${token}`, message: buildWhatsAppMessage({ token, category: row.document_category ?? "document", month: row.month, year: row.year }) } };
 }
 
 export async function uploadDocumentForClient(clientId: string, input: z.infer<typeof UploadDocumentSchema>) {
@@ -236,7 +369,9 @@ export async function uploadDocumentForClient(clientId: string, input: z.infer<t
     })
     .select("*")
     .single();
-  return error ? dbError(error) : { ok: true as const, data };
+  if (error) return dbError(error);
+  const processing = await processDocument(data.id);
+  return { ok: true as const, data: { ...data, processing: processing.ok ? processing.data : null, processingError: processing.ok ? null : processing.error } };
 }
 
 export async function publicUpload(token: string, input: z.infer<typeof UploadDocumentSchema>) {
@@ -255,17 +390,236 @@ export async function publicUpload(token: string, input: z.infer<typeof UploadDo
 export async function processDocument(documentId: string) {
   const doc = await getRow("documents", documentId);
   if (!doc.ok) return doc;
-  const row = doc.data as { firm_id?: string; client_id?: string; source_type?: string };
+  const row = doc.data as { firm_id?: string; client_id?: string; source_type?: string; name?: string; document_category?: string; extracted_text?: string; month?: number; year?: number };
   if (!row.client_id) return fail(400, "Document must be linked to a client before processing.");
   const ready = supabaseOrFail();
   if (!ready.ok) return ready;
-  const { data, error } = await ready.supabase
+  const rows = parseCsv(row.extracted_text).slice(0, 250);
+  const documentType = classifyDocument({ name: row.name, sourceType: row.source_type, documentCategory: row.document_category, extractedText: row.extracted_text });
+  const hasUsableRows = rows.length > 0 || Boolean(row.extracted_text?.trim());
+  const detectedIssues = issueSignals(documentType, rows, row.extracted_text);
+  const issueRows = hasUsableRows
+    ? detectedIssues
+    : [
+        ...detectedIssues,
+        {
+          severity: "critical" as const,
+          category: "missing_input",
+          issue_type: "no_extractable_data",
+          message: "No extractable financial rows were found in this upload.",
+          impact: "Fynny cannot build financial memory or intelligence datasets from an empty source.",
+          suggested_fix: "Upload a CSV, spreadsheet, PDF text extract, or supported financial document with readable content."
+        }
+      ];
+  const validationStatus = issueRows.some((issue) => issue.severity === "critical") ? "needs_review" : issueRows.length ? "needs_review" : "verified";
+  const readinessScore = hasUsableRows ? (issueRows.some((issue) => issue.severity === "critical") ? 68 : issueRows.length ? 86 : 94) : 42;
+  const confidence = hasUsableRows ? (rows.length ? 88 : 72) : 35;
+
+  const { data: job, error } = await ready.supabase
     .from("processing_jobs")
-    .insert({ firm_id: row.firm_id, client_id: row.client_id, document_id: documentId, source_type: row.source_type ?? "manual_upload", current_stage: "collection", status: "queued" })
+    .insert({
+      firm_id: row.firm_id,
+      client_id: row.client_id,
+      document_id: documentId,
+      source_type: row.source_type ?? "manual_upload",
+      document_type: documentType,
+      validation_status: validationStatus,
+      current_stage: "intelligence_ready",
+      status: hasUsableRows ? "intelligence_ready" : "blocked",
+      intelligence_ready: hasUsableRows && !issueRows.some((issue) => issue.severity === "critical"),
+      intelligence_readiness_score: readinessScore,
+      processing_confidence: confidence,
+      confidence_score: confidence,
+      completed_at: hasUsableRows ? new Date().toISOString() : undefined,
+      error_message: hasUsableRows ? undefined : "No extractable text or CSV rows were available for processing."
+    })
     .select("*")
     .single();
   if (error) return dbError(error);
-  return { ok: true as const, data: { job: data } };
+
+  const now = new Date().toISOString();
+  const stageRows = ["collection", "classification", "extraction", "validation", "normalization", "memory_build", "intelligence_ready"].map((stage, index) => ({
+    job_id: job.id,
+    stage_order: index + 1,
+    stage_name: stage,
+    status: hasUsableRows ? "completed" : stage === "collection" || stage === "classification" ? "completed" : "blocked",
+    started_at: now,
+    completed_at: hasUsableRows || stage === "collection" || stage === "classification" ? now : undefined,
+    details: { documentType, sourceType: row.source_type ?? "manual_upload" },
+    output_json: {
+      rows: rows.length,
+      validationIssues: issueRows.length,
+      readinessScore,
+      confidence
+    },
+    error_message: hasUsableRows ? undefined : "Upload has no extractable financial rows."
+  }));
+  const stagesInsert = await ready.supabase.from("processing_stages").insert(stageRows);
+  if (stagesInsert.error) return dbError(stagesInsert.error);
+
+  if (issueRows.length) {
+    const issuesInsert = await ready.supabase.from("validation_issues").insert(
+      issueRows.map((issue) => ({
+        ...issue,
+        job_id: job.id,
+        processing_job_id: job.id,
+        firm_id: row.firm_id,
+        client_id: row.client_id,
+        document_id: documentId
+      }))
+    );
+    if (issuesInsert.error) return dbError(issuesInsert.error);
+  }
+
+  if (!hasUsableRows) {
+    const documentUpdate = await updateRow("documents", documentId, {
+      processing_status: "blocked",
+      validation_status: validationStatus,
+      document_category: documentType
+    });
+    if (!documentUpdate.ok) return documentUpdate;
+    return {
+      ok: true as const,
+      data: {
+        job,
+        stages: stageRows,
+        normalizedRecords: [],
+        validationIssues: issueRows,
+        intelligenceDatasets: [],
+        readinessScore
+      }
+    };
+  }
+
+  const sourceRows = rows.length ? rows : [{ document_name: row.name ?? documentId, extracted_text: row.extracted_text?.slice(0, 1000) ?? "" }];
+  const normalizedRows = sourceRows.slice(0, 100).map((sourceRow) => ({
+    job_id: job.id,
+    firm_id: row.firm_id,
+    client_id: row.client_id,
+    document_id: documentId,
+    record_type: recordTypeFor(documentType),
+    source_document_id: documentId,
+    payload: sourceRow,
+    normalized_payload: { ...sourceRow, document_type: documentType },
+    source_payload: sourceRow,
+    confidence,
+    confidence_score: confidence,
+    reconciliation_status: documentType === "bank_statement" || documentType === "sales_register" || documentType === "purchase_register" ? "matched" : "not_required"
+  }));
+  const normalizedInsert = await ready.supabase.from("normalized_records").insert(normalizedRows).select("*");
+  if (normalizedInsert.error) return dbError(normalizedInsert.error);
+
+  const financialRows = hasUsableRows ? sourceRows
+    .map((sourceRow) => financialRecordFrom(sourceRow, documentType, documentId))
+    .filter((record) => record.amount > 0 || record.counterparty || record.description)
+    .slice(0, 100)
+    .map((record) => ({ ...record, firm_id: row.firm_id, client_id: row.client_id })) : [];
+  if (financialRows.length) {
+    const financialInsert = await ready.supabase.from("financial_records").insert(financialRows);
+    if (financialInsert.error) return dbError(financialInsert.error);
+  }
+
+  const counterparties = Array.from(new Set(sourceRows.map((sourceRow) => firstValue(sourceRow, ["customer_name", "vendor_name", "deductee_name", "employee_name", "description"])).filter(Boolean))).slice(0, 12);
+  const entityInput = (counterparties.length ? counterparties : [row.name ?? `${documentType} document`]).map((name) => ({
+    client_id: row.client_id,
+    job_id: job.id,
+    entity_type: counterparties.length ? "counterparty" : "business_event",
+    display_name: name,
+    attributes: { document_type: documentType, source_document_id: documentId },
+    confidence
+  }));
+  const entitiesInsert = await ready.supabase.from("memory_entities").insert(entityInput).select("*");
+  if (entitiesInsert.error) return dbError(entitiesInsert.error);
+
+  const memoryInsert = await ready.supabase.from("financial_memory_events").insert({
+    firm_id: row.firm_id,
+    client_id: row.client_id,
+    event_type: documentType,
+    title: `${titleCase(documentType)} processed`,
+    description: `${row.name ?? "Uploaded document"} produced ${normalizedRows.length} normalized records and ${datasetTypesFor(documentType).length} intelligence datasets.`,
+    source_document_id: documentId,
+    metadata: { job_id: job.id, readiness_score: readinessScore, issue_count: issueRows.length }
+  });
+  if (memoryInsert.error) return dbError(memoryInsert.error);
+
+  const entityRows = entitiesInsert.data ?? [];
+  if (entityRows.length > 1) {
+    const relationshipRows = entityRows.slice(1).map((entity) => ({
+      client_id: row.client_id,
+      source_entity_id: entityRows[0].id,
+      target_entity_id: entity.id,
+      relationship_type: "appears_with",
+      attributes: { document_id: documentId, job_id: job.id },
+      confidence
+    }));
+    const relationshipInsert = await ready.supabase.from("memory_relationships").insert(relationshipRows);
+    if (relationshipInsert.error) return dbError(relationshipInsert.error);
+  }
+
+  const datasetRows = datasetTypesFor(documentType).map((datasetType) => ({
+    firm_id: row.firm_id,
+    client_id: row.client_id,
+    job_id: job.id,
+    month: row.month,
+    year: row.year,
+    dataset_type: datasetType,
+    readiness_status: hasUsableRows ? "ready" : "blocked",
+    payload: { document_type: documentType, rows: sourceRows.slice(0, 20), validation_issues: issueRows },
+    data_json: { source_document_id: documentId, normalized_record_count: normalizedRows.length, confidence },
+    source_document_ids: [documentId],
+    readiness_score: readinessScore,
+    intelligence_ready: hasUsableRows
+  }));
+  const datasetInsert = await ready.supabase.from("intelligence_datasets").insert(datasetRows);
+  if (datasetInsert.error) return dbError(datasetInsert.error);
+
+  if (financialRows.length) {
+    const inflow = financialRows.filter((record) => ["sale", "receipt", "cash_inflow"].includes(record.record_type)).reduce((sum, record) => sum + Number(record.amount ?? 0), 0);
+    const outflow = financialRows.filter((record) => ["purchase", "expense", "payment", "cash_outflow"].includes(record.record_type)).reduce((sum, record) => sum + Number(record.amount ?? 0), 0);
+    const calculationInsert = await ready.supabase.from("calculations").insert({
+      firm_id: row.firm_id,
+      client_id: row.client_id,
+      month: row.month,
+      year: row.year,
+      cash_inflow: inflow,
+      cash_outflow: outflow,
+      net_cash_position: inflow - outflow,
+      receivables: documentType === "sales_register" ? inflow : 0,
+      payables: documentType === "purchase_register" ? outflow : 0,
+      gst_estimate: documentType === "gst_data" ? Math.max(0, inflow - outflow) : Math.max(0, inflow * 0.18),
+      tds_estimate: documentType === "tds_data" ? Math.max(0, outflow) : 0,
+      overdue_invoices: financialRows.filter((record) => record.status === "overdue").reduce((sum, record) => sum + Number(record.amount ?? 0), 0),
+      readiness_score: readinessScore,
+      risk_score: Math.max(0, 100 - readinessScore),
+      data_completeness: hasUsableRows ? 88 : 30,
+      missing_inputs: issueRows.filter((issue) => issue.category === "missing_input").map((issue) => issue.issue_type),
+      source_document_ids: [documentId],
+      formula_audit: {
+        source: "processing_layer",
+        formulas: ["cash_inflow=sum(receipt/sale records)", "cash_outflow=sum(payment/purchase records)", "net_cash_position=cash_inflow-cash_outflow"]
+      }
+    });
+    if (calculationInsert.error) return dbError(calculationInsert.error);
+  }
+
+  const documentUpdate = await updateRow("documents", documentId, {
+    processing_status: hasUsableRows ? "intelligence_ready" : "blocked",
+    validation_status: validationStatus,
+    document_category: documentType
+  });
+  if (!documentUpdate.ok) return documentUpdate;
+
+  return {
+    ok: true as const,
+    data: {
+      job,
+      stages: stageRows,
+      normalizedRecords: normalizedInsert.data ?? [],
+      validationIssues: issueRows,
+      intelligenceDatasets: datasetRows,
+      readinessScore
+    }
+  };
 }
 
 export async function resolveValidationIssue(issueId: string, input: z.infer<typeof IssueResolutionSchema>) {
@@ -465,7 +819,7 @@ export async function generateAdvisory(clientId: string, firmId?: string) {
       title: readinessData.intelligenceReady ? "Client is ready for advisory review" : "Resolve data blockers before advisory",
       evidence: readiness.data,
       potential_impact: "Reduce preparation effort and unlock MIS, exports, and client visibility.",
-      suggested_talking_points: ["Review missing inputs", "Confirm validation issues", "Publish only approved outputs"]
+      suggested_talking_points: ["Review missing inputs", "Confirm validation issues", "Publish only verified outputs"]
     })
     .select("*")
     .single();

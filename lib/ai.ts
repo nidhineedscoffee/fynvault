@@ -58,7 +58,7 @@ export async function explainValidatedResult(input: {
           {
             role: "system",
             content:
-              "You are FinVault. Explain verified financial information in simple language. Never invent numbers. Never perform calculations. Only explain validated financial results provided by the system. Always include confidence level and reference supporting evidence."
+              "You are Fynny. Explain verified financial information in simple language. Never invent numbers. Never perform calculations. Only explain validated financial results provided by the system. Always include confidence level and reference supporting evidence."
           },
           {
             role: "user",

@@ -150,7 +150,7 @@ export function buildFinancialIntelligenceAnswer(input: {
     .map(([name, score]) => `${titleCase(name)} ${score}%`)
     .join("; ");
   const nextBestActions = [
-    evidenceCount === 0 ? "Connect or upload more approved source records before issuing a client-facing conclusion." : "Review the cited calculations, datasets, and memory events before sharing the response.",
+    evidenceCount === 0 ? "Connect or upload more source records before issuing a client-facing conclusion." : "Review the cited calculations, datasets, and memory events before sharing the response.",
     "Use the formula guardrails below; do not compute values unless matching validated records exist.",
     "If a required evidence source is missing, raise a data request instead of guessing."
   ];
@@ -184,15 +184,14 @@ export function buildFinancialIntelligenceAnswer(input: {
 
 export function buildReadinessTrainingGuidance(readiness?: ReadinessProfile) {
   if (!readiness) {
-    return ["Create the client workspace.", "Collect approved source data.", "Run processing until Intelligence Ready is true."];
+    return ["Create the client workspace.", "Connect or upload source data.", "Run processing until Intelligence Ready is true."];
   }
   const blockers = readiness.blockers ?? {};
   const guidance: string[] = [];
-  if (!blockers.jobs) guidance.push("Upload or connect at least one approved financial source so processing can start.");
+  if (!blockers.jobs) guidance.push("Upload or connect at least one financial source so processing can start.");
   if (!blockers.normalizedRecords) guidance.push("Complete normalization into unified financial records.");
   if (!blockers.memoryEntities) guidance.push("Build financial memory entities for customers, vendors, accounts, and events.");
   if (!blockers.intelligenceDatasets) guidance.push("Generate intelligence datasets for cash flow, receivables, payables, GST, compliance, and advisory.");
   if (blockers.openCritical) guidance.push("Resolve critical validation issues before enabling intelligence answers.");
   return guidance.length ? guidance : ["Review readiness factors and add missing supporting evidence."];
 }
-

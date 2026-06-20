@@ -62,7 +62,7 @@ const dataStarts: Choice[] = [
   { label: "Upload Files", description: "Drag and drop PDFs, CSVs, or Excel files directly.", icon: "upload_file" },
   { label: "Request Documents", description: "Send an automated secure link to your client.", icon: "mail" },
   { label: "Connect Email", description: "Sync relevant financial attachments from Gmail or Outlook.", icon: "sync" },
-  { label: "Connect Google Drive", description: "Select approved folders from Drive.", icon: "add_to_drive" },
+  { label: "Connect Google Drive", description: "Select folders from Drive.", icon: "add_to_drive" },
   { label: "Import Tally Export", description: "Upload standard Tally ERP exports.", icon: "account_balance" },
   { label: "Import Zoho Export", description: "Connect via API or upload Zoho exports.", icon: "dataset" }
 ];
