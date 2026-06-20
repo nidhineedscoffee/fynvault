@@ -87,7 +87,7 @@ export function FynnyEntry() {
   }
 
   if (!session?.authenticated) {
-    return <ScaleKitSignupScreen />;
+    return <FynnyLandingPage />;
   }
 
   if (!complete) {
@@ -95,6 +95,180 @@ export function FynnyEntry() {
   }
 
   return <FinvaultConsole />;
+}
+
+function FynnyLandingPage() {
+  const intelligenceCards = [
+    { label: "Collection", value: "Consent first", detail: "Read-only source access, client approved, revocable anytime." },
+    { label: "Processing", value: "6 stages", detail: "Collect, classify, validate, normalize, build memory, prepare intelligence." },
+    { label: "Readiness", value: "Score gated", detail: "Reports only unlock when data is complete, validated, and reconciled." },
+    { label: "Memory", value: "Persistent", detail: "Documents become financial events, relationships, and client context." }
+  ];
+
+  const sources = ["Gmail", "Google Drive", "Zoho Books", "Tally exports", "Bank statements", "GST files", "Spreadsheets", "PDFs"];
+
+  const timeline = [
+    { before: "Manual collection", after: "Approved data sources sync into one secure intake layer." },
+    { before: "Format cleanup", after: "Documents are classified and normalized into financial records." },
+    { before: "Missing-data chase", after: "Validation issues and readiness blockers are tracked per client." },
+    { before: "Report prep", after: "Ask Fynny and reports use only intelligence-ready datasets." }
+  ];
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#0a0a0a] text-[#e0e2e8] selection:bg-[#7a1f2b]/40">
+      <header className="fixed left-0 top-0 z-50 flex h-16 w-full items-center justify-between border-b border-white/5 bg-[#0a0a0a]/85 px-5 backdrop-blur-xl md:px-10">
+        <a href="#top" className="text-[22px] font-extrabold tracking-[-0.04em] text-white">
+          Fynny
+        </a>
+        <nav className="hidden items-center gap-8 md:flex">
+          {["Platform", "Intelligence", "Integrations", "Security"].map((item) => (
+            <a key={item} href={`#${item.toLowerCase()}`} className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/50 transition hover:text-white">
+              {item}
+            </a>
+          ))}
+        </nav>
+        <a href="/api/auth/scalekit" className="rounded-full border border-white/10 bg-white px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-[#0a0a0a] transition hover:bg-[#f2d8dc]">
+          Sign in
+        </a>
+      </header>
+
+      <section id="top" className="relative flex min-h-screen items-center justify-center px-6 pb-20 pt-28 text-center md:px-10">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(122,31,43,0.22),transparent_48%)]" />
+          <div className="absolute left-1/2 top-1/2 h-[620px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5" />
+          <div className="absolute left-[12%] top-[20%] h-40 w-40 rounded-full bg-[#7a1f2b]/10 blur-3xl" />
+          <div className="absolute bottom-[10%] right-[8%] h-52 w-52 rounded-full bg-white/5 blur-3xl" />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-6xl">
+          <div className="mx-auto mb-8 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 backdrop-blur-xl">
+            <span className="h-2 w-2 rounded-full bg-[#7a1f2b] shadow-[0_0_0_6px_rgba(122,31,43,0.18)]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/60">Operating layer for modern finance</span>
+          </div>
+          <h1 className="mx-auto max-w-5xl text-[52px] font-extrabold leading-[0.95] tracking-[-0.065em] text-white md:text-[96px] lg:text-[118px]">
+            Turn scattered client data into financial intelligence.
+          </h1>
+          <p className="mx-auto mt-8 max-w-3xl text-lg leading-8 text-white/62 md:text-xl">
+            Fynny collects approved financial documents, validates incomplete records, builds financial memory, and unlocks reports only when intelligence readiness is true.
+          </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
+            <a href="/api/auth/scalekit" className="w-full rounded-2xl border border-white/10 bg-[#7a1f2b] px-8 py-5 text-base font-bold text-white shadow-[0_24px_80px_rgba(122,31,43,0.3)] transition hover:-translate-y-0.5 hover:bg-[#661825] md:w-auto">
+              Get Started with ScaleKit
+            </a>
+            <a href="#platform" className="flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-8 py-5 text-base font-semibold text-white backdrop-blur-xl transition hover:bg-white/[0.08] md:w-auto">
+              <Icon name="play_circle" className="text-xl text-[#f2d8dc]" />
+              See how Fynny works
+            </a>
+          </div>
+
+          <div className="mx-auto mt-16 grid max-w-4xl grid-cols-1 gap-3 rounded-[32px] border border-white/10 bg-black/50 p-3 shadow-2xl backdrop-blur-xl md:grid-cols-3">
+            {["Processing Layer", "Financial Memory", "Intelligence Ready"].map((stage, index) => (
+              <div key={stage} className="rounded-3xl border border-white/5 bg-white/[0.03] p-5 text-left">
+                <div className="mb-8 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">0{index + 1}</span>
+                  <span className="h-2 w-2 rounded-full bg-[#7a1f2b]" />
+                </div>
+                <p className="text-sm font-bold text-white">{stage}</p>
+                <p className="mt-2 text-sm leading-6 text-white/45">{index === 0 ? "Validate every upload." : index === 1 ? "Persist client context." : "Gate reports safely."}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="platform" className="border-y border-white/5 bg-black/45 px-6 py-24 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#f2d8dc]/70">Ready for intelligence</p>
+            <h2 className="mt-4 text-4xl font-extrabold tracking-[-0.04em] text-white md:text-6xl">One backbone for CA firm operations.</h2>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {intelligenceCards.map((card) => (
+              <article key={card.label} className="rounded-[28px] border border-white/10 bg-white/[0.035] p-7 transition hover:-translate-y-1 hover:border-[#7a1f2b]/70 hover:bg-white/[0.055]">
+                <div className="mb-10 flex items-start justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-[0.22em] text-white/42">{card.label}</span>
+                  <span className="rounded bg-[#7a1f2b]/25 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#f2d8dc]">{card.value}</span>
+                </div>
+                <p className="text-base leading-7 text-white/68">{card.detail}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="intelligence" className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-6 py-28 md:px-10 lg:grid-cols-[0.85fr_1.15fr]">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#f2d8dc]/70">Collapse the timeline</p>
+          <h2 className="mt-5 text-4xl font-extrabold leading-tight tracking-[-0.045em] text-white md:text-6xl">
+            From messy inputs to client-ready decisions.
+          </h2>
+          <p className="mt-6 text-lg leading-8 text-white/58">
+            The product moat is the pipeline: processing to memory to intelligence. Reports, advisory, client visibility, and Ask Fynny all depend on the same readiness score.
+          </p>
+        </div>
+        <div className="rounded-[44px] border border-white/10 bg-[#080808] p-4 shadow-2xl">
+          {timeline.map((item, index) => (
+            <div key={item.before} className="grid gap-4 border-b border-white/5 p-5 last:border-b-0 md:grid-cols-[0.8fr_1.2fr]">
+              <div className="flex items-center gap-4 text-white/42">
+                <span className="grid h-9 w-9 place-items-center rounded-full border border-white/10 text-xs font-bold">0{index + 1}</span>
+                <span className="text-sm line-through">{item.before}</span>
+              </div>
+              <div className="rounded-2xl border border-[#7a1f2b]/25 bg-[#7a1f2b]/10 p-4 text-sm leading-6 text-white/78">{item.after}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="integrations" className="border-y border-white/5 bg-[#111] px-6 py-24 md:px-10">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#f2d8dc]/70">Secure collection</p>
+              <h2 className="mt-4 text-4xl font-extrabold tracking-[-0.04em] text-white md:text-6xl">Read-only by default. Consent at every source.</h2>
+              <p className="mt-6 text-lg leading-8 text-white/58">
+                Fynny only collects financial documents clients approve. It does not request unrelated mailbox or WhatsApp access for the MVP.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {sources.map((source) => (
+                <div key={source} className="rounded-3xl border border-white/10 bg-black/40 p-5 text-center">
+                  <Icon name={source.includes("Drive") ? "add_to_drive" : source.includes("Gmail") ? "mail" : source.includes("Bank") ? "account_balance" : source.includes("PDF") ? "picture_as_pdf" : "dataset"} className="text-3xl text-[#f2d8dc]" />
+                  <p className="mt-4 text-sm font-semibold text-white/78">{source}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="security" className="px-6 py-28 md:px-10">
+        <div className="mx-auto max-w-6xl overflow-hidden rounded-[48px] border border-white/10 bg-[#7a1f2b] p-10 text-center text-white shadow-[0_40px_120px_rgba(0,0,0,0.65)] md:p-20">
+          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/55">ScaleKit only signup</p>
+          <h2 className="mx-auto mt-5 max-w-4xl text-4xl font-extrabold leading-tight tracking-[-0.045em] md:text-6xl">
+            Start with a secure workspace, then connect approved client data.
+          </h2>
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/72">
+            Fynny only collects financial documents you approve. Access is read-only and can be revoked anytime.
+          </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
+            <a href="/api/auth/scalekit" className="w-full rounded-2xl bg-white px-8 py-5 text-base font-bold text-[#7a1f2b] transition hover:scale-[1.02] md:w-auto">
+              Create Workspace
+            </a>
+            <a href="#top" className="w-full rounded-2xl border border-white/15 bg-white/10 px-8 py-5 text-base font-bold text-white transition hover:bg-white/15 md:w-auto">
+              Back to top
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/5 px-6 py-10 text-white/35 md:px-10">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-sm md:flex-row md:items-center md:justify-between">
+          <p>Fynny. The operating layer for modern financial intelligence.</p>
+          <p>Built for CA firms. Scaled for client visibility.</p>
+        </div>
+      </footer>
+    </main>
+  );
 }
 
 function ScaleKitSignupScreen() {
