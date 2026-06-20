@@ -140,7 +140,7 @@ function Icon({ name, className = "text-[20px]", filled = false }: { name: strin
     </span>
   );
 }
-function SourceLogo({ source, className = "h-6 w-6" }: { source: string; className?: string }) {
+function SourceLogo({ source, className = "h-8 w-8" }: { source: string; className?: string }) {
   const normalized = source.toLowerCase();
   if (normalized.includes("gmail") || normalized.includes("email")) {
     return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#EA4335" d="M4 9.5 16 18l12-8.5V25a2 2 0 0 1-2 2h-4V15.8L16 20.1 10 15.8V27H6a2 2 0 0 1-2-2V9.5Z" /><path fill="#FBBC04" d="M4 9.5V7.8c0-1.6 1.8-2.5 3-1.6l9 6.4 9-6.4c1.2-.9 3 .1 3 1.6v1.7L16 18 4 9.5Z" /><path fill="#34A853" d="M22 27h4a2 2 0 0 0 2-2V9.5l-6 4.3V27Z" /><path fill="#4285F4" d="M4 9.5V25a2 2 0 0 0 2 2h4V13.8L4 9.5Z" /></svg>;
@@ -179,6 +179,21 @@ function SourceLogo({ source, className = "h-6 w-6" }: { source: string; classNa
     return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="20" rx="5" fill="#111" /><path fill="#fff" d="m12 12-4 4 4 4 1.4-1.4L10.8 16l2.6-2.6L12 12Zm8 0-1.4 1.4 2.6 2.6-2.6 2.6L20 20l4-4-4-4Zm-3.1.2-3 7 1.8.7 3-7-1.8-.7Z" /></svg>;
   }
   return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="8" fill="#700018" /><path fill="#fff" d="M10 11h12v3H10v-3Zm0 5h12v3H10v-3Zm0 5h8v3h-8v-3Z" /></svg>;
+}
+
+function sourceLogoTileClass(source: string, active = false) {
+  const normalized = source.toLowerCase();
+  if (normalized.includes("gmail") || normalized.includes("email")) return "bg-[#fff1f0] ring-[#f9d1cc]";
+  if (normalized.includes("drive")) return "bg-[#eef6ff] ring-[#c9defe]";
+  if (normalized.includes("zoho")) return "bg-[#fff8e6] ring-[#f4ddb0]";
+  if (normalized.includes("whatsapp")) return "bg-[#e9f9ef] ring-[#c9f0d7]";
+  if (normalized.includes("slack")) return "bg-[#f5edf6] ring-[#e3cbe5]";
+  if (normalized.includes("tally")) return "bg-[#eaf4ff] ring-[#c1dcf8]";
+  if (normalized.includes("spreadsheet") || normalized.includes("excel") || normalized.includes("csv")) return "bg-[#eaf7ef] ring-[#c5e8d1]";
+  if (normalized.includes("bank")) return "bg-[#eef4ff] ring-[#ccdcfb]";
+  if (normalized.includes("gst") || normalized.includes("tax")) return "bg-[#fff3e8] ring-[#f4d2b5]";
+  if (normalized.includes("manual") || normalized.includes("upload")) return "bg-[#f8ecef] ring-[#e5c5cc]";
+  return active ? "bg-[#700018]/10 ring-[#dcc0c0]" : "bg-[#f4f3f3] ring-[#e2e2e2]";
 }
 
 export function FinvaultConsole() {
@@ -883,7 +898,7 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
         <div className="space-y-2">
           {sources.length ? sources.slice(0, 5).map((source) => (
             <div key={source.id} className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-[#5f5e5e] transition hover:border-[#ececec] hover:bg-white hover:text-[#5b0617]">
-              <SourceLogo source={source.source_type || source.provider} className="h-5 w-5 shrink-0" />
+              <SourceLogo source={source.source_type || source.provider} className="h-6 w-6 shrink-0" />
               <span className="truncate text-sm">{titleCase(source.provider || source.source_type)}</span>
             </div>
           )) : <p className="rounded-lg border border-dashed border-[#dcc0c0] bg-white p-4 text-sm leading-6 text-[#5f5e5e]">No sources connected yet.</p>}
@@ -1132,7 +1147,7 @@ function SourcesScreen(props: {
             return (
               <button key={source.id} onClick={() => setSelectedSource(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
                 <div className="mb-5 flex items-start justify-between gap-3">
-                  <div className={`grid h-12 w-12 place-items-center rounded-2xl ${active ? "bg-[#700018]/10" : "bg-[#f4f3f3]"}`}>{loading ? <AgenticGlyph variant="validation" /> : <SourceLogo source={source.id} />}</div>
+                  <div className={`grid h-14 w-14 place-items-center rounded-2xl ring-1 ${sourceLogoTileClass(source.id, active)}`}>{loading ? <AgenticGlyph variant="validation" /> : <SourceLogo source={source.id} className="h-8 w-8" />}</div>
                   <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.action === "connect" ? "direct" : source.category}</span>
                 </div>
                 <p className="text-[17px] font-semibold text-[#111111]">{source.label}</p>
@@ -1152,7 +1167,7 @@ function SourcesScreen(props: {
             {props.sources.map((source) => (
               <div key={source.id} className="flex flex-col gap-4 rounded-2xl border border-[#e2e2e2] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-4">
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f4f3f3] text-[#700018]"><SourceLogo source={source.source_type} /></div>
+                  <div className={`grid h-12 w-12 place-items-center rounded-xl ring-1 ${sourceLogoTileClass(source.source_type || source.provider)}`}><SourceLogo source={source.source_type || source.provider} className="h-7 w-7" /></div>
                   <div className="min-w-0">
                     <p className="truncate text-[16px] font-semibold text-[#111111]">{titleCase(source.source_type)}</p>
                     <p className="text-sm text-[#5f5e5e]">{source.provider} / {titleCase(source.connection_status)} / {source.last_sync_at ? `Last sync ${formatDate(source.last_sync_at)}` : "Ready to sync"}</p>
@@ -1247,13 +1262,13 @@ function MiniMetric({ label, value, detail, tone }: { label: string; value: stri
   return <div className="rounded-xl border border-[#e2e2e2] bg-white p-5"><p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f5e5e]">{label}</p><p className="font-[var(--font-platform-mono)] text-[22px] font-semibold" style={{ color }}>{value}</p><p className="mt-2 text-[13px] text-[#5f5e5e]">{detail}</p></div>;
 }
 function VerifiedSources({ sources }: { sources: DataSource[] }) {
-  return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Connected Sources</p><div className="flex items-center gap-4">{["gmail", "google_drive", "zoho_books"].map((source) => <SourceLogo key={source} source={source} className="h-5 w-5" />)}</div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No sources yet. Connect read-only data sources first.</p>}</div></div>;
+  return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Connected Sources</p><div className="flex items-center gap-3">{["gmail", "google_drive", "zoho_books"].map((source) => <span key={source} className={`grid h-9 w-9 place-items-center rounded-xl ring-1 ${sourceLogoTileClass(source)}`}><SourceLogo source={source} className="h-5 w-5" /></span>)}</div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No sources yet. Connect read-only data sources first.</p>}</div></div>;
 }
 function SourceCard({ source }: { source: DataSource }) {
-  return <div className="flex items-center justify-between rounded-lg border border-[#e2e2e2] bg-white px-4 py-3"><div className="flex items-center gap-4"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f4f3f3]"><SourceLogo source={source.source_type || source.provider} className="h-5 w-5" /></span><span className="text-[16px] text-[#111111]">{titleCase(source.source_type)}</span></div><span className="font-[var(--font-platform-mono)] text-[13px] text-[#5f5e5e]">{titleCase(source.connection_status)}</span></div>;
+  return <div className="flex items-center justify-between rounded-lg border border-[#e2e2e2] bg-white px-4 py-3"><div className="flex items-center gap-4"><span className={`grid h-10 w-10 place-items-center rounded-lg ring-1 ${sourceLogoTileClass(source.source_type || source.provider)}`}><SourceLogo source={source.source_type || source.provider} className="h-6 w-6" /></span><span className="text-[16px] text-[#111111]">{titleCase(source.source_type)}</span></div><span className="font-[var(--font-platform-mono)] text-[13px] text-[#5f5e5e]">{titleCase(source.connection_status)}</span></div>;
 }
 function SourceLine({ source }: { source: DataSource }) {
-  return <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-lg border border-[#e2e2e2] bg-white"><SourceLogo source={source.source_type || source.provider} className="h-5 w-5" /></div><span className="flex-1 text-[16px] text-[#111111]">{titleCase(source.source_type)}</span><span className="h-2 w-2 rounded-full bg-[#00875a]" /></div>;
+  return <div className="flex items-center gap-3"><div className={`grid h-10 w-10 place-items-center rounded-lg ring-1 ${sourceLogoTileClass(source.source_type || source.provider)}`}><SourceLogo source={source.source_type || source.provider} className="h-6 w-6" /></div><span className="flex-1 text-[16px] text-[#111111]">{titleCase(source.source_type)}</span><span className="h-2 w-2 rounded-full bg-[#00875a]" /></div>;
 }
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return <section className="rounded-xl border border-[#ececec] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)]"><div className="border-b border-[#e2e2e2] px-6 py-4"><h3 className="text-[20px] font-semibold tracking-[-0.01em] text-[#5b0617]">{title}</h3></div><div className="p-6">{children}</div></section>;
