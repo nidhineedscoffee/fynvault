@@ -34,6 +34,7 @@ type DataSource = { id: string; source_type: string; provider: string; connectio
 type Report = { id: string; report_type: string; status: string; published_to_client?: boolean; created_at?: string };
 type ExportRow = { id: string; export_type: string; file_format: string; storage_url?: string; created_at?: string };
 type AskMessage = { role: "user" | "fynny"; text: string; blocked?: boolean };
+type ClientCreateInput = { name: string; businessType?: string; contactEmail?: string };
 type TabId = "ask" | "processing" | "clients" | "sources" | "validation" | "memory" | "reports" | "exports" | "advisory" | "portal" | "settings";
 type ActionNotice = { tone: "success" | "warning" | "error"; title: string; body: string } | null;
 type SourceCategory = "all" | "upload" | "integration" | "manual";
@@ -141,6 +142,8 @@ export function FinvaultConsole() {
   const [sourceNotice, setSourceNotice] = useState<ActionNotice>(null);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [syncingSource, setSyncingSource] = useState<string | null>(null);
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [chatNotice, setChatNotice] = useState<ActionNotice>(null);
 
   async function refresh() {
     setStatus((current) => ({ ...current, loading: true, error: null }));
@@ -211,7 +214,7 @@ export function FinvaultConsole() {
     if (!cleanQuestion) return;
     setMessages((current) => [...current, { role: "user", text: cleanQuestion }]);
     if (!clientId) {
-      setMessages((current) => [...current, { role: "fynny", text: "Choose a client before asking. Fynny answers only from that client's verified financial memory.", blocked: true }]);
+      setMessages((current) => [...current, { role: "fynny", text: clientRows.length ? "Choose a client from the portfolio first. Fynny answers only from that client's verified financial memory." : "Create your first client, connect approved data, and Fynny will answer from that client's financial memory.", blocked: true }]);
       return;
     }
     setAsking(true);
@@ -222,11 +225,51 @@ export function FinvaultConsole() {
     }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Ask Fynny is unavailable." }));
     setAsking(false);
     if (payload.ok === false) {
-      setMessages((current) => [...current, { role: "fynny", text: payload.error ?? "Ask Fynny is blocked until processing is complete.", blocked: true }]);
+      const blockedMessage = payload.error?.includes("Intelligence Ready")
+        ? "I need this client to reach Intelligence Ready before I can answer. Upload approved documents, resolve validation issues, and I will use the verified financial memory to respond."
+        : payload.error ?? "Ask Fynny is blocked until processing is complete.";
+      setMessages((current) => [...current, { role: "fynny", text: blockedMessage, blocked: true }]);
       return;
     }
     const answer = "data" in payload ? payload.data?.answer : undefined;
     setMessages((current) => [...current, { role: "fynny", text: answer ?? "I found intelligence-ready evidence, but no answer text was returned." }]);
+  }
+
+  async function createClient(input: ClientCreateInput) {
+    const name = input.name.trim();
+    if (!name) {
+      setChatNotice({ tone: "warning", title: "Client name needed", body: "Add a client name so Fynny can create a dedicated workspace." });
+      return false;
+    }
+    setCreatingClient(true);
+    setChatNotice(null);
+    try {
+      const payload = await readJson<{ ok?: boolean; data?: Client; error?: string }>("/api/clients", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name,
+          businessType: input.businessType?.trim() || undefined,
+          contactEmail: input.contactEmail?.trim() || undefined
+        })
+      });
+      if (payload.ok === false || !payload.data?.id) {
+        setChatNotice({ tone: "error", title: "Client could not be created", body: payload.error ?? "Please check the details and try again." });
+        return false;
+      }
+      const createdClient = payload.data;
+      setClientId(createdClient.id);
+      setChatNotice({ tone: "success", title: "Client workspace created", body: `${createdClient.name} is ready for secure data collection and processing.` });
+      setMessages((current) => [...current, { role: "fynny", text: `${createdClient.name} has been created. Next, connect approved data sources or upload files so I can build financial memory.`, blocked: true }]);
+      await refresh();
+      await refreshClient(createdClient.id);
+      return true;
+    } catch (error) {
+      setChatNotice({ tone: "error", title: "Client setup failed", body: error instanceof Error ? error.message : "Please try again." });
+      return false;
+    } finally {
+      setCreatingClient(false);
+    }
   }
 
   function guideToClient() {
@@ -340,6 +383,10 @@ export function FinvaultConsole() {
             setQuestion={setQuestion}
             submitAsk={submitAsk}
             asking={asking}
+            creatingClient={creatingClient}
+            createClient={createClient}
+            notice={chatNotice}
+            openSources={() => setActiveTab("sources")}
           />
         ) : (
           <WorkbenchShell title={titleForTab(activeTab)} subtitle={subtitleForTab(activeTab)} clientId={clientId} setClientId={setClientId} selectedClient={selectedClient} clientRows={clientRows} refresh={refresh} refreshing={refreshing}>
@@ -440,6 +487,10 @@ function AskWorkspace(props: {
   setQuestion: (value: string) => void;
   submitAsk: (event: FormEvent<HTMLFormElement>) => void;
   asking: boolean;
+  creatingClient: boolean;
+  createClient: (input: ClientCreateInput) => Promise<boolean>;
+  notice: ActionNotice;
+  openSources: () => void;
 }) {
   const hasUserQuestion = props.messages.some((message) => message.role === "user");
   const latestFynny = [...props.messages].reverse().find((message) => message.role === "fynny");
@@ -447,7 +498,7 @@ function AskWorkspace(props: {
 
   return (
     <main className="flex min-w-0 flex-1 overflow-hidden bg-[#ffffff]">
-      <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} />
+      <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} createClient={props.createClient} creatingClient={props.creatingClient} notice={props.notice} />
       <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-6 md:px-8">
           <div className="flex items-center gap-3">
@@ -484,6 +535,7 @@ function AskWorkspace(props: {
                     {latestFynny.text}
                   </div>
                 ) : null}
+                {!props.clientRows.length ? <FirstClientSetup createClient={props.createClient} creatingClient={props.creatingClient} notice={props.notice} /> : null}
                 <div className="grid w-full grid-cols-1 gap-4 pt-4 md:grid-cols-2 lg:grid-cols-3">
                   {askSuggestions.map((suggestion) => (
                     <button
@@ -537,7 +589,7 @@ function AskWorkspace(props: {
             <div className="min-w-0 flex-1 px-3">
               <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask about clients, reports, risks, compliance, cash flow, or advisory opportunities." className="w-full border-0 bg-transparent py-3 text-[16px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
             </div>
-            <button type="button" className="grid h-11 w-11 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617]"><Icon name="attach_file" className="text-[22px]" /></button>
+            <button type="button" onClick={props.openSources} className="grid h-11 w-11 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617]" aria-label="Open data sources"><Icon name="attach_file" className="text-[22px]" /></button>
             <button type="submit" disabled={props.asking} className="grid h-12 w-12 place-items-center rounded-xl bg-[#5b0617] text-white transition active:scale-95 disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[24px]" />}</button>
           </div>
           <div className="pointer-events-auto mt-4 hidden justify-center gap-10 text-[12px] text-[#5f5e5e] md:flex">
@@ -552,8 +604,9 @@ function AskWorkspace(props: {
   );
 }
 
-function ClientRail({ clients, clientId, setClientId }: { clients: Client[]; clientId: string; setClientId: (id: string) => void }) {
+function ClientRail({ clients, clientId, setClientId, createClient, creatingClient, notice }: { clients: Client[]; clientId: string; setClientId: (id: string) => void; createClient: (input: ClientCreateInput) => Promise<boolean>; creatingClient: boolean; notice: ActionNotice }) {
   const [query, setQuery] = useState("");
+  const [showCreate, setShowCreate] = useState(!clients.length);
   const filteredClients = clients.filter((client) => {
     const haystack = `${client.name} ${client.business_type ?? ""} ${client.contact_email ?? ""}`.toLowerCase();
     return haystack.includes(query.toLowerCase());
@@ -567,7 +620,11 @@ function ClientRail({ clients, clientId, setClientId }: { clients: Client[]; cli
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-3">
-        <p className="px-2 py-4 text-[11px] font-medium uppercase tracking-[0.22em] text-[#a0a0a0]">Client Portfolio</p>
+        <div className="flex items-center justify-between px-2 py-4">
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#a0a0a0]">Client Portfolio</p>
+          <button onClick={() => setShowCreate((value) => !value)} className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5b0617] hover:bg-[#eeeeee]">{showCreate ? "Close" : "Add"}</button>
+        </div>
+        {showCreate ? <CreateClientMiniForm createClient={createClient} creatingClient={creatingClient} notice={notice} onDone={() => setShowCreate(false)} /> : null}
         {filteredClients.length ? filteredClients.map((client) => {
           const active = client.id === clientId;
           return (
@@ -579,6 +636,55 @@ function ClientRail({ clients, clientId, setClientId }: { clients: Client[]; cli
         }) : <div className="rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-5 text-sm leading-6 text-[#5f5e5e]">{clients.length ? "No clients match that search." : "No clients connected yet. Add or invite your first client to begin."}</div>}
       </div>
     </aside>
+  );
+}
+
+function CreateClientMiniForm({ createClient, creatingClient, notice, onDone }: { createClient: (input: ClientCreateInput) => Promise<boolean>; creatingClient: boolean; notice: ActionNotice; onDone?: () => void }) {
+  const [name, setName] = useState("");
+  const [businessType, setBusinessType] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const created = await createClient({ name, businessType, contactEmail });
+    if (created) {
+      setName("");
+      setBusinessType("");
+      setContactEmail("");
+      onDone?.();
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mb-4 rounded-2xl border border-[#ececec] bg-[#f9f9f9] p-4">
+      <div className="mb-3 flex items-center gap-2 text-[#5b0617]">
+        <Icon name="add_business" className="text-[20px]" />
+        <span className="text-[12px] font-bold uppercase tracking-[0.12em]">New client</span>
+      </div>
+      <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Client name" className="mb-2 h-10 w-full rounded-xl border border-[#e2e2e2] bg-white px-3 text-sm outline-none focus:border-[#7a1f2b]" />
+      <input value={businessType} onChange={(event) => setBusinessType(event.target.value)} placeholder="Business type" className="mb-2 h-10 w-full rounded-xl border border-[#e2e2e2] bg-white px-3 text-sm outline-none focus:border-[#7a1f2b]" />
+      <input value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} placeholder="Client email optional" className="mb-3 h-10 w-full rounded-xl border border-[#e2e2e2] bg-white px-3 text-sm outline-none focus:border-[#7a1f2b]" />
+      {notice ? <p className={`mb-3 text-xs leading-5 ${notice.tone === "error" ? "text-[#93000a]" : notice.tone === "success" ? "text-emerald-700" : "text-amber-700"}`}>{notice.body}</p> : null}
+      <button disabled={creatingClient} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#111111] text-[12px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617] disabled:cursor-wait disabled:opacity-70">
+        {creatingClient ? <AgenticGlyph variant="validation" /> : <Icon name="arrow_forward" className="text-[18px]" />}
+        Create Workspace
+      </button>
+    </form>
+  );
+}
+
+function FirstClientSetup({ createClient, creatingClient, notice }: { createClient: (input: ClientCreateInput) => Promise<boolean>; creatingClient: boolean; notice: ActionNotice }) {
+  return (
+    <div className="w-full max-w-2xl rounded-[28px] border border-[#ececec] bg-white p-5 text-left shadow-[0_18px_60px_rgba(17,17,17,0.06)]">
+      <div className="grid gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+        <div>
+          <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#700018]">Start here</p>
+          <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[#111111]">Create your first client workspace.</h3>
+          <p className="mt-3 text-sm leading-6 text-[#5f5e5e]">Ask Fynny works client by client. Once a client exists, upload files or request read-only source consent to build financial memory.</p>
+        </div>
+        <CreateClientMiniForm createClient={createClient} creatingClient={creatingClient} notice={notice} />
+      </div>
+    </div>
   );
 }
 

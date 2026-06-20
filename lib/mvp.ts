@@ -341,12 +341,19 @@ export async function answerMvpQuestion(clientId: string, input: z.infer<typeof 
   for (const result of [calculations, datasets, memory]) {
     if (result.error) return dbError(result.error);
   }
+  const readinessData = readiness.data as { score: number; factors: Record<string, number> };
+  const calculationCount = calculations.data?.length ?? 0;
+  const datasetCount = datasets.data?.length ?? 0;
+  const memoryCount = memory.data?.length ?? 0;
+  const factorSummary = Object.entries(readinessData.factors)
+    .map(([name, score]) => `${name.replaceAll("_", " ")} ${score}%`)
+    .join(", ");
   return {
     ok: true as const,
     data: {
-      answer: "Fynny can answer from intelligence-ready calculations, datasets, and financial memory only. Use the evidence payload to render a client-safe response.",
+      answer: `This client is Intelligence Ready with a readiness score of ${readinessData.score}%. For "${input.question}", I found ${calculationCount} recent calculations, ${datasetCount} intelligence datasets, and ${memoryCount} financial memory events. Key readiness factors: ${factorSummary}. Use the cited evidence below to prepare the client-safe response; Fynny has not invented any numbers outside the verified records.`,
       question: input.question,
-      readiness: readiness.data,
+      readiness: readinessData,
       evidence: {
         calculations: calculations.data ?? [],
         datasets: datasets.data ?? [],
