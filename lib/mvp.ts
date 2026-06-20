@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { createSupabaseServerClient } from "./supabase";
+import { buildFinancialIntelligenceAnswer, buildReadinessTrainingGuidance } from "./financial-intelligence";
 import { getIntelligenceReadiness, requireIntelligenceReady } from "./processing";
 
 export const ClientSchema = z.object({
@@ -330,7 +331,13 @@ export async function answerMvpQuestion(clientId: string, input: z.infer<typeof 
   clientId = normalizeUuid(clientId);
   if (!isUuid(clientId)) return fail(400, "clientId must be a valid UUID.");
   const readiness = await requireIntelligenceReady(clientId);
-  if (!readiness.ok) return readiness;
+  if (!readiness.ok) {
+    const blocked = readiness as typeof readiness & { readiness?: { score: number; factors: Record<string, number>; blockers?: Record<string, number> } };
+    return {
+      ...readiness,
+      trainingGuidance: buildReadinessTrainingGuidance(blocked.readiness)
+    };
+  }
   const ready = supabaseOrFail();
   if (!ready.ok) return ready;
   const [calculations, datasets, memory] = await Promise.all([
@@ -342,18 +349,20 @@ export async function answerMvpQuestion(clientId: string, input: z.infer<typeof 
     if (result.error) return dbError(result.error);
   }
   const readinessData = readiness.data as { score: number; factors: Record<string, number> };
-  const calculationCount = calculations.data?.length ?? 0;
-  const datasetCount = datasets.data?.length ?? 0;
-  const memoryCount = memory.data?.length ?? 0;
-  const factorSummary = Object.entries(readinessData.factors)
-    .map(([name, score]) => `${name.replaceAll("_", " ")} ${score}%`)
-    .join(", ");
+  const intelligence = buildFinancialIntelligenceAnswer({
+    question: input.question,
+    readiness: readinessData,
+    calculations: calculations.data ?? [],
+    datasets: datasets.data ?? [],
+    memoryEvents: memory.data ?? []
+  });
   return {
     ok: true as const,
     data: {
-      answer: `This client is Intelligence Ready with a readiness score of ${readinessData.score}%. For "${input.question}", I found ${calculationCount} recent calculations, ${datasetCount} intelligence datasets, and ${memoryCount} financial memory events. Key readiness factors: ${factorSummary}. Use the cited evidence below to prepare the client-safe response; Fynny has not invented any numbers outside the verified records.`,
+      answer: intelligence.answer,
       question: input.question,
       readiness: readinessData,
+      intelligence,
       evidence: {
         calculations: calculations.data ?? [],
         datasets: datasets.data ?? [],

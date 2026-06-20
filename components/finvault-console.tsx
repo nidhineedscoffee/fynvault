@@ -218,15 +218,15 @@ export function FinvaultConsole() {
       return;
     }
     setAsking(true);
-    const payload = await readJson<{ ok?: boolean; data?: { answer?: string }; error?: string }>(`/api/clients/${clientId}/ask`, {
+    const payload = await readJson<{ ok?: boolean; data?: { answer?: string }; error?: string; trainingGuidance?: string[] }>(`/api/clients/${clientId}/ask`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ question: cleanQuestion })
-    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Ask Fynny is unavailable." }));
+    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Ask Fynny is unavailable.", trainingGuidance: [] }));
     setAsking(false);
     if (payload.ok === false) {
       const blockedMessage = payload.error?.includes("Intelligence Ready")
-        ? "I need this client to reach Intelligence Ready before I can answer. Upload approved documents, resolve validation issues, and I will use the verified financial memory to respond."
+        ? `I need this client to reach Intelligence Ready before I can answer. ${payload.trainingGuidance?.length ? payload.trainingGuidance.join(" ") : "Upload approved documents, resolve validation issues, and I will use the verified financial memory to respond."}`
         : payload.error ?? "Ask Fynny is blocked until processing is complete.";
       setMessages((current) => [...current, { role: "fynny", text: blockedMessage, blocked: true }]);
       return;
