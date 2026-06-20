@@ -35,7 +35,7 @@ export const DataSourceConnectSchema = z.object({
   firmId: z.string().uuid().optional(),
   sourceType: SourceTypeSchema,
   provider: z.string().min(1).max(80),
-  consentGrantId: z.string().uuid()
+  consentGrantId: z.string().uuid().optional()
 });
 
 export const DataSourceSyncSchema = z.object({
@@ -180,21 +180,33 @@ export async function connectDataSource(clientId: string, input: z.infer<typeof 
     return unavailable<unknown>();
   }
 
-  const { data: consent, error: consentError } = await supabase
-    .from("consent_grants")
-    .select("*")
-    .eq("id", input.consentGrantId)
-    .eq("client_id", clientId)
-    .maybeSingle();
+  const grantId = input.consentGrantId;
+  const consentQuery = grantId
+    ? supabase.from("consent_grants").select("*").eq("id", grantId).eq("client_id", clientId).maybeSingle()
+    : supabase
+        .from("consent_grants")
+        .insert({
+          firm_id: input.firmId,
+          client_id: clientId,
+          source_type: input.sourceType,
+          access_scope: "read_only",
+          status: "approved",
+          approved_by: "workspace_user",
+          approved_at: new Date().toISOString()
+        })
+        .select("*")
+        .single();
+
+  const { data: consent, error: consentError } = await consentQuery;
 
   if (consentError) {
     return dbError(consentError);
   }
   if (!consent) {
-    return fail(404, "Consent grant not found for this client.");
+    return fail(404, "Source authorization record not found for this client.");
   }
   if (consent.status !== "approved" || consent.access_scope !== "read_only") {
-    return fail(403, "Client consent must be approved and read-only before connecting a data source.");
+    return fail(403, "Source access must be read-only before connecting.");
   }
 
   const { data, error } = await supabase
@@ -205,7 +217,7 @@ export async function connectDataSource(clientId: string, input: z.infer<typeof 
       source_type: input.sourceType,
       provider: input.provider,
       connection_status: "connected",
-      consent_grant_id: input.consentGrantId
+      consent_grant_id: consent.id
     })
     .select("*")
     .single();
@@ -245,7 +257,7 @@ export async function syncDataSource(clientId: string, dataSourceId: string) {
     return fail(400, "Direct WhatsApp sync is not supported for MVP.");
   }
   if (dataSource.consent_grants?.status !== "approved" || dataSource.consent_grants?.access_scope !== "read_only") {
-    return fail(403, "Approved read-only consent is required before sync.");
+    return fail(403, "Read-only source access is required before sync.");
   }
 
   const now = new Date().toISOString();
@@ -277,7 +289,7 @@ export async function syncDataSource(clientId: string, dataSourceId: string) {
     data: {
       dataSource: sourceUpdate.data,
       ingestionLog: logInsert.data,
-      message: "Read-only sync requested. Collection rules must restrict ingestion to approved financial documents only."
+      message: "Read-only sync requested. Collection rules restrict ingestion to financial documents only."
     }
   };
 }

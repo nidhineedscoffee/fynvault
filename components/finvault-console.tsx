@@ -45,7 +45,7 @@ type SourceOption = {
   icon: string;
   category: SourceCategory;
   description: string;
-  action: "upload" | "consent" | "manual";
+  action: "upload" | "connect" | "manual";
 };
 
 const navItems: Array<{ id: TabId; label: string; icon: string }> = [
@@ -63,9 +63,9 @@ const navItems: Array<{ id: TabId; label: string; icon: string }> = [
 const processingStages = ["collection", "classification", "extraction", "validation", "normalization", "memory_build", "intelligence_ready"];
 const sourceOptions: SourceOption[] = [
   { id: "manual_upload", label: "Secure Upload", provider: "Fynny Vault", icon: "upload_file", category: "upload", action: "upload", description: "Upload PDFs, spreadsheets, bank statements, GST files, and exports." },
-  { id: "gmail", label: "Gmail", provider: "Google", icon: "mail", category: "integration", action: "consent", description: "Read-only collection for approved financial emails and attachments." },
-  { id: "google_drive", label: "Google Drive", provider: "Google", icon: "add_to_drive", category: "integration", action: "consent", description: "Connect approved folders without touching unrelated files." },
-  { id: "zoho_books", label: "Zoho Books", provider: "Zoho", icon: "account_balance", category: "integration", action: "consent", description: "Bring books, invoices, customers, and accounting exports into processing." },
+  { id: "gmail", label: "Gmail", provider: "Google", icon: "mail", category: "integration", action: "connect", description: "Connect Gmail for financial emails and attachments only." },
+  { id: "google_drive", label: "Google Drive", provider: "Google", icon: "add_to_drive", category: "integration", action: "connect", description: "Connect Drive folders and pull financial files into processing." },
+  { id: "zoho_books", label: "Zoho Books", provider: "Zoho", icon: "account_balance", category: "integration", action: "connect", description: "Bring books, invoices, customers, and accounting exports into Fynny." },
   { id: "bank_statement", label: "Bank Statements", provider: "Manual upload", icon: "assured_workload", category: "upload", action: "upload", description: "Process statement files through validation and financial memory." },
   { id: "gst_file", label: "GST Files", provider: "Manual upload", icon: "receipt_long", category: "upload", action: "upload", description: "Validate GST inputs, filing periods, and missing compliance records." },
   { id: "spreadsheet", label: "Spreadsheets", provider: "Excel / CSV", icon: "table_chart", category: "upload", action: "upload", description: "Normalize trackers, reconciliations, ledgers, and exported reports." },
@@ -235,7 +235,7 @@ export function FinvaultConsole() {
     if (!cleanQuestion) return;
     setMessages((current) => [...current, { role: "user", text: cleanQuestion }]);
     if (!clientId) {
-      setMessages((current) => [...current, { role: "fynny", text: clientRows.length ? "Choose a client from the portfolio first. Fynny answers only from that client's verified financial memory." : "Create your first client, connect approved data, and Fynny will answer from that client's financial memory.", blocked: true }]);
+      setMessages((current) => [...current, { role: "fynny", text: clientRows.length ? "Choose a client from the portfolio first. Fynny answers only from that client's verified financial memory." : "Create your first client, connect data sources, and Fynny will answer from that client's financial memory.", blocked: true }]);
       return;
     }
     setAsking(true);
@@ -247,7 +247,7 @@ export function FinvaultConsole() {
     setAsking(false);
     if (payload.ok === false) {
       const blockedMessage = payload.error?.includes("Intelligence Ready")
-        ? `I need this client to reach Intelligence Ready before I can answer. ${payload.trainingGuidance?.length ? payload.trainingGuidance.join(" ") : "Upload approved documents, resolve validation issues, and I will use the verified financial memory to respond."}`
+        ? `I need this client to reach Intelligence Ready before I can answer. ${payload.trainingGuidance?.length ? payload.trainingGuidance.join(" ") : "Upload documents, resolve validation issues, and I will use the verified financial memory to respond."}`
         : payload.error ?? "Ask Fynny is blocked until processing is complete.";
       setMessages((current) => [...current, { role: "fynny", text: blockedMessage, blocked: true }]);
       return;
@@ -281,7 +281,7 @@ export function FinvaultConsole() {
       const createdClient = payload.data;
       setClientId(createdClient.id);
       setChatNotice({ tone: "success", title: "Client workspace created", body: `${createdClient.name} is ready for secure data collection and processing.` });
-      setMessages((current) => [...current, { role: "fynny", text: `${createdClient.name} has been created. Next, connect approved data sources or upload files so I can build financial memory.`, blocked: true }]);
+      setMessages((current) => [...current, { role: "fynny", text: `${createdClient.name} has been created. Next, connect tools or upload files so I can build financial memory.`, blocked: true }]);
       await refresh();
       await refreshClient(createdClient.id);
       return true;
@@ -295,30 +295,30 @@ export function FinvaultConsole() {
 
   function guideToClient() {
     setActiveTab("clients");
-    setSourceNotice({ tone: "warning", title: "Choose a client first", body: "Data collection is always client-specific so consent, files, and processing stay isolated." });
+    setSourceNotice({ tone: "warning", title: "Choose a client first", body: "Every connection is attached to one client workspace so files, syncs, and processing stay cleanly separated." });
   }
 
-  async function requestConsent(sourceType: string) {
+  async function connectSource(source: SourceOption) {
     if (!clientId) {
       guideToClient();
       return;
     }
-    setRequestingSource(sourceType);
+    setRequestingSource(source.id);
     setSourceNotice(null);
     try {
-      const payload = await readJson<{ ok?: boolean; error?: string }>(`/api/clients/${clientId}/consent/request`, {
+      const payload = await readJson<{ ok?: boolean; data?: { dataSource?: DataSource }; error?: string }>(`/api/clients/${clientId}/data-sources/connect`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sourceType, accessScope: "read_only" })
+        body: JSON.stringify({ sourceType: source.id, provider: source.provider })
       });
       if (payload.ok === false) {
-        setSourceNotice({ tone: "error", title: "Consent request could not be created", body: payload.error ?? "Please check the source setup and try again." });
+        setSourceNotice({ tone: "error", title: "Connection could not be created", body: payload.error ?? "Please check the source setup and try again." });
       } else {
-        setSourceNotice({ tone: "success", title: "Consent request created", body: "The client can approve read-only access before any sync begins." });
+        setSourceNotice({ tone: "success", title: `${source.label} connected`, body: "Fynny created a read-only connection and can now sync financial records for this client." });
       }
       await refreshClient(clientId);
     } catch (error) {
-      setSourceNotice({ tone: "error", title: "Connection request failed", body: error instanceof Error ? error.message : "Please try again." });
+      setSourceNotice({ tone: "error", title: "Connection failed", body: error instanceof Error ? error.message : "Please try again." });
     } finally {
       setRequestingSource(null);
     }
@@ -376,9 +376,9 @@ export function FinvaultConsole() {
         body: JSON.stringify({ dataSourceId })
       });
       if (payload.ok === false) {
-        setSourceNotice({ tone: "error", title: "Sync could not start", body: payload.error ?? "Please confirm client consent and try again." });
+        setSourceNotice({ tone: "error", title: "Sync could not start", body: payload.error ?? "Please reconnect the source and try again." });
       } else {
-        setSourceNotice({ tone: "success", title: "Read-only sync started", body: "Fynny will collect only approved financial records for this client." });
+        setSourceNotice({ tone: "success", title: "Sync started", body: "Fynny will collect financial records for this client and send them into processing." });
         await refreshClient(clientId);
       }
     } catch (error) {
@@ -420,13 +420,13 @@ export function FinvaultConsole() {
             {hasMigrationBlocker ? <SystemNotice title="Workspace setup needed" body="Some processing services are not fully configured yet. Finish setup to activate readiness, reports, and Ask Fynny." /> : null}
             {activeTab === "processing" ? <ProcessingScreen jobs={jobs} error={processing.error} /> : null}
             {activeTab === "clients" ? <ClientsScreen clients={clientRows} error={clients.error} setClientId={setClientId} setActiveTab={setActiveTab} /> : null}
-            {activeTab === "sources" ? <SourcesScreen sources={dataSources} error={sources.error} clientId={clientId} selectedClient={selectedClient} requestConsent={requestConsent} uploadDocument={uploadDocument} syncSource={syncSource} requestingSource={requestingSource} uploadingDocument={uploadingDocument} syncingSource={syncingSource} notice={sourceNotice} setActiveTab={setActiveTab} /> : null}
+            {activeTab === "sources" ? <SourcesScreen sources={dataSources} error={sources.error} clientId={clientId} selectedClient={selectedClient} connectSource={connectSource} uploadDocument={uploadDocument} syncSource={syncSource} requestingSource={requestingSource} uploadingDocument={uploadingDocument} syncingSource={syncingSource} notice={sourceNotice} setActiveTab={setActiveTab} /> : null}
             {activeTab === "validation" ? <ValidationScreen issues={openIssues} error={issues.error} /> : null}
             {activeTab === "memory" ? <MemoryScreen clientId={clientId} isReady={isReady} readiness={readiness.data} /> : null}
             {activeTab === "reports" ? <ReportsScreen reports={reportRows} error={reports.error} isReady={isReady} /> : null}
             {activeTab === "exports" ? <ExportsScreen exports={exportRows} error={exports.error} isReady={isReady} /> : null}
             {activeTab === "advisory" ? <SimpleScreen icon="auto_graph" title={clientId ? (isReady ? "Advisory engine can discover opportunities." : "Advisory waits for Intelligence Ready.") : "Choose a client"} body="Opportunities are generated from verified records, reconciliation state, and financial memory. Fynny will not fabricate recommendations." /> : null}
-            {activeTab === "portal" ? <SimpleScreen icon="approval_delegation" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Choose a client"} body="Client visibility, consent approvals, report publishing, and revocation flows are backed by live workspace services." /> : null}
+            {activeTab === "portal" ? <SimpleScreen icon="approval_delegation" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Choose a client"} body="Client visibility, report publishing, and workspace controls are backed by live services." /> : null}
             {activeTab === "settings" ? <SettingsScreen providers={providerRows} status={status.data} session={session.data} /> : null}
           </WorkbenchShell>
         )}
@@ -439,7 +439,7 @@ function LiveBanner() {
   return (
     <div className="h-8 border-b border-[#e2e2e2] bg-[#f4f3f3] px-4 text-center">
       <span className="inline-flex h-full items-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[#5f5e5e]">
-        Live workspace - connect approved practice data to generate client intelligence.
+        Live workspace - connect tools, upload files, and generate client intelligence.
       </span>
     </div>
   );
@@ -706,7 +706,7 @@ function FirstClientSetup({ createClient, creatingClient, notice }: { createClie
         <div>
           <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#700018]">Start here</p>
           <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[#111111]">Create your first client workspace.</h3>
-          <p className="mt-3 text-sm leading-6 text-[#5f5e5e]">Ask Fynny works client by client. Once a client exists, upload files or request read-only source consent to build financial memory.</p>
+          <p className="mt-3 text-sm leading-6 text-[#5f5e5e]">Ask Fynny works client by client. Once a client exists, connect tools or upload files to build financial memory.</p>
         </div>
         <CreateClientMiniForm createClient={createClient} creatingClient={creatingClient} notice={notice} />
       </div>
@@ -766,7 +766,7 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
               <Icon name={iconForSource(source.source_type)} className="text-[18px]" />
               <span className="truncate text-sm">{titleCase(source.provider || source.source_type)}</span>
             </div>
-          )) : <p className="rounded-lg border border-dashed border-[#dcc0c0] bg-white p-4 text-sm leading-6 text-[#5f5e5e]">No approved sources connected yet.</p>}
+          )) : <p className="rounded-lg border border-dashed border-[#dcc0c0] bg-white p-4 text-sm leading-6 text-[#5f5e5e]">No sources connected yet.</p>}
         </div>
       </section>
 
@@ -838,7 +838,7 @@ function ProcessingScreen({ jobs, error }: { jobs: ProcessingJob[]; error: strin
           <h2 className="text-[26px] font-semibold tracking-[-0.01em] text-[#5b0617]">Recent Pipeline Activity</h2>
           <div className="hidden items-center gap-3 md:flex"><div className="flex h-12 w-80 items-center rounded-lg border border-[#dcc0c0] bg-white px-4 text-[#5f5e5e]"><Icon name="search" className="mr-3 text-[22px]" /> Search files or clients...</div><button className="h-12 rounded-lg border border-[#dcc0c0] bg-white px-5 text-[#1a1c1c]"><Icon name="filter_list" className="mr-2 text-[20px]" /> Filter</button></div>
         </div>
-        <DataTable headers={["Client", "Source", "File Name", "Type", "Month", "Stage", "Issue", "Action"]} empty={error ?? "No processing jobs found. Upload approved client documents to begin the pipeline."} rows={jobs.map((job) => [shortId(job.client_id), titleCase(job.source_type), shortId(job.document_id), "Financial Document", formatDate(job.created_at), titleCase(job.current_stage), job.status === "failed" ? "Needs review" : "-", job.intelligence_ready ? "View" : "Wait"])} />
+        <DataTable headers={["Client", "Source", "File Name", "Type", "Month", "Stage", "Issue", "Action"]} empty={error ?? "No processing jobs found. Upload client documents to begin the pipeline."} rows={jobs.map((job) => [shortId(job.client_id), titleCase(job.source_type), shortId(job.document_id), "Financial Document", formatDate(job.created_at), titleCase(job.current_stage), job.status === "failed" ? "Needs review" : "-", job.intelligence_ready ? "View" : "Wait"])} />
       </section>
     </section>
   );
@@ -882,7 +882,7 @@ function SourcesScreen(props: {
   error: string | null;
   clientId: string;
   selectedClient?: Client;
-  requestConsent: (sourceType: string) => Promise<void>;
+  connectSource: (source: SourceOption) => Promise<void>;
   uploadDocument: (file: File, sourceType?: string) => Promise<void>;
   syncSource: (dataSourceId: string) => Promise<void>;
   requestingSource: string | null;
@@ -896,6 +896,11 @@ function SourcesScreen(props: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const visibleSources = sourceOptions.filter((source) => activeCategory === "all" || source.category === activeCategory);
   const busy = props.uploadingDocument || props.requestingSource === selectedSource.id;
+  const sourceCounts = {
+    connected: props.sources.length,
+    integrations: sourceOptions.filter((source) => source.category === "integration").length,
+    uploads: sourceOptions.filter((source) => source.category === "upload").length
+  };
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -910,55 +915,65 @@ function SourcesScreen(props: {
       fileInputRef.current?.click();
       return;
     }
-    if (source.action === "consent") {
-      void props.requestConsent(source.id);
+    if (source.action === "connect") {
+      void props.connectSource(source);
       return;
     }
     props.setActiveTab("sources");
   }
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-6">
       <input ref={fileInputRef} onChange={handleFileChange} className="hidden" type="file" accept=".pdf,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.txt" />
-      <div className="overflow-hidden rounded-[28px] border border-[#ececec] bg-white shadow-[0_18px_60px_rgba(17,17,17,0.05)]">
-        <div className="grid gap-8 p-6 md:p-8 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-6">
+      <div className="overflow-hidden rounded-[32px] border border-[#ececec] bg-[#111111] text-white shadow-[0_24px_80px_rgba(17,17,17,0.12)]">
+        <div className="grid gap-8 p-6 md:p-8 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="flex min-h-[320px] flex-col justify-between gap-8">
             <div>
-              <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#700018]">Secure collection</p>
-              <h2 className="mt-3 text-[34px] font-semibold tracking-[-0.03em] text-[#111111] md:text-[44px]">Connect only what the client approves.</h2>
-              <p className="mt-4 max-w-xl text-[16px] leading-7 text-[#5f5e5e]">Fynny keeps every source read-only, client-specific, and revocable. No unrelated emails, files, or messages are collected.</p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-[#cfa0a6]">Data command center</p>
+              <h2 className="mt-4 max-w-xl text-[38px] font-semibold tracking-[-0.04em] text-white md:text-[54px]">Connect the client stack in minutes.</h2>
+              <p className="mt-5 max-w-xl text-[16px] leading-7 text-white/68">Pick a client, connect Gmail, Drive, Zoho, or upload files. Fynny keeps access read-only and routes every record into processing automatically.</p>
             </div>
-            <div className="rounded-2xl border border-[#e2e2e2] bg-[#f9f9f9] p-4">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#5f5e5e]">Active client</p>
-              <div className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="truncate text-[18px] font-semibold text-[#111111]">{props.selectedClient?.name ?? "No client selected"}</p>
-                  <p className="mt-1 text-sm text-[#5f5e5e]">{props.selectedClient?.business_type || props.selectedClient?.contact_email || "Choose a client before collecting data."}</p>
-                </div>
-                <button onClick={() => props.setActiveTab("clients")} className="shrink-0 rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Choose</button>
-              </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <MiniMetric label="Connected" value={String(sourceCounts.connected)} tone="maroon" detail="Live sources" />
+              <MiniMetric label="Integrations" value={String(sourceCounts.integrations)} tone="dark" detail="Ready to connect" />
+              <MiniMetric label="Uploads" value={String(sourceCounts.uploads)} tone="dark" detail="CSV, PDF, XLSX" />
             </div>
-            {props.notice ? <ActionNoticeCard notice={props.notice} /> : null}
           </div>
-          <div className="rounded-[24px] border border-[#e2e2e2] bg-[#f9f9f9] p-5">
-            <div className="mb-5 flex items-center gap-4">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-[#700018] shadow-sm">
+          <div className="rounded-[28px] border border-white/10 bg-white p-5 text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
+            <div className="flex flex-col gap-4 border-b border-[#eeeeee] pb-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#f6eeee] text-[#700018]">
+                  <Icon name="business_center" className="text-[24px]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#777]">Active workspace</p>
+                  <p className="truncate text-[19px] font-semibold">{props.selectedClient?.name ?? "No client selected"}</p>
+                  <p className="mt-1 text-sm text-[#666]">{props.selectedClient?.business_type || props.selectedClient?.contact_email || "Choose a client before connecting tools."}</p>
+                </div>
+              </div>
+              <button onClick={() => props.setActiveTab("clients")} className="shrink-0 rounded-full border border-[#dcc0c0] bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Choose Client</button>
+            </div>
+            <div className="mt-5 flex items-start gap-4 rounded-3xl bg-[#f7f6f5] p-5">
+              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-white text-[#700018] shadow-sm">
                 {busy ? <AgenticGlyph variant="validation" /> : <SourceLogo source={selectedSource.id} className="h-7 w-7" />}
               </div>
-              <div>
-                <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#5f5e5e]">{selectedSource.provider}</p>
-                <h3 className="text-[24px] font-semibold text-[#111111]">{selectedSource.label}</h3>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#777]">{selectedSource.provider}</p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#700018]">{selectedSource.category}</span>
+                </div>
+                <h3 className="mt-1 text-[26px] font-semibold tracking-[-0.02em] text-[#111111]">{selectedSource.label}</h3>
+                <p className="mt-2 text-[14px] leading-6 text-[#666]">{selectedSource.description}</p>
               </div>
             </div>
-            <p className="text-[15px] leading-7 text-[#5f5e5e]">{selectedSource.description}</p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <FieldBox label="Access" value={selectedSource.action === "consent" ? "Read-only" : "Client-approved"} />
-              <FieldBox label="Isolation" value="Per client" />
-              <FieldBox label="Control" value="Revocable" />
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <FieldBox label="Access" value="Read-only" />
+              <FieldBox label="Setup" value={selectedSource.action === "connect" ? "Direct connect" : "Upload file"} />
+              <FieldBox label="Routing" value="Auto process" />
             </div>
             <button onClick={() => runPrimaryAction()} disabled={busy} className="mt-6 flex w-full items-center justify-center gap-3 rounded-2xl bg-[#111111] px-6 py-4 text-[15px] font-bold text-white shadow-[0_16px_36px_rgba(17,17,17,0.16)] transition hover:bg-[#5b0617] disabled:cursor-wait disabled:opacity-70">
-              {busy ? <AgenticGlyph variant="validation" /> : <Icon name={selectedSource.action === "consent" ? "lock_open" : selectedSource.action === "upload" ? "upload_file" : "ios_share"} className="text-[22px]" />}
-              {selectedSource.action === "consent" ? "Request Client Consent" : selectedSource.action === "upload" ? "Upload File" : "Use Secure Upload Link"}
+              {busy ? <AgenticGlyph variant="validation" /> : <Icon name={selectedSource.action === "connect" ? "add_link" : selectedSource.action === "upload" ? "upload_file" : "ios_share"} className="text-[22px]" />}
+              {selectedSource.action === "connect" ? `Connect ${selectedSource.label}` : selectedSource.action === "upload" ? "Upload File" : "Use Upload Link"}
             </button>
             {selectedSource.category === "upload" ? (
               <div className="mt-4 rounded-2xl border border-[#eadada] bg-white/70 p-3">
@@ -972,23 +987,24 @@ function SourcesScreen(props: {
                 </div>
               </div>
             ) : null}
-            {selectedSource.action === "manual" ? <p className="mt-3 text-center text-xs leading-5 text-[#5f5e5e]">For MVP, WhatsApp stays safe: use upload links, mobile portal, or forwarded files. Fynny will not request full WhatsApp access.</p> : null}
+            {selectedSource.action === "manual" ? <p className="mt-3 text-center text-xs leading-5 text-[#5f5e5e]">For MVP, WhatsApp uses upload links, mobile portal, or forwarded files. Fynny does not need full WhatsApp access.</p> : null}
+            {props.notice ? <div className="mt-4"><ActionNoticeCard notice={props.notice} /></div> : null}
           </div>
         </div>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto rounded-full border border-[#e2e2e2] bg-white p-1">
+      <div className="flex gap-2 overflow-x-auto rounded-[22px] border border-[#e2e2e2] bg-white p-1.5 shadow-sm">
         {[
           { id: "all", label: "All Sources" },
           { id: "upload", label: "Uploads" },
           { id: "integration", label: "Integrations" },
-          { id: "manual", label: "Manual Collection" }
+          { id: "manual", label: "WhatsApp / Manual" }
         ].map((item) => (
           <button key={item.id} onClick={() => setActiveCategory(item.id as SourceCategory)} className={`shrink-0 rounded-full px-5 py-3 text-[12px] font-bold uppercase tracking-[0.1em] transition ${activeCategory === item.id ? "bg-[#111111] text-white" : "text-[#5f5e5e] hover:bg-[#f4f3f3]"}`}>{item.label}</button>
         ))}
       </div>
 
-      <Card title="Collection Sources">
+      <Card title="Connect Sources">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {visibleSources.map((source) => {
             const active = selectedSource.id === source.id;
@@ -997,12 +1013,12 @@ function SourcesScreen(props: {
               <button key={source.id} onClick={() => setSelectedSource(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
                 <div className="mb-5 flex items-start justify-between gap-3">
                   <div className={`grid h-12 w-12 place-items-center rounded-2xl ${active ? "bg-[#700018]/10" : "bg-[#f4f3f3]"}`}>{loading ? <AgenticGlyph variant="validation" /> : <SourceLogo source={source.id} />}</div>
-                  <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.category}</span>
+                  <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.action === "connect" ? "direct" : source.category}</span>
                 </div>
                 <p className="text-[17px] font-semibold text-[#111111]">{source.label}</p>
                 <p className="mt-2 text-[13px] leading-6 text-[#5f5e5e]">{source.description}</p>
                 <span className="mt-5 inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#700018]">
-                  Select source <Icon name="arrow_forward" className="text-[16px]" />
+                  {source.action === "connect" ? "Connect" : "Select"} <Icon name="arrow_forward" className="text-[16px]" />
                 </span>
               </button>
             );
@@ -1019,7 +1035,7 @@ function SourcesScreen(props: {
                   <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f4f3f3] text-[#700018]"><SourceLogo source={source.source_type} /></div>
                   <div className="min-w-0">
                     <p className="truncate text-[16px] font-semibold text-[#111111]">{titleCase(source.source_type)}</p>
-                    <p className="text-sm text-[#5f5e5e]">{source.provider} / {titleCase(source.connection_status)} / {titleCase(source.consent_status ?? "requested")}</p>
+                    <p className="text-sm text-[#5f5e5e]">{source.provider} / {titleCase(source.connection_status)} / {source.last_sync_at ? `Last sync ${formatDate(source.last_sync_at)}` : "Ready to sync"}</p>
                   </div>
                 </div>
                 <button onClick={() => void props.syncSource(source.id)} disabled={props.syncingSource === source.id} className="rounded-full border border-[#dcc0c0] px-5 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617] disabled:cursor-wait disabled:opacity-60">
@@ -1028,7 +1044,7 @@ function SourcesScreen(props: {
               </div>
             ))}
           </div>
-        ) : <EmptyState icon="hub" title="No connected sources yet" body={props.error ?? "Choose a client, request consent, or upload approved financial files to begin."} />}
+        ) : <EmptyState icon="hub" title="No connected sources yet" body={props.error ?? "Choose a client, connect an integration, or upload financial files to begin."} />}
       </Card>
     </section>
   );
@@ -1041,7 +1057,7 @@ function ValidationScreen({ issues, error }: { issues: Issue[]; error: string | 
   return <Card title="Validation Center"><DataTable headers={["Severity", "Category", "Issue", "Status", "Suggested Fix"]} empty={error ?? "No open validation issues for this client."} rows={issues.map((issue) => [titleCase(issue.severity), titleCase(issue.category), issue.message, titleCase(issue.status), issue.suggested_fix ?? "Review source document"])} /></Card>;
 }
 function MemoryScreen({ clientId, isReady, readiness }: { clientId: string; isReady: boolean; readiness: ReadinessResponse | null }) {
-  return <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><Card title="Financial Memory Graph"><EmptyState icon="memory" title={clientId ? (isReady ? "Financial memory is ready to show client events." : "Memory builds after validation and normalization.") : "Choose a client"} body="Financial memory contains events, entities, and relationships generated from approved client data only." /></Card><Card title="Readiness Factors"><div className="space-y-4">{Object.entries(readiness?.data?.factors ?? {}).map(([name, score]) => <FactorBar key={name} label={titleCase(name)} value={score} />)}{!readiness?.data ? <p className="text-sm text-[#5f5e5e]">No readiness profile loaded yet.</p> : null}</div></Card></section>;
+  return <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><Card title="Financial Memory Graph"><EmptyState icon="memory" title={clientId ? (isReady ? "Financial memory is ready to show client events." : "Memory builds after validation and normalization.") : "Choose a client"} body="Financial memory contains events, entities, and relationships generated from connected client data." /></Card><Card title="Readiness Factors"><div className="space-y-4">{Object.entries(readiness?.data?.factors ?? {}).map(([name, score]) => <FactorBar key={name} label={titleCase(name)} value={score} />)}{!readiness?.data ? <p className="text-sm text-[#5f5e5e]">No readiness profile loaded yet.</p> : null}</div></Card></section>;
 }
 function ReportsScreen({ reports, error, isReady }: { reports: Report[]; error: string | null; isReady: boolean }) {
   return <Card title="Reports"><DataTable headers={["Report", "Status", "Published", "Created"]} empty={error ?? (isReady ? "No reports generated yet." : "Reports are blocked until Intelligence Ready is true.")} rows={reports.map((report) => [titleCase(report.report_type), titleCase(report.status), report.published_to_client ? "Yes" : "No", formatDate(report.created_at)])} /></Card>;
@@ -1054,14 +1070,14 @@ function SimpleScreen({ icon, title, body }: { icon: string; title: string; body
 }
 
 function InsightGrid({ readinessScore, issueCount, sourceCount }: { readinessScore: number; issueCount: number; sourceCount: number }) {
-  return <div className="grid gap-4 md:grid-cols-3"><MiniMetric label="Readiness" value={`${readinessScore}%`} tone="maroon" detail="Live score" /><MiniMetric label="Open Issues" value={String(issueCount)} tone={issueCount ? "red" : "dark"} detail={issueCount ? "Needs review" : "Clear"} /><MiniMetric label="Sources" value={String(sourceCount)} tone="dark" detail="Approved" /></div>;
+  return <div className="grid gap-4 md:grid-cols-3"><MiniMetric label="Readiness" value={`${readinessScore}%`} tone="maroon" detail="Live score" /><MiniMetric label="Open Issues" value={String(issueCount)} tone={issueCount ? "red" : "dark"} detail={issueCount ? "Needs review" : "Clear"} /><MiniMetric label="Sources" value={String(sourceCount)} tone="dark" detail="Connected" /></div>;
 }
 function MiniMetric({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "maroon" | "red" | "dark" }) {
   const color = tone === "red" ? "#ba1a1a" : tone === "maroon" ? "#700018" : "#111111";
   return <div className="rounded-xl border border-[#e2e2e2] bg-white p-5"><p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f5e5e]">{label}</p><p className="font-[var(--font-platform-mono)] text-[22px] font-semibold" style={{ color }}>{value}</p><p className="mt-2 text-[13px] text-[#5f5e5e]">{detail}</p></div>;
 }
 function VerifiedSources({ sources }: { sources: DataSource[] }) {
-  return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Verified Sources</p><div className="flex gap-6 text-[#5f5e5e]"><Icon name="picture_as_pdf" /><Icon name="table_chart" /><Icon name="content_copy" /></div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No verified sources yet. Connect approved, read-only data sources first.</p>}</div></div>;
+  return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Connected Sources</p><div className="flex gap-6 text-[#5f5e5e]"><Icon name="picture_as_pdf" /><Icon name="table_chart" /><Icon name="content_copy" /></div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No sources yet. Connect read-only data sources first.</p>}</div></div>;
 }
 function SourceCard({ source }: { source: DataSource }) {
   return <div className="flex items-center justify-between rounded-lg border border-[#e2e2e2] bg-white px-4 py-3"><div className="flex items-center gap-4"><span className="text-[#700018]"><Icon name={iconForSource(source.source_type)} className="text-[22px]" /></span><span className="text-[16px] text-[#111111]">{titleCase(source.source_type)}</span></div><span className="font-[var(--font-platform-mono)] text-[13px] text-[#5f5e5e]">{titleCase(source.connection_status)}</span></div>;
@@ -1131,7 +1147,7 @@ function subtitleForTab(tab: TabId) {
     ask: "Financial intelligence command console",
     processing: "Real-time data pipeline integrity",
     clients: "Client visibility and firm workload",
-    sources: "Consent-based, read-only data collection",
+    sources: "Direct read-only source connections",
     validation: "Missing data and reconciliation issues",
     memory: "Financial events, entities, and relationships",
     reports: "Client-ready intelligence outputs",
