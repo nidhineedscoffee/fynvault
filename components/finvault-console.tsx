@@ -33,7 +33,18 @@ type Issue = { id: string; severity: string; category: string; message: string; 
 type DataSource = { id: string; source_type: string; provider: string; connection_status: string; consent_status?: string; last_sync_at?: string };
 type Report = { id: string; report_type: string; status: string; published_to_client?: boolean; created_at?: string };
 type ExportRow = { id: string; export_type: string; file_format: string; storage_url?: string; created_at?: string };
-type AskMessage = { role: "user" | "fynny"; text: string; blocked?: boolean };
+type ExportLayoutColumn = { key: string; label: string; type: string; formula?: string; source?: string };
+type ExportLayout = { id: string; label: string; description: string; columns: ExportLayoutColumn[]; sheets: Array<{ name: string; purpose: string; columns: string[] }>; standardProcess: string[] };
+type IntelligencePayload = {
+  matchedUseCases?: Array<{ id: string; label: string; intent: string; requiredEvidence: string[] }>;
+  formulas?: Array<{ label: string; formula: string; useWhen: string; guardrail: string }>;
+  processChecks?: string[];
+  requiredEvidence?: string[];
+  exportLayout?: ExportLayout;
+  nextBestActions?: string[];
+  confidence?: string;
+};
+type AskMessage = { role: "user" | "fynny"; text: string; blocked?: boolean; intelligence?: IntelligencePayload };
 type ClientCreateInput = { name: string; businessType?: string; contactEmail?: string };
 type TabId = "ask" | "processing" | "clients" | "sources" | "validation" | "memory" | "reports" | "exports" | "advisory" | "portal" | "settings";
 type ActionNotice = { tone: "success" | "warning" | "error"; title: string; body: string } | null;
@@ -76,6 +87,7 @@ const askSuggestions = [
   { icon: "account_balance_wallet", title: "Cash Flow", prompt: "Explain cash-flow pressure and runway using verified records.", body: "Use receivables, payables, and bank records." },
   { icon: "verified_user", title: "Compliance", prompt: "List compliance gaps and missing filing inputs.", body: "Check GST, TDS, and missing validation blockers." },
   { icon: "trending_up", title: "Advisory", prompt: "Find advisory opportunities from financial memory.", body: "Surface tax, working capital, and risk opportunities." },
+  { icon: "table_chart", title: "Export Layout", prompt: "Give me the standard CSV and Excel export layout with formulas for this client.", body: "Return model columns, sheets, and evidence checks." },
   { icon: "dashboard_customize", title: "Portfolio Intelligence", prompt: "Compare this client against readiness, issues, and source coverage.", body: "Summarize what is ready and what still blocks reports.", wide: true }
 ];
 
@@ -239,7 +251,7 @@ export function FinvaultConsole() {
       return;
     }
     setAsking(true);
-    const payload = await readJson<{ ok?: boolean; data?: { answer?: string }; error?: string; trainingGuidance?: string[] }>(`/api/clients/${clientId}/ask`, {
+    const payload = await readJson<{ ok?: boolean; data?: { answer?: string; intelligence?: IntelligencePayload; exportModel?: ExportLayout }; error?: string; trainingGuidance?: string[] }>(`/api/clients/${clientId}/ask`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ question: cleanQuestion })
@@ -253,7 +265,26 @@ export function FinvaultConsole() {
       return;
     }
     const answer = "data" in payload ? payload.data?.answer : undefined;
-    setMessages((current) => [...current, { role: "fynny", text: answer ?? "I found intelligence-ready evidence, but no answer text was returned." }]);
+    const intelligence = "data" in payload ? payload.data?.intelligence : undefined;
+    setMessages((current) => [...current, { role: "fynny", text: answer ?? "I found intelligence-ready evidence, but no answer text was returned.", intelligence }]);
+  }
+
+  async function generateClientExport(exportType: string, fileFormat: "csv" | "xlsx" | "pdf") {
+    if (!clientId) {
+      setSourceNotice({ tone: "warning", title: "Choose a client", body: "Select a client before generating exports." });
+      return;
+    }
+    setExports((current) => ({ ...current, loading: true, error: null }));
+    const payload = await readJson<{ ok?: boolean; data?: ExportRow & { file?: { filename: string; storageUrl: string } }; error?: string }>(`/api/clients/${clientId}/exports`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ exportType, fileFormat })
+    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Export generation failed." }));
+    if (payload.ok === false) {
+      setExports((current) => ({ ...current, loading: false, error: payload.error ?? "Export generation failed." }));
+      return;
+    }
+    await refreshClient(clientId);
   }
 
   async function createClient(input: ClientCreateInput) {
@@ -421,7 +452,7 @@ export function FinvaultConsole() {
             {activeTab === "validation" ? <ValidationScreen issues={openIssues} error={issues.error} /> : null}
             {activeTab === "memory" ? <MemoryScreen clientId={clientId} isReady={isReady} readiness={readiness.data} /> : null}
             {activeTab === "reports" ? <ReportsScreen reports={reportRows} error={reports.error} isReady={isReady} /> : null}
-            {activeTab === "exports" ? <ExportsScreen exports={exportRows} error={exports.error} isReady={isReady} /> : null}
+            {activeTab === "exports" ? <ExportsScreen exports={exportRows} error={exports.error} isReady={isReady} generateExport={generateClientExport} generating={exports.loading} /> : null}
             {activeTab === "advisory" ? <SimpleScreen icon="auto_graph" title={clientId ? (isReady ? "Advisory engine can discover opportunities." : "Advisory waits for Intelligence Ready.") : "Choose a client"} body="Opportunities are generated from verified records, reconciliation state, and financial memory. Fynny will not fabricate recommendations." /> : null}
             {activeTab === "portal" ? <SimpleScreen icon="approval_delegation" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Choose a client"} body="Client visibility, report publishing, and workspace controls are backed by live services." /> : null}
             {activeTab === "settings" ? <SettingsScreen providers={providerRows} status={status.data} session={session.data} /> : null}
@@ -597,6 +628,7 @@ function AskWorkspace(props: {
                         <span className="mb-4 block text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5b0617]">Executive Summary</span>
                         <p className="font-[var(--font-source-serif)] text-[28px] leading-snug text-[#1a1c1c]">{message.text}</p>
                       </div>
+                      {message.intelligence ? <FinancialModelPanel intelligence={message.intelligence} /> : null}
                       <InsightGrid readinessScore={props.readinessScore} issueCount={props.openIssues.length} sourceCount={props.dataSources.length} />
                       <VerifiedSources sources={props.dataSources} />
                     </article>
@@ -659,6 +691,70 @@ function ClientRail({ clients, clientId, setClientId, createClient, creatingClie
         }) : <div className="rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-5 text-sm leading-6 text-[#5f5e5e]">{clients.length ? "No clients match that search." : "No clients connected yet. Add or invite your first client to begin."}</div>}
       </div>
     </aside>
+  );
+}
+
+function FinancialModelPanel({ intelligence }: { intelligence: IntelligencePayload }) {
+  const layout = intelligence.exportLayout;
+  const formulas = intelligence.formulas ?? [];
+  const checks = intelligence.processChecks ?? [];
+  const evidence = intelligence.requiredEvidence ?? [];
+  return (
+    <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="rounded-xl border border-[#ececec] bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5b0617]">Financial Model</span>
+            <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[#111111]">{layout?.label ?? "Evidence Model"}</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5f5e5e]">{layout?.description ?? "Fynny maps the answer to standard financial processes and validated evidence."}</p>
+          </div>
+          <span className="rounded-full border border-[#dcc0c0] bg-[#f9f9f9] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b0617]">{titleCase(intelligence.confidence)} Confidence</span>
+        </div>
+        {layout ? (
+          <div className="overflow-x-auto rounded-xl border border-[#e2e2e2]">
+            <table className="w-full min-w-[680px] text-left">
+              <thead className="bg-[#f8f8f8]">
+                <tr>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Column</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Type</th>
+                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Formula or Source</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f4f3f3]">
+                {layout.columns.slice(0, 8).map((column) => (
+                  <tr key={column.key}>
+                    <td className="px-4 py-4 text-sm font-semibold text-[#1a1c1c]">{column.label}</td>
+                    <td className="px-4 py-4 text-sm uppercase tracking-[0.08em] text-[#5f5e5e]">{column.type}</td>
+                    <td className="px-4 py-4 font-[var(--font-platform-mono)] text-xs leading-5 text-[#5b0617]">{column.formula ?? column.source ?? "verified record"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </div>
+      <div className="space-y-4">
+        <ModelList title="Standard Process" icon="rule_settings" items={layout?.standardProcess ?? checks} />
+        <ModelList title="Formulas Used" icon="function" items={formulas.map((formula) => `${formula.label}: ${formula.formula}`)} />
+        <ModelList title="Evidence Required" icon="fact_check" items={evidence} />
+      </div>
+    </section>
+  );
+}
+
+function ModelList({ title, icon, items }: { title: string; icon: string; items: string[] }) {
+  return (
+    <div className="rounded-xl border border-[#ececec] bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+      <div className="mb-4 flex items-center gap-2 text-[#5b0617]">
+        <Icon name={icon} className="text-[20px]" />
+        <h4 className="text-[13px] font-semibold uppercase tracking-[0.14em]">{title}</h4>
+      </div>
+      <div className="space-y-3">
+        {(items.length ? items.slice(0, 5) : ["No additional model detail returned."]).map((item, index) => (
+          <div key={`${title}-${index}`} className="rounded-lg border border-[#f0e6e6] bg-[#f9f9f9] px-4 py-3 text-sm leading-6 text-[#1a1c1c]">{item}</div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1059,8 +1155,58 @@ function MemoryScreen({ clientId, isReady, readiness }: { clientId: string; isRe
 function ReportsScreen({ reports, error, isReady }: { reports: Report[]; error: string | null; isReady: boolean }) {
   return <Card title="Reports"><DataTable headers={["Report", "Status", "Published", "Created"]} empty={error ?? (isReady ? "No reports generated yet." : "Reports are blocked until Intelligence Ready is true.")} rows={reports.map((report) => [titleCase(report.report_type), titleCase(report.status), report.published_to_client ? "Yes" : "No", formatDate(report.created_at)])} /></Card>;
 }
-function ExportsScreen({ exports, error, isReady }: { exports: ExportRow[]; error: string | null; isReady: boolean }) {
-  return <Card title="Exports"><DataTable headers={["Export", "Format", "File", "Created"]} empty={error ?? (isReady ? "No exports generated yet." : "Exports are blocked until Intelligence Ready is true.")} rows={exports.map((row) => [titleCase(row.export_type), row.file_format.toUpperCase(), row.storage_url ? "Available" : "Pending", formatDate(row.created_at)])} /></Card>;
+function ExportsScreen({ exports, error, isReady, generateExport, generating }: { exports: ExportRow[]; error: string | null; isReady: boolean; generateExport: (exportType: string, fileFormat: "csv" | "xlsx" | "pdf") => void; generating: boolean }) {
+  const exportActions = [
+    { type: "mis_report", format: "xlsx" as const, title: "MIS Workbook", body: "Revenue, margin, variance, formulas, and audit sheets." },
+    { type: "cleaned_sales_register", format: "csv" as const, title: "Sales Register CSV", body: "Invoice cleanup, receivables aging, and collection risk." },
+    { type: "cleaned_purchase_register", format: "csv" as const, title: "Purchase Register CSV", body: "Vendor bills, payables aging, and payment priority." },
+    { type: "gst_ready_data", format: "csv" as const, title: "GST Ready CSV", body: "Output GST, ITC, payable estimate, and mismatch status." }
+  ];
+  return (
+    <section className="space-y-6">
+      <Card title="Generate Exports">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {exportActions.map((action) => (
+            <button
+              key={action.type}
+              type="button"
+              disabled={!isReady || generating}
+              onClick={() => generateExport(action.type, action.format)}
+              className="rounded-2xl border border-[#ececec] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#5b0617] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#5b0617] text-white"><Icon name="download" className="text-[22px]" /></div>
+              <h3 className="text-[18px] font-semibold text-[#111111]">{action.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">{action.body}</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5b0617]">{generating ? "Generating" : `Create ${action.format.toUpperCase()}`} <Icon name="arrow_forward" className="text-[16px]" /></span>
+            </button>
+          ))}
+        </div>
+        {!isReady ? <p className="mt-5 rounded-xl border border-[#dcc0c0] bg-[#f9f9f9] p-4 text-sm leading-6 text-[#5f5e5e]">Exports are locked until Intelligence Ready is true, so client-facing files are never generated from incomplete data.</p> : null}
+      </Card>
+      <Card title="Generated Files">
+        {error ? <ActionNoticeCard notice={{ tone: "error", title: "Exports unavailable", body: error }} /> : null}
+        {exports.length ? (
+          <div className="overflow-x-auto rounded-xl border border-[#e2e2e2] bg-white">
+            <table className="w-full min-w-[780px] border-collapse text-left">
+              <thead className="bg-[#f8f8f8]"><tr>{["Export", "Format", "File", "Created"].map((header) => <th key={header} className="px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">{header}</th>)}</tr></thead>
+              <tbody className="divide-y divide-[#f8f8f8]">
+                {exports.map((row) => (
+                  <tr key={row.id} className="hover:bg-[#f8f8f8]">
+                    <td className="px-5 py-5 text-[15px] font-semibold text-[#1a1c1c]">{titleCase(row.export_type)}</td>
+                    <td className="px-5 py-5 text-[15px] uppercase text-[#5f5e5e]">{row.file_format}</td>
+                    <td className="px-5 py-5 text-[15px]">
+                      {row.storage_url ? <a href={row.storage_url} download={`fynny-${row.export_type}.${row.file_format === "xlsx" ? "xls" : row.file_format}`} className="inline-flex items-center gap-2 rounded-lg bg-[#5b0617] px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-white"><Icon name="download" className="text-[16px]" /> Download</a> : <span className="text-[#5f5e5e]">Pending</span>}
+                    </td>
+                    <td className="px-5 py-5 text-[15px] text-[#5f5e5e]">{formatDate(row.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <EmptyState icon="file_download" title="No Exports Yet" body={isReady ? "Generate MIS, GST, sales, or purchase files from verified intelligence." : "Exports are blocked until Intelligence Ready is true."} />}
+      </Card>
+    </section>
+  );
 }
 function SimpleScreen({ icon, title, body }: { icon: string; title: string; body: string }) {
   return <Card title={titleForIcon(icon)}><EmptyState icon={icon} title={title} body={body} /></Card>;

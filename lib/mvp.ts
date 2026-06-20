@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { createSupabaseServerClient } from "./supabase";
-import { buildFinancialIntelligenceAnswer, buildReadinessTrainingGuidance } from "./financial-intelligence";
+import { buildFinancialIntelligenceAnswer, buildReadinessTrainingGuidance, getExportLayoutForType, type ExportLayout } from "./financial-intelligence";
 import { getIntelligenceReadiness, requireIntelligenceReady } from "./processing";
 
 export const ClientSchema = z.object({
@@ -141,6 +141,133 @@ function firstValue(row: Record<string, string>, keys: string[]) {
 
 function titleCase(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function csvCell(value: unknown) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function buildCsv(columns: ExportLayout["columns"], rows: Array<Record<string, unknown>>) {
+  const header = columns.map((column) => csvCell(column.label)).join(",");
+  const body = rows.map((row) => columns.map((column) => csvCell(row[column.key])).join(",")).join("\n");
+  return [header, body].filter(Boolean).join("\n");
+}
+
+function safeExportFileName(exportType: string, fileFormat: string) {
+  return `fynny-${exportType.replaceAll("_", "-")}-${new Date().toISOString().slice(0, 10)}.${fileFormat === "xlsx" ? "xls" : fileFormat}`;
+}
+
+function valueFromPayload(row: Record<string, unknown>, keys: string[]) {
+  const payload = (row.normalized_payload ?? row.payload ?? row.source_payload ?? row.data_json ?? {}) as Record<string, unknown>;
+  const direct = keys.map((key) => row[key]).find((value) => value !== undefined && value !== null && value !== "");
+  if (direct !== undefined && direct !== null && direct !== "") return direct;
+  const lowerPayload = new Map(Object.entries(payload).map(([key, value]) => [key.toLowerCase(), value]));
+  return keys.map((key) => lowerPayload.get(key.toLowerCase())).find((value) => value !== undefined && value !== null && value !== "") ?? "";
+}
+
+function exportRowsFromEvidence(exportType: string, input: {
+  calculations: Array<Record<string, unknown>>;
+  normalizedRecords: Array<Record<string, unknown>>;
+  datasets: Array<Record<string, unknown>>;
+  readinessScore: number;
+}) {
+  const records = input.normalizedRecords;
+  const calc = input.calculations[0] ?? {};
+  if (exportType === "bank_summary") {
+    return [
+      {
+        period: `${calc.month ?? "Current"} ${calc.year ?? "Period"}`,
+        opening_balance: "",
+        cash_inflow: calc.cash_inflow ?? 0,
+        cash_outflow: calc.cash_outflow ?? 0,
+        net_cash_position: calc.net_cash_position ?? 0,
+        closing_balance: calc.net_cash_position ?? 0,
+        runway_months: "",
+        reconciliation_status: input.readinessScore >= 80 ? "ready" : "needs_review"
+      }
+    ];
+  }
+  if (exportType === "gst_ready_data") {
+    return [
+      {
+        period: `${calc.month ?? "Current"} ${calc.year ?? "Period"}`,
+        outward_taxable_value: calc.cash_inflow ?? 0,
+        output_gst: Number(calc.cash_inflow ?? 0) * 0.18,
+        inward_taxable_value: calc.cash_outflow ?? 0,
+        eligible_itc: Number(calc.cash_outflow ?? 0) * 0.18,
+        gst_payable: calc.gst_estimate ?? 0,
+        mismatch_status: input.readinessScore >= 80 ? "ready" : "needs_review"
+      }
+    ];
+  }
+  if (exportType === "mis_report") {
+    const revenue = Number(calc.cash_inflow ?? 0);
+    const directCost = Number(calc.cash_outflow ?? 0);
+    const grossMargin = revenue ? ((revenue - directCost) / revenue) * 100 : "";
+    return [
+      {
+        period: `${calc.month ?? "Current"} ${calc.year ?? "Period"}`,
+        revenue,
+        direct_cost: directCost,
+        gross_margin: grossMargin,
+        opex: "",
+        ebitda_margin: "",
+        net_margin: "",
+        variance_notes: "Generated from normalized financial records and calculation audit."
+      }
+    ];
+  }
+  if (exportType === "cleaned_purchase_register") {
+    return records.slice(0, 100).map((row) => ({
+      vendor_name: valueFromPayload(row, ["vendor_name", "vendor", "counterparty", "description"]),
+      bill_no: valueFromPayload(row, ["bill_no", "invoice_no", "reference_no"]),
+      bill_date: valueFromPayload(row, ["bill_date", "invoice_date", "date"]),
+      due_date: valueFromPayload(row, ["due_date"]),
+      bill_amount: valueFromPayload(row, ["amount", "bill_amount", "total_amount"]),
+      outstanding_amount: valueFromPayload(row, ["outstanding_amount", "amount", "bill_amount"]),
+      aging_bucket: "",
+      priority: "review"
+    }));
+  }
+  if (exportType === "cleaned_sales_register") {
+    return records.slice(0, 100).map((row) => ({
+      customer_name: valueFromPayload(row, ["customer_name", "customer", "counterparty", "description"]),
+      invoice_no: valueFromPayload(row, ["invoice_no", "reference_no"]),
+      invoice_date: valueFromPayload(row, ["invoice_date", "date"]),
+      due_date: valueFromPayload(row, ["due_date"]),
+      invoice_amount: valueFromPayload(row, ["amount", "invoice_amount", "total_amount"]),
+      outstanding_amount: valueFromPayload(row, ["outstanding_amount", "amount", "invoice_amount"]),
+      aging_bucket: "",
+      dso_basis: "",
+      risk_level: "review"
+    }));
+  }
+  return [
+    {
+      opportunity_type: input.datasets[0]?.dataset_type ?? "financial_review",
+      evidence: `${input.calculations.length} calculations, ${input.datasets.length} datasets, ${records.length} normalized records`,
+      financial_impact: "Review with CA before client-facing action.",
+      risk_level: input.readinessScore >= 80 ? "medium" : "high",
+      recommended_action: "Open supporting records and validate assumptions."
+    }
+  ];
+}
+
+function buildExportArtifact(exportType: string, fileFormat: string, layout: ExportLayout, rows: Array<Record<string, unknown>>) {
+  const csv = buildCsv(layout.columns, rows);
+  const mimeType = fileFormat === "xlsx" ? "application/vnd.ms-excel" : fileFormat === "pdf" ? "text/plain" : "text/csv";
+  const content = fileFormat === "pdf"
+    ? `${layout.label}\n\n${layout.description}\n\n${csv}`
+    : csv;
+  return {
+    filename: safeExportFileName(exportType, fileFormat),
+    mimeType,
+    content,
+    storageUrl: `data:${mimeType};charset=utf-8,${encodeURIComponent(content)}`,
+    layout,
+    rowCount: rows.length
+  };
 }
 
 function classifyDocument(input: { name?: string; sourceType?: string; documentCategory?: string; extractedText?: string }) {
@@ -694,12 +821,13 @@ export async function answerMvpQuestion(clientId: string, input: z.infer<typeof 
   }
   const ready = supabaseOrFail();
   if (!ready.ok) return ready;
-  const [calculations, datasets, memory] = await Promise.all([
-    ready.supabase.from("calculations").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(3),
-    ready.supabase.from("intelligence_datasets").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5),
-    ready.supabase.from("financial_memory_events").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5)
+  const [calculations, datasets, memory, normalizedRecords] = await Promise.all([
+    ready.supabase.from("calculations").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(5),
+    ready.supabase.from("intelligence_datasets").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(10),
+    ready.supabase.from("financial_memory_events").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(10),
+    ready.supabase.from("normalized_records").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(50)
   ]);
-  for (const result of [calculations, datasets, memory]) {
+  for (const result of [calculations, datasets, memory, normalizedRecords]) {
     if (result.error) return dbError(result.error);
   }
   const readinessData = readiness.data as { score: number; factors: Record<string, number> };
@@ -717,10 +845,12 @@ export async function answerMvpQuestion(clientId: string, input: z.infer<typeof 
       question: input.question,
       readiness: readinessData,
       intelligence,
+      exportModel: intelligence.exportLayout,
       evidence: {
         calculations: calculations.data ?? [],
         datasets: datasets.data ?? [],
-        memoryEvents: memory.data ?? []
+        memoryEvents: memory.data ?? [],
+        normalizedRecords: normalizedRecords.data ?? []
       }
     }
   };
@@ -796,12 +926,37 @@ export async function generateExport(clientId: string, input: z.infer<typeof Exp
   if (!readiness.ok) return readiness;
   const ready = supabaseOrFail();
   if (!ready.ok) return ready;
+  const [calculations, datasets, normalizedRecords] = await Promise.all([
+    ready.supabase.from("calculations").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(10),
+    ready.supabase.from("intelligence_datasets").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(10),
+    ready.supabase.from("normalized_records").select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(100)
+  ]);
+  for (const result of [calculations, datasets, normalizedRecords]) {
+    if (result.error) return dbError(result.error);
+  }
+  const readinessData = readiness.data as { score: number };
+  const layout = getExportLayoutForType(input.exportType);
+  const exportRows = exportRowsFromEvidence(input.exportType, {
+    calculations: calculations.data ?? [],
+    datasets: datasets.data ?? [],
+    normalizedRecords: normalizedRecords.data ?? [],
+    readinessScore: readinessData.score
+  });
+  const artifact = buildExportArtifact(input.exportType, input.fileFormat, layout, exportRows);
   const { data, error } = await ready.supabase
     .from("exports")
-    .insert({ firm_id: input.firmId, client_id: clientId, export_type: input.exportType, file_format: input.fileFormat, source_report_id: input.sourceReportId, source_dataset_id: input.sourceDatasetId })
+    .insert({
+      firm_id: input.firmId,
+      client_id: clientId,
+      export_type: input.exportType,
+      file_format: input.fileFormat,
+      storage_url: artifact.storageUrl,
+      source_report_id: input.sourceReportId,
+      source_dataset_id: input.sourceDatasetId
+    })
     .select("*")
     .single();
-  return error ? dbError(error) : { ok: true as const, data };
+  return error ? dbError(error) : { ok: true as const, data: { ...data, file: artifact, formulas: layout.columns.filter((column) => column.formula) } };
 }
 
 export async function generateAdvisory(clientId: string, firmId?: string) {
