@@ -400,7 +400,7 @@ export function FinvaultConsole() {
   async function uploadDocument(file: File, sourceType = "manual_upload") {
     if (!clientId) {
       guideToClient();
-      return;
+      return false;
     }
     setUploadingDocument(true);
     setSourceNotice(null);
@@ -420,16 +420,39 @@ export function FinvaultConsole() {
       });
       if (payload.ok === false) {
         setSourceNotice({ tone: "error", title: "Upload could not be queued", body: payload.error ?? "Please try again with another file." });
+        return false;
       } else {
         setSourceNotice({ tone: "success", title: "Document queued for processing", body: `${file.name} has entered collection and validation. CSV previews are captured for testing without storing unrelated data.` });
         await refreshClient(clientId);
         await refresh();
+        return true;
       }
     } catch (error) {
       setSourceNotice({ tone: "error", title: "Upload failed", body: error instanceof Error ? error.message : "Please try again." });
+      return false;
     } finally {
       setUploadingDocument(false);
     }
+  }
+
+  async function attachFileToChat(file: File) {
+    if (!clientId) {
+      setMessages((current) => [...current, { role: "fynny", text: "Choose a client first, then attach a financial file. I will process it before using it as chat context.", blocked: true }]);
+      guideToClient();
+      return;
+    }
+    setMessages((current) => [...current, { role: "user", text: `Attached ${file.name}` }]);
+    const uploaded = await uploadDocument(file, "chat_upload");
+    setMessages((current) => [
+      ...current,
+      {
+        role: "fynny",
+        text: uploaded
+          ? `${file.name} is queued. I will use it only after Fynny finishes collection, validation, normalization, memory build, and Intelligence Ready checks.`
+          : `I could not queue ${file.name}. Please try another CSV, PDF, spreadsheet, bank statement, GST file, or accounting export.`,
+        blocked: !uploaded
+      }
+    ]);
   }
 
   async function syncSource(dataSourceId: string) {
@@ -483,6 +506,8 @@ export function FinvaultConsole() {
             createClient={createClient}
             notice={chatNotice}
             openSources={() => setActiveTab("sources")}
+            uploadDocument={attachFileToChat}
+            uploadingDocument={uploadingDocument}
           />
         ) : (
           <WorkbenchShell title={titleForTab(activeTab)} subtitle={subtitleForTab(activeTab)} clientId={clientId} setClientId={setClientId} selectedClient={selectedClient} clientRows={clientRows} refresh={refresh} refreshing={refreshing}>
@@ -587,43 +612,55 @@ function AskWorkspace(props: {
   createClient: (input: ClientCreateInput) => Promise<boolean>;
   notice: ActionNotice;
   openSources: () => void;
+  uploadDocument: (file: File) => Promise<void>;
+  uploadingDocument: boolean;
 }) {
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
   const hasUserQuestion = props.messages.some((message) => message.role === "user");
   const latestFynny = [...props.messages].reverse().find((message) => message.role === "fynny");
   const visibleMessages = hasUserQuestion ? props.messages : [];
+  const contextLabel = props.clientId
+    ? `${props.dataSources.length} source${props.dataSources.length === 1 ? "" : "s"} connected`
+    : "Choose a client";
+
+  function handleChatFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) void props.uploadDocument(file);
+  }
 
   return (
     <main className="flex min-w-0 flex-1 overflow-hidden bg-[#ffffff]">
       <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} createClient={props.createClient} creatingClient={props.creatingClient} notice={props.notice} />
       <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-6 md:px-8">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-5 md:px-7">
           <div className="flex items-center gap-3">
             <span className={`h-2 w-2 rounded-full ${props.isReady ? "bg-[#00875a]" : "bg-[#ba1a1a]"}`} />
-            <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">{props.isReady ? "Trust Layer: High confidence" : "Trust Layer: Readiness required"}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">{props.isReady ? "Verified context" : "Processing context required"}</span>
           </div>
-          <div className="hidden rounded-full border border-[#ececec] bg-[#f9f9f9] px-5 py-2 text-[12px] font-semibold text-[#5b0617] md:block">Rules calculate. Fynny explains.</div>
+          <div className="hidden rounded-full border border-[#ececec] bg-[#f9f9f9] px-4 py-2 text-[11px] font-semibold text-[#5b0617] md:block">Only uploads and connected sources become context.</div>
         </header>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto px-6 pb-40 pt-10 md:px-10">
-          <div className="mx-auto w-full max-w-[1000px]">
+        <div className="custom-scrollbar flex-1 overflow-y-auto px-5 pb-36 pt-8 md:px-8">
+          <div className="mx-auto w-full max-w-[820px]">
             {!hasUserQuestion ? (
-              <section className="flex min-h-[calc(100vh-260px)] flex-col items-center justify-center space-y-10">
-                <div className="relative grid h-40 w-40 place-items-center md:h-56 md:w-56">
+              <section className="flex min-h-[calc(100vh-230px)] flex-col items-center justify-center space-y-7">
+                <div className="relative grid h-28 w-28 place-items-center md:h-36 md:w-36">
                   <div className="absolute inset-0 rounded-full border border-[#ececec] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_62%)]" />
-                  <div className="absolute h-28 w-28 rounded-full bg-[#7a1f2b]/10 blur-3xl" />
-                  <div className="relative grid h-20 w-20 place-items-center rounded-[28px] bg-[#5b0617] text-white shadow-[0_24px_70px_rgba(122,31,43,0.24)]">
-                    <Icon name="psychology" className="text-[34px]" filled />
+                  <div className="absolute h-20 w-20 rounded-full bg-[#7a1f2b]/10 blur-2xl" />
+                  <div className="relative grid h-16 w-16 place-items-center rounded-[24px] bg-[#5b0617] text-white shadow-[0_18px_48px_rgba(122,31,43,0.2)]">
+                    <Icon name="psychology" className="text-[30px]" filled />
                   </div>
                   {["article", "analytics", "memory"].map((icon, index) => (
-                    <div key={icon} className="absolute grid h-11 w-11 place-items-center rounded-2xl border border-[#ececec] bg-white text-[#5b0617] shadow-[0_8px_30px_rgba(0,0,0,0.04)]" style={{ transform: `rotate(${index * 120}deg) translateY(-92px) rotate(-${index * 120}deg)` }}>
-                      <Icon name={icon} className="text-[20px]" />
+                    <div key={icon} className="absolute grid h-9 w-9 place-items-center rounded-xl border border-[#ececec] bg-white text-[#5b0617] shadow-[0_8px_30px_rgba(0,0,0,0.04)]" style={{ transform: `rotate(${index * 120}deg) translateY(-58px) rotate(-${index * 120}deg)` }}>
+                      <Icon name={icon} className="text-[17px]" />
                     </div>
                   ))}
                 </div>
                 <div className="space-y-3 text-center">
-                  <h1 className="text-[38px] font-bold leading-tight tracking-[-0.03em] text-[#1a1c1c] md:text-[56px]">What would you like to know?</h1>
-                  <p className="mx-auto max-w-2xl text-[16px] leading-7 text-[#5f5e5e]">
-                    Ask about clients, reports, risks, compliance, cash flow, or advisory opportunities. Fynny answers only from verified processing data.
+                  <h1 className="text-[34px] font-bold leading-tight tracking-[-0.03em] text-[#1a1c1c] md:text-[48px]">Ask Fynny</h1>
+                  <p className="mx-auto max-w-xl text-[15px] leading-7 text-[#5f5e5e]">
+                    Ask short questions. Attach files or connect sources. Fynny answers only from processed financial context.
                   </p>
                 </div>
                 {latestFynny ? (
@@ -632,47 +669,36 @@ function AskWorkspace(props: {
                   </div>
                 ) : null}
                 {!props.clientRows.length ? <FirstClientSetup createClient={props.createClient} creatingClient={props.creatingClient} notice={props.notice} /> : null}
-                <div className="grid w-full grid-cols-1 gap-4 pt-4 md:grid-cols-2 lg:grid-cols-3">
-                  {askSuggestions.map((suggestion) => (
+                <div className="grid w-full grid-cols-1 gap-3 pt-2 md:grid-cols-3">
+                  {askSuggestions.slice(0, 3).map((suggestion) => (
                     <button
                       key={suggestion.title}
                       type="button"
                       onClick={() => props.setQuestion(suggestion.prompt)}
-                      className={`rounded-xl border border-[#ececec] bg-white p-6 text-left shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:border-[#5b0617] ${suggestion.wide ? "lg:col-span-2" : ""}`}
+                      className="rounded-2xl border border-[#ececec] bg-white p-4 text-left shadow-[0_4px_20px_rgba(0,0,0,0.035)] transition hover:-translate-y-0.5 hover:border-[#5b0617]"
                     >
-                      <Icon name={suggestion.icon} className="mb-5 text-[28px] text-[#5b0617]" />
-                      <h3 className="text-[20px] font-semibold leading-snug text-[#1a1c1c]">{suggestion.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">{suggestion.body}</p>
+                      <Icon name={suggestion.icon} className="mb-3 text-[22px] text-[#5b0617]" />
+                      <h3 className="text-[16px] font-semibold leading-snug text-[#1a1c1c]">{suggestion.title}</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#5f5e5e]">{suggestion.body}</p>
                     </button>
                   ))}
                 </div>
               </section>
             ) : (
-              <section className="space-y-12 pb-8">
+              <section className="space-y-5 pb-8">
                 {visibleMessages.map((message, index) =>
                   message.role === "user" ? (
                     <div key={`${message.role}-${index}`} className="flex justify-end">
-                      <div className="max-w-2xl rounded-2xl rounded-tr-md border border-[#dcc0c0] bg-[#f4f3f3] px-6 py-5 text-[17px] leading-8 text-[#1a1c1c] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">{message.text}</div>
+                      <div className="max-w-[620px] rounded-2xl rounded-tr-md border border-[#dcc0c0] bg-[#f4f3f3] px-5 py-3 text-[15px] leading-7 text-[#1a1c1c] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">{message.text}</div>
                     </div>
                   ) : (
-                    <article key={`${message.role}-${index}`} className="space-y-8">
-                      <div className="flex items-start justify-between gap-6">
-                        <div>
-                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#5f5e5e]">Intelligence Response {props.selectedClient ? `- ${props.selectedClient.name}` : ""}</span>
-                          <h2 className="mt-2 font-[var(--font-source-serif)] text-[34px] italic leading-tight text-[#1a1c1c] md:text-[44px]">{message.blocked ? "Processing gate active" : "Financial memory response"}</h2>
-                        </div>
-                        <button type="button" className="hidden items-center gap-2 rounded-lg border border-[#ececec] bg-white px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f5e5e] transition hover:bg-[#f4f3f3] md:flex">
-                          <Icon name="description" className="text-[18px]" />
-                          Generate Client Report
-                        </button>
+                    <article key={`${message.role}-${index}`} className="rounded-3xl border border-[#ececec] bg-white p-5 shadow-[0_8px_34px_rgba(0,0,0,0.04)]">
+                      <div className="mb-3 flex items-center justify-between gap-4">
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5b0617]">{message.blocked ? "Action needed" : "Fynny"}</span>
+                        <span className="rounded-full bg-[#f9f9f9] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5f5e5e]">{props.selectedClient?.name ?? "No client"}</span>
                       </div>
-                      <div className="rounded-xl border border-[#ececec] bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-                        <span className="mb-4 block text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5b0617]">Executive Summary</span>
-                        <p className="font-[var(--font-source-serif)] text-[28px] leading-snug text-[#1a1c1c]">{message.text}</p>
-                      </div>
-                      {message.intelligence ? <FinancialModelPanel intelligence={message.intelligence} /> : null}
-                      <InsightGrid readinessScore={props.readinessScore} issueCount={props.openIssues.length} sourceCount={props.dataSources.length} />
-                      <VerifiedSources sources={props.dataSources} />
+                      <p className="text-[16px] leading-8 text-[#1a1c1c]">{message.text}</p>
+                      {message.intelligence ? <CompactModelPanel intelligence={message.intelligence} /> : null}
                     </article>
                   )
                 )}
@@ -681,18 +707,19 @@ function AskWorkspace(props: {
             )}
           </div>
         </div>
-        <form onSubmit={props.submitAsk} className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-5 md:p-6">
-          <div className="pointer-events-auto mx-auto flex w-full max-w-[800px] items-center gap-4 rounded-2xl border border-[#ececec] bg-white p-3 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
-            <div className="min-w-0 flex-1 px-3">
-              <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask about clients, reports, risks, compliance, cash flow, or advisory opportunities." className="w-full border-0 bg-transparent py-3 text-[16px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
-            </div>
-            <button type="button" onClick={props.openSources} className="grid h-11 w-11 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617]" aria-label="Open data sources"><Icon name="attach_file" className="text-[22px]" /></button>
-            <button type="submit" disabled={props.asking} className="grid h-12 w-12 place-items-center rounded-xl bg-[#5b0617] text-white transition active:scale-95 disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[24px]" />}</button>
+        <form onSubmit={props.submitAsk} className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4 md:p-5">
+          <div className="pointer-events-auto mx-auto mb-2 flex max-w-[720px] flex-wrap items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">
+            <span className="rounded-full border border-[#ececec] bg-white px-3 py-1">{contextLabel}</span>
+            <span className="rounded-full border border-[#ececec] bg-white px-3 py-1">{props.isReady ? "Intelligence ready" : `Readiness ${props.readinessScore}%`}</span>
           </div>
-          <div className="pointer-events-auto mt-4 hidden justify-center gap-10 text-[12px] text-[#5f5e5e] md:flex">
-            <button type="button" onClick={() => props.setQuestion("Project cash runway from verified records.")} className="transition hover:text-[#5b0617]"><Icon name="rocket_launch" className="text-[16px]" /> Project Runway</button>
-            <button type="button" onClick={() => props.setQuestion("Find tax optimization opportunities from readiness data.")} className="transition hover:text-[#5b0617]"><Icon name="receipt_long" className="text-[16px]" /> Tax Optimization</button>
-            <button type="button" onClick={() => props.setQuestion("Detect alerts and missing data blockers for this client.")} className="transition hover:text-[#5b0617]"><Icon name="warning" className="text-[16px]" /> Alert Detection</button>
+          <input ref={chatFileInputRef} type="file" className="hidden" accept=".csv,.txt,.pdf,.xlsx,.xls,.json" onChange={handleChatFile} />
+          <div className="pointer-events-auto mx-auto flex w-full max-w-[720px] items-center gap-2 rounded-2xl border border-[#e8e0e0] bg-white p-2 shadow-[0_16px_50px_rgba(0,0,0,0.1)]">
+            <div className="min-w-0 flex-1 px-3">
+              <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask from connected sources or attach a file..." className="w-full border-0 bg-transparent py-3 text-[15px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
+            </div>
+            <button type="button" onClick={() => chatFileInputRef.current?.click()} disabled={props.uploadingDocument} className="grid h-10 w-10 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] disabled:cursor-wait disabled:opacity-60" aria-label="Attach financial file">{props.uploadingDocument ? <AgenticGlyph variant="validation" /> : <Icon name="attach_file" className="text-[21px]" />}</button>
+            <button type="button" onClick={props.openSources} className="hidden h-10 items-center gap-2 rounded-xl px-3 text-[12px] font-semibold text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] sm:flex"><Icon name="add_link" className="text-[18px]" /> Sources</button>
+            <button type="submit" disabled={props.asking} className="grid h-11 w-11 place-items-center rounded-xl bg-[#5b0617] text-white transition active:scale-95 disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[22px]" />}</button>
           </div>
         </form>
       </section>
@@ -781,6 +808,25 @@ function FinancialModelPanel({ intelligence }: { intelligence: IntelligencePaylo
         <ModelList title="Evidence Required" icon="fact_check" items={evidence} />
       </div>
     </section>
+  );
+}
+
+function CompactModelPanel({ intelligence }: { intelligence: IntelligencePayload }) {
+  const layout = intelligence.exportLayout;
+  const formulas = intelligence.formulas ?? [];
+  const checks = intelligence.processChecks ?? [];
+  return (
+    <div className="mt-4 rounded-2xl border border-[#f0e6e6] bg-[#fbfaf9] p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#5b0617]">{layout?.label ?? "Evidence model"}</span>
+        <span className="rounded-full bg-white px-3 py-1 text-[11px] text-[#5f5e5e]">{titleCase(intelligence.confidence)} confidence</span>
+        {layout ? <span className="rounded-full bg-white px-3 py-1 text-[11px] text-[#5f5e5e]">{layout.columns.length} export columns</span> : null}
+      </div>
+      <div className="mt-3 grid gap-2 text-xs leading-5 text-[#5f5e5e] md:grid-cols-2">
+        <p><span className="font-semibold text-[#1a1c1c]">Formula:</span> {formulas[0] ? `${formulas[0].label} = ${formulas[0].formula}` : "No formula required for this response."}</p>
+        <p><span className="font-semibold text-[#1a1c1c]">Check:</span> {checks[0] ?? "Uses processed uploads and connected sources only."}</p>
+      </div>
+    </div>
   );
 }
 
@@ -1018,7 +1064,7 @@ function SourcesScreen(props: {
   clientId: string;
   selectedClient?: Client;
   connectSource: (source: SourceOption) => Promise<void>;
-  uploadDocument: (file: File, sourceType?: string) => Promise<void>;
+  uploadDocument: (file: File, sourceType?: string) => Promise<boolean>;
   syncSource: (dataSourceId: string) => Promise<void>;
   requestingSource: string | null;
   uploadingDocument: boolean;
