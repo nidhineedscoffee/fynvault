@@ -1,0 +1,4 @@
+period,return_type,filing_status,taxable_sales,output_gst,eligible_itc,gst_paid,variance,notes
+2026-04,GSTR-1,ready,669000,107220,0,0,107220,Sales register reconciled
+2026-04,GSTR-3B,needs_review,669000,107220,68400,62400,-6000,ITC mismatch with purchase register
+2026-04,ITC Reconciliation,needs_review,0,0,68400,0,6000,Vendor invoice pending confirmation

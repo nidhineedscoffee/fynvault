@@ -86,6 +86,12 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   return (await response.json().catch(() => ({}))) as T;
 }
+async function readFilePreview(file: File) {
+  if (!/\.(csv|txt)$/i.test(file.name) && !["text/csv", "text/plain", "application/vnd.ms-excel"].includes(file.type)) {
+    return undefined;
+  }
+  return file.text().then((text) => text.slice(0, 40_000)).catch(() => undefined);
+}
 function apiError(payload: { ok?: boolean; error?: string } | null, fallback: string) {
   if (!payload) return fallback;
   return payload.ok === false ? payload.error ?? fallback : null;
@@ -119,6 +125,21 @@ function Icon({ name, className = "text-[20px]", filled = false }: { name: strin
       {name}
     </span>
   );
+}
+function SourceLogo({ source, className = "h-6 w-6" }: { source: string; className?: string }) {
+  if (source.includes("gmail") || source.includes("email")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#EA4335" d="M4 9.5 16 18l12-8.5V25a2 2 0 0 1-2 2h-4V15.8L16 20.1 10 15.8V27H6a2 2 0 0 1-2-2V9.5Z" /><path fill="#FBBC04" d="M4 9.5V7.8c0-1.6 1.8-2.5 3-1.6l9 6.4 9-6.4c1.2-.9 3 .1 3 1.6v1.7L16 18 4 9.5Z" /><path fill="#34A853" d="M22 27h4a2 2 0 0 0 2-2V9.5l-6 4.3V27Z" /><path fill="#4285F4" d="M4 9.5V25a2 2 0 0 0 2 2h4V13.8L4 9.5Z" /></svg>;
+  }
+  if (source.includes("drive")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#1FA463" d="m12.5 4 7.5 13H5L12.5 4Z" /><path fill="#FFD04B" d="M19.5 4 27 17H20L12.5 4h7Z" /><path fill="#4285F4" d="M5 17h15l-4 7H1l4-7Z" /><path fill="#0F9D58" d="m20 17 4 7h-8l4-7Z" /></svg>;
+  }
+  if (source.includes("whatsapp")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#25D366" d="M16 4a11 11 0 0 0-9.4 16.7L5 28l7.5-1.6A11 11 0 1 0 16 4Z" /><path fill="#fff" d="M22.3 18.7c-.3-.2-1.8-.9-2-.9-.3-.1-.5-.2-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.9c-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.4.3-.6.1-.2 0-.4 0-.6l-.9-2c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.5c.2.2 2.4 3.7 5.9 5.1 3.5 1.4 3.5.9 4.1.9.6-.1 1.8-.8 2.1-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4Z" /></svg>;
+  }
+  if (source.includes("zoho")) {
+    return <svg className={className} viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="9" width="10" height="10" rx="2" fill="#E42527" /><rect x="13" y="15" width="10" height="10" rx="2" fill="#089949" /><rect x="23" y="9" width="10" height="10" rx="2" fill="#226DB4" /><rect x="17" y="3" width="10" height="10" rx="2" fill="#F9B21D" /><text x="20" y="33" textAnchor="middle" fontSize="8" fill="#111" fontWeight="800">Zoho</text></svg>;
+  }
+  return <Icon name={iconForSource(source)} className="text-[24px]" />;
 }
 
 export function FinvaultConsole() {
@@ -311,7 +332,8 @@ export function FinvaultConsole() {
     setUploadingDocument(true);
     setSourceNotice(null);
     try {
-      const payload = await readJson<{ ok?: boolean; error?: string }>(`/api/clients/${clientId}/documents`, {
+      const extractedText = await readFilePreview(file);
+      const payload = await readJson<{ ok?: boolean; data?: { id?: string }; error?: string }>(`/api/clients/${clientId}/documents`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -319,13 +341,17 @@ export function FinvaultConsole() {
           type: file.type || "document",
           sourceType,
           documentCategory: sourceType === "bank_statement" ? "bank_statement" : sourceType === "gst_file" ? "gst_data" : "other",
-          metadata: { size: file.size, fileType: file.type, lastModified: file.lastModified }
+          extractedText,
+          metadata: { size: file.size, fileType: file.type, lastModified: file.lastModified, previewCaptured: Boolean(extractedText) }
         })
       });
       if (payload.ok === false) {
         setSourceNotice({ tone: "error", title: "Upload could not be queued", body: payload.error ?? "Please try again with another file." });
       } else {
-        setSourceNotice({ tone: "success", title: "Document queued for processing", body: `${file.name} has entered the secure processing pipeline.` });
+        if (payload.data?.id) {
+          await readJson<{ ok?: boolean; error?: string }>(`/api/documents/${payload.data.id}/process`, { method: "POST" }).catch(() => ({ ok: false }));
+        }
+        setSourceNotice({ tone: "success", title: "Document queued for processing", body: `${file.name} has entered collection and validation. CSV previews are captured for testing without storing unrelated data.` });
         await refreshClient(clientId);
         await refresh();
       }
@@ -917,7 +943,7 @@ function SourcesScreen(props: {
           <div className="rounded-[24px] border border-[#e2e2e2] bg-[#f9f9f9] p-5">
             <div className="mb-5 flex items-center gap-4">
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-[#700018] shadow-sm">
-                {busy ? <AgenticGlyph variant="validation" /> : <Icon name={selectedSource.icon} className="text-[28px]" />}
+                {busy ? <AgenticGlyph variant="validation" /> : <SourceLogo source={selectedSource.id} className="h-7 w-7" />}
               </div>
               <div>
                 <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#5f5e5e]">{selectedSource.provider}</p>
@@ -934,6 +960,13 @@ function SourcesScreen(props: {
               {busy ? <AgenticGlyph variant="validation" /> : <Icon name={selectedSource.action === "consent" ? "lock_open" : selectedSource.action === "upload" ? "upload_file" : "ios_share"} className="text-[22px]" />}
               {selectedSource.action === "consent" ? "Request Client Consent" : selectedSource.action === "upload" ? "Upload File" : "Use Secure Upload Link"}
             </button>
+            {selectedSource.category === "upload" ? (
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                <a href="/samples/fynny-sample-bank-statement.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Bank CSV</a>
+                <a href="/samples/fynny-sample-sales-register.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Sales CSV</a>
+                <a href="/samples/fynny-sample-gst-summary.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">GST CSV</a>
+              </div>
+            ) : null}
             {selectedSource.action === "manual" ? <p className="mt-3 text-center text-xs leading-5 text-[#5f5e5e]">For MVP, WhatsApp stays safe: use upload links, mobile portal, or forwarded files. Fynny will not request full WhatsApp access.</p> : null}
           </div>
         </div>
@@ -958,7 +991,7 @@ function SourcesScreen(props: {
             return (
               <button key={source.id} onClick={() => setSelectedSource(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
                 <div className="mb-5 flex items-start justify-between gap-3">
-                  <div className={`grid h-12 w-12 place-items-center rounded-2xl ${active ? "bg-[#700018] text-white" : "bg-[#f4f3f3] text-[#700018]"}`}>{loading ? <AgenticGlyph variant="validation" /> : <Icon name={source.icon} className="text-[24px]" />}</div>
+                  <div className={`grid h-12 w-12 place-items-center rounded-2xl ${active ? "bg-[#700018]/10" : "bg-[#f4f3f3]"}`}>{loading ? <AgenticGlyph variant="validation" /> : <SourceLogo source={source.id} />}</div>
                   <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.category}</span>
                 </div>
                 <p className="text-[17px] font-semibold text-[#111111]">{source.label}</p>
@@ -978,10 +1011,10 @@ function SourcesScreen(props: {
             {props.sources.map((source) => (
               <div key={source.id} className="flex flex-col gap-4 rounded-2xl border border-[#e2e2e2] bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-4">
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f4f3f3] text-[#700018]"><Icon name={iconForSource(source.source_type)} className="text-[22px]" /></div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f4f3f3] text-[#700018]"><SourceLogo source={source.source_type} /></div>
                   <div className="min-w-0">
                     <p className="truncate text-[16px] font-semibold text-[#111111]">{titleCase(source.source_type)}</p>
-                    <p className="text-sm text-[#5f5e5e]">{source.provider} · {titleCase(source.connection_status)} · {titleCase(source.consent_status ?? "requested")}</p>
+                    <p className="text-sm text-[#5f5e5e]">{source.provider} / {titleCase(source.connection_status)} / {titleCase(source.consent_status ?? "requested")}</p>
                   </div>
                 </div>
                 <button onClick={() => void props.syncSource(source.id)} disabled={props.syncingSource === source.id} className="rounded-full border border-[#dcc0c0] px-5 py-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617] disabled:cursor-wait disabled:opacity-60">

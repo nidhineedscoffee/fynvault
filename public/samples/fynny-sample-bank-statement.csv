@@ -1,0 +1,11 @@
+date,description,reference,debit,credit,balance,counterparty,category
+2026-04-01,Opening Balance,OPENING,0,0,850000,,opening
+2026-04-03,Customer Receipt - Acme Retail,UTR240403001,0,245000,1095000,Acme Retail,receivable_collection
+2026-04-05,Vendor Payment - Bright Logistics,NEFT240405882,78500,0,1016500,Bright Logistics,payables
+2026-04-07,GST Challan Payment,CPIN24040791,62400,0,954100,GST Portal,tax_payment
+2026-04-10,Payroll April Advance,IMPS24041032,180000,0,774100,Payroll,payroll
+2026-04-14,Customer Receipt - Northstar Foods,UTR240414901,0,168000,942100,Northstar Foods,receivable_collection
+2026-04-18,Rent Payment - Office,NEFT240418712,95000,0,847100,Urban Workspace,rent
+2026-04-23,Software Subscription,UPI240423552,22500,0,824600,Cloud Apps,software
+2026-04-28,Customer Receipt - Delta Traders,UTR240428221,0,132500,957100,Delta Traders,receivable_collection
+2026-04-30,Closing Balance,CLOSING,0,0,957100,,closing
