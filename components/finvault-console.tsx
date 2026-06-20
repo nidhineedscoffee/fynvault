@@ -77,6 +77,8 @@ const sourceOptions: SourceOption[] = [
   { id: "gmail", label: "Gmail", provider: "Google", icon: "mail", category: "integration", action: "connect", description: "Connect Gmail for financial emails and attachments only." },
   { id: "google_drive", label: "Google Drive", provider: "Google", icon: "add_to_drive", category: "integration", action: "connect", description: "Connect Drive folders and pull financial files into processing." },
   { id: "zoho_books", label: "Zoho Books", provider: "Zoho", icon: "account_balance", category: "integration", action: "connect", description: "Bring books, invoices, customers, and accounting exports into Fynny." },
+  { id: "tally_export", label: "Tally", provider: "Tally", icon: "receipt_long", category: "integration", action: "connect", description: "Connect Tally exports and ledgers for processing, validation, and MIS intelligence." },
+  { id: "slack", label: "Slack", provider: "Slack", icon: "tag", category: "integration", action: "connect", description: "Collect approved finance files from client workflow channels." },
   { id: "bank_statement", label: "Bank Statements", provider: "Manual upload", icon: "assured_workload", category: "upload", action: "upload", description: "Process statement files through validation and financial memory." },
   { id: "gst_file", label: "GST Files", provider: "Manual upload", icon: "receipt_long", category: "upload", action: "upload", description: "Validate GST inputs, filing periods, and missing compliance records." },
   { id: "spreadsheet", label: "Spreadsheets", provider: "Excel / CSV", icon: "table_chart", category: "upload", action: "upload", description: "Normalize trackers, reconciliations, ledgers, and exported reports." },
@@ -139,19 +141,44 @@ function Icon({ name, className = "text-[20px]", filled = false }: { name: strin
   );
 }
 function SourceLogo({ source, className = "h-6 w-6" }: { source: string; className?: string }) {
-  if (source.includes("gmail") || source.includes("email")) {
+  const normalized = source.toLowerCase();
+  if (normalized.includes("gmail") || normalized.includes("email")) {
     return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#EA4335" d="M4 9.5 16 18l12-8.5V25a2 2 0 0 1-2 2h-4V15.8L16 20.1 10 15.8V27H6a2 2 0 0 1-2-2V9.5Z" /><path fill="#FBBC04" d="M4 9.5V7.8c0-1.6 1.8-2.5 3-1.6l9 6.4 9-6.4c1.2-.9 3 .1 3 1.6v1.7L16 18 4 9.5Z" /><path fill="#34A853" d="M22 27h4a2 2 0 0 0 2-2V9.5l-6 4.3V27Z" /><path fill="#4285F4" d="M4 9.5V25a2 2 0 0 0 2 2h4V13.8L4 9.5Z" /></svg>;
   }
-  if (source.includes("drive")) {
+  if (normalized.includes("drive")) {
     return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#1FA463" d="m12.5 4 7.5 13H5L12.5 4Z" /><path fill="#FFD04B" d="M19.5 4 27 17H20L12.5 4h7Z" /><path fill="#4285F4" d="M5 17h15l-4 7H1l4-7Z" /><path fill="#0F9D58" d="m20 17 4 7h-8l4-7Z" /></svg>;
   }
-  if (source.includes("whatsapp")) {
+  if (normalized.includes("whatsapp")) {
     return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#25D366" d="M16 4a11 11 0 0 0-9.4 16.7L5 28l7.5-1.6A11 11 0 1 0 16 4Z" /><path fill="#fff" d="M22.3 18.7c-.3-.2-1.8-.9-2-.9-.3-.1-.5-.2-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.9c-.2-.3 0-.5.1-.7l.5-.6c.2-.2.2-.4.3-.6.1-.2 0-.4 0-.6l-.9-2c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.2 1.4 3.5c.2.2 2.4 3.7 5.9 5.1 3.5 1.4 3.5.9 4.1.9.6-.1 1.8-.8 2.1-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4Z" /></svg>;
   }
-  if (source.includes("zoho")) {
+  if (normalized.includes("slack")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#36C5F0" d="M12.8 5.2a3 3 0 0 1 6 0v6h-6v-6Z" /><path fill="#2EB67D" d="M26.8 12.8a3 3 0 0 1 0 6h-6v-6h6Z" /><path fill="#ECB22E" d="M19.2 26.8a3 3 0 0 1-6 0v-6h6v6Z" /><path fill="#E01E5A" d="M5.2 19.2a3 3 0 0 1 0-6h6v6h-6Z" /><path fill="#2EB67D" d="M20.8 5.2a3 3 0 0 1 6 0 3 3 0 0 1-3 3h-3v-3Z" /><path fill="#ECB22E" d="M26.8 20.8a3 3 0 0 1 0 6 3 3 0 0 1-3-3v-3h3Z" /><path fill="#E01E5A" d="M11.2 26.8a3 3 0 0 1-6 0 3 3 0 0 1 3-3h3v3Z" /><path fill="#36C5F0" d="M5.2 11.2a3 3 0 0 1 0-6 3 3 0 0 1 3 3v3h-3Z" /></svg>;
+  }
+  if (normalized.includes("zoho")) {
     return <svg className={className} viewBox="0 0 40 40" aria-hidden="true"><rect x="3" y="9" width="10" height="10" rx="2" fill="#E42527" /><rect x="13" y="15" width="10" height="10" rx="2" fill="#089949" /><rect x="23" y="9" width="10" height="10" rx="2" fill="#226DB4" /><rect x="17" y="3" width="10" height="10" rx="2" fill="#F9B21D" /><text x="20" y="33" textAnchor="middle" fontSize="8" fill="#111" fontWeight="800">Zoho</text></svg>;
   }
-  return <Icon name={iconForSource(source)} className="text-[24px]" />;
+  if (normalized.includes("tally")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#0F5EA8" /><path fill="#fff" d="M7 8h18v4h-7v12h-4V12H7V8Z" /><path fill="#F5B400" d="M20 14h5v10h-5V14Z" /></svg>;
+  }
+  if (normalized.includes("spreadsheet") || normalized.includes("excel") || normalized.includes("csv")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#107C41" d="M6 5h13l7 7v15H6V5Z" /><path fill="#185C37" d="M19 5v7h7l-7-7Z" /><path fill="#fff" d="m10 13 3.1 4.1L10 21h3l1.7-2.3L16.4 21h3l-3.2-4 3-4h-2.9l-1.5 2.1-1.5-2.1H10Z" /></svg>;
+  }
+  if (normalized.includes("bank")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#1E3A8A" d="M16 4 4 10v3h24v-3L16 4Z" /><path fill="#3B82F6" d="M7 15h4v8H7v-8Zm7 0h4v8h-4v-8Zm7 0h4v8h-4v-8Z" /><path fill="#1E3A8A" d="M5 24h22v4H5v-4Z" /></svg>;
+  }
+  if (normalized.includes("gst") || normalized.includes("tax")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="4" width="22" height="24" rx="4" fill="#F97316" /><path fill="#fff" d="M10 10h12v2H10v-2Zm0 5h8v2h-8v-2Zm0 5h12v2H10v-2Z" /><path fill="#7C2D12" d="M21 14.5 24.5 18 21 21.5 19.6 20l2-2-2-2 1.4-1.5Z" /></svg>;
+  }
+  if (normalized.includes("pdf")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><path fill="#D93025" d="M7 4h13l5 5v19H7V4Z" /><path fill="#FCE8E6" d="M20 4v5h5l-5-5Z" /><text x="16" y="22" textAnchor="middle" fontSize="7" fill="#fff" fontWeight="800">PDF</text></svg>;
+  }
+  if (normalized.includes("manual") || normalized.includes("upload")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="4" width="22" height="24" rx="7" fill="#700018" /><path fill="#fff" d="M15 20V10l-4 4-1.5-1.5L16 6l6.5 6.5L21 14l-4-4v10h-2Zm-5 5v-3h12v3H10Z" /></svg>;
+  }
+  if (normalized.includes("erp") || normalized.includes("api")) {
+    return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="6" width="24" height="20" rx="5" fill="#111" /><path fill="#fff" d="m12 12-4 4 4 4 1.4-1.4L10.8 16l2.6-2.6L12 12Zm8 0-1.4 1.4 2.6 2.6-2.6 2.6L20 20l4-4-4-4Zm-3.1.2-3 7 1.8.7 3-7-1.8-.7Z" /></svg>;
+  }
+  return <svg className={className} viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="5" width="22" height="22" rx="8" fill="#700018" /><path fill="#fff" d="M10 11h12v3H10v-3Zm0 5h12v3H10v-3Zm0 5h8v3h-8v-3Z" /></svg>;
 }
 
 export function FinvaultConsole() {
@@ -856,7 +883,7 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
         <div className="space-y-2">
           {sources.length ? sources.slice(0, 5).map((source) => (
             <div key={source.id} className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-[#5f5e5e] transition hover:border-[#ececec] hover:bg-white hover:text-[#5b0617]">
-              <Icon name={iconForSource(source.source_type)} className="text-[18px]" />
+              <SourceLogo source={source.source_type || source.provider} className="h-5 w-5 shrink-0" />
               <span className="truncate text-sm">{titleCase(source.provider || source.source_type)}</span>
             </div>
           )) : <p className="rounded-lg border border-dashed border-[#dcc0c0] bg-white p-4 text-sm leading-6 text-[#5f5e5e]">No sources connected yet.</p>}
@@ -1220,13 +1247,13 @@ function MiniMetric({ label, value, detail, tone }: { label: string; value: stri
   return <div className="rounded-xl border border-[#e2e2e2] bg-white p-5"><p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f5e5e]">{label}</p><p className="font-[var(--font-platform-mono)] text-[22px] font-semibold" style={{ color }}>{value}</p><p className="mt-2 text-[13px] text-[#5f5e5e]">{detail}</p></div>;
 }
 function VerifiedSources({ sources }: { sources: DataSource[] }) {
-  return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Connected Sources</p><div className="flex gap-6 text-[#5f5e5e]"><Icon name="picture_as_pdf" /><Icon name="table_chart" /><Icon name="content_copy" /></div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No sources yet. Connect read-only data sources first.</p>}</div></div>;
+  return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Connected Sources</p><div className="flex items-center gap-4">{["gmail", "google_drive", "zoho_books"].map((source) => <SourceLogo key={source} source={source} className="h-5 w-5" />)}</div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No sources yet. Connect read-only data sources first.</p>}</div></div>;
 }
 function SourceCard({ source }: { source: DataSource }) {
-  return <div className="flex items-center justify-between rounded-lg border border-[#e2e2e2] bg-white px-4 py-3"><div className="flex items-center gap-4"><span className="text-[#700018]"><Icon name={iconForSource(source.source_type)} className="text-[22px]" /></span><span className="text-[16px] text-[#111111]">{titleCase(source.source_type)}</span></div><span className="font-[var(--font-platform-mono)] text-[13px] text-[#5f5e5e]">{titleCase(source.connection_status)}</span></div>;
+  return <div className="flex items-center justify-between rounded-lg border border-[#e2e2e2] bg-white px-4 py-3"><div className="flex items-center gap-4"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f4f3f3]"><SourceLogo source={source.source_type || source.provider} className="h-5 w-5" /></span><span className="text-[16px] text-[#111111]">{titleCase(source.source_type)}</span></div><span className="font-[var(--font-platform-mono)] text-[13px] text-[#5f5e5e]">{titleCase(source.connection_status)}</span></div>;
 }
 function SourceLine({ source }: { source: DataSource }) {
-  return <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-lg border border-[#e2e2e2] bg-white text-[#700018]"><Icon name={iconForSource(source.source_type)} className="text-[20px]" /></div><span className="flex-1 text-[16px] text-[#111111]">{titleCase(source.source_type)}</span><span className="h-2 w-2 rounded-full bg-[#00875a]" /></div>;
+  return <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-lg border border-[#e2e2e2] bg-white"><SourceLogo source={source.source_type || source.provider} className="h-5 w-5" /></div><span className="flex-1 text-[16px] text-[#111111]">{titleCase(source.source_type)}</span><span className="h-2 w-2 rounded-full bg-[#00875a]" /></div>;
 }
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return <section className="rounded-xl border border-[#ececec] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)]"><div className="border-b border-[#e2e2e2] px-6 py-4"><h3 className="text-[20px] font-semibold tracking-[-0.01em] text-[#5b0617]">{title}</h3></div><div className="p-6">{children}</div></section>;
