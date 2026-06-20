@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Welcome to FinVault AI</title>
+<!-- Google Fonts: Geist for Headlines, Inter for Body -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container": "#eceef0",
+                        "on-primary-fixed": "#131b2e",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "primary-container": "#131b2e",
+                        "tertiary": "#000000",
+                        "primary": "#000000",
+                        "surface-bright": "#f7f9fb",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-container": "#d5e3fd",
+                        "surface-tint": "#565e74",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#dae2fd",
+                        "error-container": "#ffdad6",
+                        "on-surface-variant": "#45464d",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-secondary-container": "#57657b",
+                        "on-secondary": "#ffffff",
+                        "outline": "#76777d",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-container-low": "#f2f4f6",
+                        "outline-variant": "#c6c6cd",
+                        "on-error-container": "#93000a",
+                        "secondary": "#515f74",
+                        "surface-dim": "#d8dadc",
+                        "on-surface": "#191c1e",
+                        "on-primary-container": "#7c839b",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#002113",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "inverse-primary": "#bec6e0",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary-container": "#009668",
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed": "#d5e3fd",
+                        "background": "#f7f9fb",
+                        "primary-fixed-dim": "#bec6e0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "container-max": "1440px",
+                        "section-gap": "64px",
+                        "margin-mobile": "16px",
+                        "base": "4px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "label-sm": ["Geist"],
+                        "mono-data": ["Geist Mono"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .float-animation {
+            animation: float 4s ease-in-out infinite;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md overflow-hidden h-screen flex items-center justify-center">
+<!-- Atmospheric Background Shader -->
+
+<!-- Main Content Canvas -->
+<main class="relative z-10 w-full max-w-[1440px] px-margin-mobile md:px-margin-desktop flex flex-col items-center justify-center h-full">
+<!-- Top Logo Anchor -->
+<div class="absolute top-12 left-1/2 -translate-x-1/2 md:left-margin-desktop md:translate-x-0 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[32px]">hub</span>
+<span class="font-headline-md text-headline-md font-bold tracking-tight text-primary">FinVault AI</span>
+</div>
+<div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+<!-- Left Side: Celebration Visual -->
+<div class="md:col-span-6 hidden md:flex flex-col items-center justify-center space-y-6">
+<div class="relative w-full aspect-square max-w-[400px]">
+<!-- Abstract Central Icon -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-48 h-48 rounded-[32px] bg-primary flex items-center justify-center shadow-2xl float-animation">
+<span class="material-symbols-outlined text-on-primary text-[80px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Floating Data Points (Atmospheric) -->
+<div class="absolute top-4 right-10 float-animation" style="animation-delay: 0.5s">
+<div class="glass-card px-4 py-3 rounded-xl flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">query_stats</span>
+<div class="flex flex-col">
+<span class="font-mono-data text-[10px] uppercase opacity-50">Liquidity</span>
+<span class="font-bold text-label-md">Optimized</span>
+</div>
+</div>
+</div>
+<div class="absolute bottom-10 left-0 float-animation" style="animation-delay: 1.2s">
+<div class="glass-card px-4 py-3 rounded-xl flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<div class="flex flex-col">
+<span class="font-mono-data text-[10px] uppercase opacity-50">CFO Engine</span>
+<span class="font-bold text-label-md">Ready</span>
+</div>
+</div>
+</div>
+<div class="absolute top-1/2 -left-12 float-animation" style="animation-delay: 2s">
+<div class="w-12 h-12 rounded-full bg-surface-container-high border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-xl">security</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Side: Content & Actions -->
+<div class="md:col-span-6 text-center md:text-left space-y-8">
+<header class="space-y-4">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-tertiary-container text-on-tertiary-container font-label-sm uppercase tracking-widest animate-pulse">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span>
+                        Account Verified
+                    </div>
+<h1 class="font-display-lg text-display-lg text-primary leading-tight">
+                        You're In
+                    </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-md mx-auto md:mx-0">
+                        Let's connect your financial data and build your AI CFO. Access institutional-grade intelligence in minutes.
+                    </p>
+</header>
+<div class="space-y-4">
+<!-- Primary Action -->
+<button class="group relative w-full md:w-auto px-10 py-5 bg-primary text-on-primary rounded-xl font-headline-md text-headline-md flex items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-xl" id="continue-btn">
+<span>Continue</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+<div class="absolute inset-0 overflow-hidden rounded-xl opacity-20 pointer-events-none">
+<div class="shimmer absolute inset-0"></div>
+</div>
+</button>
+<!-- Progress Hint -->
+<div class="flex items-center justify-center md:justify-start gap-4 text-on-surface-variant/60 font-label-sm">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-surface-container-high"></div>
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-surface-container-high"></div>
+<div class="w-6 h-6 rounded-full border-2 border-surface bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[10px] text-white">bolt</span>
+</div>
+</div>
+<span>Next: Secure Bank Integration</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Executive Detail Footnote -->
+<footer class="absolute bottom-12 flex flex-col items-center gap-4 text-center">
+<div class="w-px h-12 bg-gradient-to-b from-transparent to-outline-variant"></div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-base">verified_user</span>
+                AES-256 Bank-Grade Encryption Standard
+            </p>
+</footer>
+</main>
+<!-- Micro-interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('continue-btn');
+            
+            btn.addEventListener('mouseenter', () => {
+                // Subtle haptic feel through code could go here if supported
+            });
+
+            // Initial entrance animation
+            const timeline = [
+                { el: 'h1', delay: 200 },
+                { el: 'p', delay: 400 },
+                { el: '#continue-btn', delay: 600 }
+            ];
+
+            timeline.forEach(item => {
+                const element = document.querySelector(item.el);
+                if (element) {
+                    element.style.opacity = '0';
+                    element.style.transform = 'translateY(20px)';
+                    element.style.transition = 'all 0.8s cubic-bezier(0.16, 1, 0.3, 1)';
+                    
+                    setTimeout(() => {
+                        element.style.opacity = '1';
+                        element.style.transform = 'translateY(0)';
+                    }, item.delay);
+                }
+            });
+        });
+    </script>
+</body></html>

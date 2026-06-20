@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Cash Flow Intelligence | FinVault AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist:wght@400;500;600;700;800&family=Geist+Mono&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .ai-gradient-border {
+            position: relative;
+            border-radius: 24px;
+        }
+        .ai-gradient-border::before {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 25px;
+            padding: 1px;
+            background: linear-gradient(135deg, #131b2e, #3f465c, #bec6e0);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "secondary-fixed": "#d5e3fd",
+                        "surface-container-low": "#f2f4f6",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-container-high": "#e6e8ea",
+                        "secondary": "#515f74",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary-container": "#7c839b",
+                        "surface-dim": "#d8dadc",
+                        "primary-fixed": "#dae2fd",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c6c6cd",
+                        "primary": "#000000",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "inverse-primary": "#bec6e0",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "background": "#f7f9fb",
+                        "outline": "#76777d",
+                        "on-background": "#191c1e",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "secondary-container": "#d5e3fd",
+                        "surface-container-highest": "#e0e3e5",
+                        "error": "#ba1a1a",
+                        "tertiary": "#000000",
+                        "surface-tint": "#565e74",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#009668",
+                        "surface-bright": "#f7f9fb",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-container": "#002113",
+                        "surface-container": "#eceef0",
+                        "on-secondary-container": "#57657b",
+                        "on-surface-variant": "#45464d",
+                        "on-primary-fixed": "#131b2e",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface": "#f7f9fb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "12px",
+                        "2xl": "24px",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "container-max": "1440px",
+                        "section-gap": "64px",
+                        "base": "4px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "label-sm": ["Geist"],
+                        "headline-lg": ["Geist"],
+                        "label-md": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "mono-data": ["Geist Mono"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["Geist"],
+                        "body-lg": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background font-body-md text-on-background antialiased">
+<!-- Sidebar Navigation -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col py-8 z-50">
+<div class="px-6 mb-10 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-[20px]" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">FinVault AI</h1>
+<p class="font-label-sm text-[10px] text-on-primary-container tracking-wider uppercase">CFO Intelligence</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span> Overview
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">monitor_heart</span> Financial Health
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">payments</span> Revenue
+            </a>
+<a class="flex items-center px-6 py-3 text-primary font-bold border-r-4 border-primary bg-surface-container-low transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">account_balance_wallet</span> Cash Flow
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">receipt_long</span> Receivables
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">pending_actions</span> Payables
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">psychology</span> Ask FinVault
+            </a>
+<div class="pt-8 mt-8 border-t border-outline-variant">
+<a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">settings</span> Settings
+                </a>
+</div>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full py-3 bg-primary text-on-primary rounded-xl font-label-md transition-transform active:scale-95">
+                Export Report
+            </button>
+</div>
+</aside>
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex items-center justify-between px-margin-desktop z-40 bg-surface border-b border-outline-variant">
+<div class="flex items-center flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full bg-surface-container border border-outline-variant rounded-full py-2 pl-10 pr-4 font-body-sm focus:ring-1 focus:ring-primary focus:border-primary" placeholder="Search insights, transactions, or vendors..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6 ml-10">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="flex items-center gap-3 pl-6 border-l border-outline-variant">
+<div class="text-right">
+<p class="font-label-md text-primary leading-none">Alex Sterling</p>
+<p class="text-[11px] text-on-surface-variant font-label-sm">System Admin</p>
+</div>
+<img class="w-8 h-8 rounded-full border border-outline-variant" data-alt="A professional headshot of a business executive in a high-end, minimalist office setting. The lighting is bright and natural, reflecting a premium fintech corporate aesthetic. The person is wearing a dark navy blazer over a crisp white shirt, looking directly at the camera with a calm and confident expression. Background is a soft-focus glass wall and architectural metal elements." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXFFfmovzZUd2BipwPjs_fBAemgjPdRSZUta3YJArMNjW7TcAoaaX9u2ty-Zx0rvE_-WKpNVdyxNO5mG1jyoD5lBOpD3Arabrt50_eN5v7ZjqNjPjIje-lae14nS0v3htvrNHy4M7e0ppWTWSTuVSG0iNIRVO4nNb-vkzR53INL85Nbhjugc3F3PH9hG077tk3HtyNC0GeYm2B54YvniLghR-BNIsIvt5fj375Z1t5O-k0pMaKcoffkVJNqyotxJcQ78IYNmLYFN4"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 pb-12 px-margin-desktop max-w-[1440px]">
+<!-- Page Header -->
+<div class="flex items-end justify-between mb-10">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary">Cash Flow Intelligence</h2>
+<p class="font-body-md text-on-surface-variant mt-1">Strategic oversight of liquidity and real-time capital allocation.</p>
+</div>
+<div class="flex items-center bg-surface-container-lowest border border-outline-variant rounded-xl px-4 py-2 gap-4">
+<span class="material-symbols-outlined text-on-surface-variant">calendar_today</span>
+<div class="flex items-center gap-2">
+<span class="font-label-md text-primary">Oct 01, 2023</span>
+<span class="text-outline-variant">—</span>
+<span class="font-label-md text-primary">Mar 31, 2024</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">expand_more</span>
+</div>
+</div>
+<!-- Top Row Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-section-gap">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 transition-shadow hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)]">
+<p class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-2">Cash Position</p>
+<div class="flex items-baseline gap-2">
+<h3 class="font-headline-lg text-headline-lg text-primary">₹1.24M</h3>
+</div>
+<div class="mt-4 flex items-center gap-1 text-on-tertiary-container font-label-sm bg-tertiary-fixed/10 w-fit px-2 py-0.5 rounded-lg">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+4.2%</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 transition-shadow hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)]">
+<p class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-2">Burn Rate</p>
+<div class="flex items-baseline gap-2">
+<h3 class="font-headline-lg text-headline-lg text-primary">₹180k<span class="text-body-md text-on-surface-variant font-normal">/mo</span></h3>
+</div>
+<div class="mt-4 flex items-center gap-1 text-on-error-container font-label-sm bg-error-container/20 w-fit px-2 py-0.5 rounded-lg">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span>+2.1%</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 transition-shadow hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)]">
+<p class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-2">Net Flow</p>
+<div class="flex items-baseline gap-2">
+<h3 class="font-headline-lg text-headline-lg text-primary">+₹45k</h3>
+</div>
+<p class="font-body-sm text-on-surface-variant mt-4">Retained this month</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 transition-shadow hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)]">
+<p class="font-label-sm text-on-surface-variant uppercase tracking-wider mb-2">Runway</p>
+<div class="flex items-baseline gap-2">
+<h3 class="font-headline-lg text-headline-lg text-primary">18.4<span class="text-body-md text-on-surface-variant font-normal"> Mo</span></h3>
+</div>
+<div class="w-full bg-surface-container h-1 rounded-full mt-6 relative">
+<div class="absolute left-0 top-0 h-full bg-tertiary-fixed-dim rounded-full" style="width: 75%"></div>
+</div>
+</div>
+</div>
+<!-- Main Visualization & AI Forecast -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-section-gap">
+<!-- Sophisticated Area Chart -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 relative overflow-hidden h-[450px]">
+<div class="flex items-center justify-between mb-8">
+<h4 class="font-headline-md text-headline-md text-primary">Historical Performance</h4>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-label-sm text-on-surface-variant">Cash In</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-outline-variant"></span>
+<span class="font-label-sm text-on-surface-variant">Cash Out</span>
+</div>
+</div>
+</div>
+<!-- Simplified Vector Chart Simulation -->
+<div class="absolute bottom-12 left-8 right-8 h-64 border-l border-b border-outline-variant/30">
+<svg class="w-full h-full preserve-3d overflow-visible" viewbox="0 0 1000 300">
+<!-- Cash In Area -->
+<path d="M0,250 Q100,180 200,200 T400,150 T600,100 T800,120 T1000,80 L1000,300 L0,300 Z" fill="rgba(0, 0, 0, 0.03)"></path>
+<path d="M0,250 Q100,180 200,200 T400,150 T600,100 T800,120 T1000,80" fill="none" stroke="black" stroke-width="2"></path>
+<!-- Cash Out Area -->
+<path d="M0,280 Q150,260 300,270 T600,240 T1000,250 L1000,300 L0,300 Z" fill="rgba(0, 0, 0, 0.02)"></path>
+<path d="M0,280 Q150,260 300,270 T600,240 T1000,250" fill="none" stroke="#76777d" stroke-dasharray="4 4" stroke-width="1.5"></path>
+<!-- Hover Point -->
+<circle cx="600" cy="100" fill="white" r="4" stroke="black" stroke-width="2"></circle>
+<line stroke="rgba(0,0,0,0.1)" stroke-dasharray="2 2" x1="600" x2="600" y1="100" y2="300"></line>
+</svg>
+<div class="flex justify-between mt-4 font-label-sm text-on-surface-variant">
+<span>OCT</span>
+<span>NOV</span>
+<span>DEC</span>
+<span>JAN</span>
+<span>FEB</span>
+<span>MAR</span>
+</div>
+</div>
+</div>
+<!-- AI Projection Panel -->
+<div class="bg-primary-container text-on-primary-container rounded-2xl p-8 flex flex-col ai-gradient-border shadow-lg">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-tertiary-fixed-dim">auto_awesome</span>
+<h4 class="font-label-md text-label-md font-bold text-white uppercase tracking-widest">AI Projection</h4>
+</div>
+<p class="text-body-sm text-on-primary-container mb-8">3-month simulation based on current receivables velocity and recurring commitments.</p>
+<div class="space-y-6">
+<div class="flex justify-between items-center">
+<div>
+<p class="text-[11px] uppercase tracking-tighter text-on-primary-container">April Forecast</p>
+<p class="font-headline-md text-headline-md text-white">₹1.32M</p>
+</div>
+<span class="text-tertiary-fixed-dim font-mono-data text-body-sm">+6.4%</span>
+</div>
+<div class="flex justify-between items-center">
+<div>
+<p class="text-[11px] uppercase tracking-tighter text-on-primary-container">May Forecast</p>
+<p class="font-headline-md text-headline-md text-white">₹1.48M</p>
+</div>
+<span class="text-tertiary-fixed-dim font-mono-data text-body-sm">+12.1%</span>
+</div>
+<div class="flex justify-between items-center">
+<div>
+<p class="text-[11px] uppercase tracking-tighter text-on-primary-container">June Forecast</p>
+<p class="font-headline-md text-headline-md text-white">₹1.41M</p>
+</div>
+<span class="text-error font-mono-data text-body-sm">-4.7%</span>
+</div>
+</div>
+<div class="mt-auto pt-8 border-t border-on-primary-fixed-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-on-primary-fixed-variant/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary-fixed">radar</span>
+</div>
+<div>
+<p class="text-white text-body-sm font-medium">Confidence Score: 94%</p>
+<p class="text-[11px] text-on-primary-container">High signal data integration</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Insights and Action Center -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Insights Panel -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8">
+<div class="flex items-center justify-between mb-8">
+<h4 class="font-headline-md text-headline-md text-primary">Strategic Insights</h4>
+<span class="text-label-sm text-on-surface-variant font-medium">2 Active Signals</span>
+</div>
+<div class="space-y-4">
+<div class="group flex items-start gap-4 p-5 rounded-2xl bg-surface transition-all hover:bg-surface-container-high border border-transparent hover:border-outline-variant">
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-tertiary-container" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<h5 class="font-label-md text-primary font-bold">Optimization Opportunity</h5>
+<span class="font-label-sm text-on-tertiary-container bg-tertiary-fixed/20 px-2 py-0.5 rounded">High Impact</span>
+</div>
+<p class="font-body-sm text-on-surface-variant">12% reduction in cloud infrastructure spend detected through instance rightsizing suggestions.</p>
+<button class="mt-3 text-primary font-label-sm flex items-center gap-1 group-hover:underline underline-offset-4">
+                                View Analysis <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<div class="group flex items-start gap-4 p-5 rounded-2xl bg-surface transition-all hover:bg-surface-container-high border border-transparent hover:border-outline-variant">
+<div class="w-12 h-12 rounded-xl bg-error-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-1">
+<h5 class="font-label-md text-primary font-bold">Liquidity Risk</h5>
+<span class="font-label-sm text-error bg-error-container/40 px-2 py-0.5 rounded">Action Required</span>
+</div>
+<p class="font-body-sm text-on-surface-variant">Projected liquidity gap in December due to concurrent vendor renewals and annual bonus payouts.</p>
+<button class="mt-3 text-primary font-label-sm flex items-center gap-1 group-hover:underline underline-offset-4">
+                                Mitigate Risk <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Center -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 flex flex-col">
+<h4 class="font-headline-md text-headline-md text-primary mb-8">Action Center</h4>
+<div class="flex-1 flex flex-col gap-3">
+<button class="flex items-center justify-between w-full p-4 rounded-2xl border border-outline-variant hover:bg-surface-container transition-all group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">summarize</span>
+<span class="font-label-md text-primary">Generate Forecast Report</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+<button class="flex items-center justify-between w-full p-4 rounded-2xl border border-outline-variant hover:bg-surface-container transition-all group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">trending_down</span>
+<span class="font-label-md text-primary">Optimize Spend</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+<button class="flex items-center justify-between w-full p-4 rounded-2xl border border-outline-variant hover:bg-surface-container transition-all group">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">playlist_add_check</span>
+<span class="font-label-md text-primary">Review Collections Plan</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+</div>
+<div class="mt-8 pt-8 border-t border-outline-variant">
+<div class="bg-surface rounded-2xl p-6 flex items-center gap-6">
+<div class="w-16 h-16 bg-cover bg-center rounded-xl shrink-0" data-alt="A macro shot of architectural glass and steel cables, showing tension and structural integrity. The colors are muted silvers, greys, and deep blues. High quality photography with a sharp focus on the intersecting lines and textures, symbolizing balance and financial security." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC816j7b_8rf0iMW_3MPozw3qZzjvUQXiIpSGWCbpESSPZnWOmpDPluAOQoIPreObJ4O6ctMSBEPLotY-mZlot-wct4YJ03hcrG42Qcxijtn30MMka2OzDYP6f98ipNOJDcgA_99cyX6OUQgXxTBSov8IzBpu8abBOpjJeWP4M2x6F07YjGLIfTeN6822l-I_CGB1BfrSO088pXgd2iDaY5IAnHymU0JvBKl_ovT-9UHRIJiMqz6bkXkxOqjP7pXEryPjl3_XKArj0')"></div>
+<div>
+<p class="font-label-md text-primary font-bold">Smart Reserve Policy</p>
+<p class="text-body-sm text-on-surface-variant">Maintain a ₹250k liquid reserve to handle unexpected renewals.</p>
+</div>
+<button class="ml-auto text-primary font-label-md px-4 py-2 border border-primary rounded-lg hover:bg-primary hover:text-on-primary transition-colors">Apply</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        document.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('mousedown', () => {
+                el.classList.add('scale-95');
+                el.style.transition = 'transform 0.1s ease-out';
+            });
+            el.addEventListener('mouseup', () => {
+                el.classList.remove('scale-95');
+            });
+            el.addEventListener('mouseleave', () => {
+                el.classList.remove('scale-95');
+            });
+        });
+    </script>
+</body></html>

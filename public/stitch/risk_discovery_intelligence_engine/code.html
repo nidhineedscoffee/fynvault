@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Risk &amp; Opportunity Engine - FinVault Executive</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "surface-container-highest": "#e0e3e5",
+                            "tertiary": "#000000",
+                            "on-error": "#ffffff",
+                            "on-tertiary-container": "#009668",
+                            "on-primary": "#ffffff",
+                            "tertiary-fixed-dim": "#4edea3",
+                            "on-primary-container": "#7c839b",
+                            "on-surface": "#191c1e",
+                            "secondary-fixed": "#d5e3fd",
+                            "on-tertiary-fixed": "#002113",
+                            "error-container": "#ffdad6",
+                            "inverse-primary": "#bec6e0",
+                            "primary-fixed-dim": "#bec6e0",
+                            "on-tertiary": "#ffffff",
+                            "on-background": "#191c1e",
+                            "outline-variant": "#c6c6cd",
+                            "on-surface-variant": "#45464d",
+                            "on-secondary": "#ffffff",
+                            "secondary": "#515f74",
+                            "surface-container-high": "#e6e8ea",
+                            "surface-tint": "#565e74",
+                            "surface-dim": "#d8dadc",
+                            "on-primary-fixed-variant": "#3f465c",
+                            "on-primary-fixed": "#131b2e",
+                            "on-secondary-fixed-variant": "#3a485c",
+                            "on-secondary-fixed": "#0d1c2f",
+                            "on-secondary-container": "#57657b",
+                            "secondary-container": "#d5e3fd",
+                            "surface": "#f7f9fb",
+                            "inverse-surface": "#2d3133",
+                            "surface-bright": "#f7f9fb",
+                            "primary": "#000000",
+                            "surface-variant": "#e0e3e5",
+                            "primary-container": "#131b2e",
+                            "primary-fixed": "#dae2fd",
+                            "inverse-on-surface": "#eff1f3",
+                            "tertiary-fixed": "#6ffbbe",
+                            "on-error-container": "#93000a",
+                            "outline": "#76777d",
+                            "surface-container": "#eceef0",
+                            "background": "#f7f9fb",
+                            "error": "#ba1a1a",
+                            "on-tertiary-fixed-variant": "#005236",
+                            "tertiary-container": "#002113",
+                            "surface-container-lowest": "#ffffff",
+                            "secondary-fixed-dim": "#b9c7e0",
+                            "surface-container-low": "#f2f4f6"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "margin-mobile": "16px",
+                            "margin-desktop": "40px",
+                            "container-max": "1440px",
+                            "gutter": "24px",
+                            "base": "4px",
+                            "section-gap": "64px"
+                    },
+                    "fontFamily": {
+                            "label-md": ["Geist"],
+                            "headline-md": ["Geist"],
+                            "body-md": ["Inter"],
+                            "label-sm": ["Geist"],
+                            "body-sm": ["Inter"],
+                            "body-lg": ["Inter"],
+                            "mono-data": ["Geist Mono"],
+                            "headline-lg": ["Geist"],
+                            "display-lg": ["Geist"],
+                            "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                            "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                            "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                            "mono-data": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                            "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            transform-origin: 0 0;
+            background: conic-gradient(from 0deg, rgba(19, 27, 46, 0) 0%, rgba(19, 27, 46, 0.1) 90%, rgba(19, 27, 46, 0.4) 100%);
+            animation: sweep 4s linear infinite;
+        }
+
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .signal-ping {
+            animation: ping-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes ping-pulse {
+            75%, 100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-hidden h-screen w-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant flex justify-between items-center px-margin-desktop h-16 max-w-container-max mx-auto">
+<div class="text-headline-md font-headline-md font-semibold text-primary">
+            FinVault
+        </div>
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors duration-150 active:opacity-80" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors duration-150 active:opacity-80" data-icon="settings">settings</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors duration-150 active:opacity-80" data-icon="account_circle">account_circle</span>
+</div>
+</header>
+<!-- Main Layout -->
+<div class="flex flex-1 pt-16 h-full relative">
+<!-- Side Navigation -->
+<nav class="hidden md:flex flex-col h-full py-6 px-4 bg-surface-container-low border-r border-outline-variant fixed left-0 top-16 w-64 z-40">
+<div class="flex flex-col gap-2 flex-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+<span class="font-label-md text-label-md">AI CFO</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="account_tree">account_tree</span>
+<span class="font-label-md text-label-md">Structure</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span class="font-label-md text-label-md">Relationships</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+<span class="font-label-md text-label-md">Revenue</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Cash Flow</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary font-bold bg-secondary-container transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" data-icon="query_stats" data-weight="fill" style="font-variation-settings: 'FILL' 1;">query_stats</span>
+<span class="font-label-md text-label-md">Risk Analysis</span>
+</a>
+</div>
+<div class="mt-auto pt-6 border-t border-outline-variant">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of an executive user, minimalist lighting, corporate fintech setting, neutral background, sharp focus, conveying trust and authority in a light mode UI context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9Fq6FShKI_Po9VPXBewqzQ2ra7tpC9f98aDrCkqjGutQTYQ2XPDGmHV3njg2dHWwCjjVIt6CUFmqemUefvh4LDAacnjxADSnFZn9b4-AbxW6MEOs8WmsCB6EhnfBkZAhGL1XgHCBsg-uBe1iQgi0K5PkuywE6d7kS-IV-nhGOBp0CNbEl2oqiiIdgpSfRooNnXAoW4WCUxizGKhH0Lj1AVY2nzCQzg0Xn2QkxUEzXchO4ir-rlq7pT3R_-0MtMFficVdctNyZiS8"/>
+</div>
+<div>
+<div class="font-label-md text-label-md font-semibold text-primary">FinVault Executive</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Enterprise Tier</div>
+</div>
+</div>
+<button class="w-full py-2 bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                    Upgrade Insights
+                </button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 relative overflow-hidden flex flex-col justify-center items-center">
+<!-- 3D Animation Background -->
+<div class="absolute inset-0 w-full h-full z-0 opacity-40 mix-blend-multiply pointer-events-none">
+<!-- STITCH_THREEJS_START:ANIMATION_31 class="absolute inset-0 w-full h-full" -->
+<div class="absolute inset-0 w-full h-full" style="display:block;">
+<script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
+<div id="threejs-container-ANIMATION_31" style="width:100%;height:100%"></div>
+<script>
+(function() {
+  const container = document.getElementById('threejs-container-ANIMATION_31');
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  // FinVault Financial Intelligence Layer Animation
+// A sophisticated network of nodes representing financial entities (Customers, Invoices, Payments)
+// slowly connecting and pulse-radiating intelligence.
+
+const scene = new THREE.Scene();
+const container = document.getElementById('threejs-container-ANIMATION_31') || document.body;
+const width = container.clientWidth || window.innerWidth;
+const height = container.clientHeight || window.innerHeight;
+
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+camera.position.z = 8;
+
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(width, height);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+const group = new THREE.Group();
+scene.add(group);
+
+const nodes = [];
+const lines = [];
+const nodeCount = 40;
+
+// Colors from FinVault Design System
+const colors = [0x0f172a, 0x3b82f6, 0x64748b, 0x94a3b8];
+
+const geo = new THREE.SphereGeometry(0.08, 16, 16);
+
+for (let i = 0; i < nodeCount; i++) {
+  const mat = new THREE.MeshPhongMaterial({ 
+    color: colors[Math.floor(Math.random() * colors.length)],
+    emissive: 0x1d4ed8,
+    emissiveIntensity: 0.2,
+    shininess: 100 
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(
+    (Math.random() - 0.5) * 12,
+    (Math.random() - 0.5) * 8,
+    (Math.random() - 0.5) * 4
+  );
+  mesh.userData = {
+    velocity: new THREE.Vector3((Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005),
+    originalPos: mesh.position.clone()
+  };
+  nodes.push(mesh);
+  group.add(mesh);
+}
+
+// Connections
+const lineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.1 });
+const lineGeo = new THREE.BufferGeometry();
+const linePositions = new Float32Array(nodes.length * nodes.length * 3);
+lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+group.add(lineMesh);
+
+const light = new THREE.PointLight(0xffffff, 1, 100);
+light.position.set(10, 10, 10);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const positions = lineMesh.geometry.attributes.position.array;
+  let counter = 0;
+
+  nodes.forEach((node, i) => {
+    node.position.add(node.userData.velocity);
+    if (Math.abs(node.position.x) > 6) node.userData.velocity.x *= -1;
+    if (Math.abs(node.position.y) > 4) node.userData.velocity.y *= -1;
+    if (Math.abs(node.position.z) > 2) node.userData.velocity.z *= -1;
+
+    // Connect close nodes
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dist = node.position.distanceTo(nodes[j].position);
+      if (dist < 3) {
+        positions[counter++] = node.position.x;
+        positions[counter++] = node.position.y;
+        positions[counter++] = node.position.z;
+        positions[counter++] = nodes[j].position.x;
+        positions[counter++] = nodes[j].position.y;
+        positions[counter++] = nodes[j].position.z;
+      }
+    }
+  });
+
+  lineMesh.geometry.attributes.position.needsUpdate = true;
+  lineMesh.geometry.setDrawRange(0, counter / 3);
+
+  group.rotation.y += 0.001;
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  const w = container.clientWidth || window.innerWidth;
+  const h = container.clientHeight || window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+animate();
+})();
+</script>
+</div>
+<!-- STITCH_THREEJS_END:ANIMATION_31 -->
+</div>
+<!-- Content Canvas -->
+<div class="relative z-10 w-full max-w-4xl px-margin-mobile md:px-margin-desktop flex flex-col items-center">
+<!-- Header Section -->
+<div class="text-center mb-12 fade-in-up" style="animation-delay: 0.1s;">
+<h1 class="font-display-lg text-display-lg text-primary mb-4 tracking-tight">Identifying Business Risks</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">Searching for risks that could impact growth, cash flow, or operations.</p>
+</div>
+<!-- Radar Interface Container -->
+<div class="relative w-full max-w-2xl aspect-square md:aspect-video bg-surface/80 backdrop-blur-md rounded-3xl border border-outline-variant shadow-[0px_10px_30px_rgba(15,23,42,0.08)] overflow-hidden flex items-center justify-center fade-in-up" style="animation-delay: 0.3s;">
+<!-- Radar Visuals -->
+<div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
+<div class="w-full h-full rounded-full border border-primary absolute scale-[1.5]"></div>
+<div class="w-full h-full rounded-full border border-primary absolute scale-[1.0]"></div>
+<div class="w-full h-full rounded-full border border-primary absolute scale-[0.5]"></div>
+<div class="w-0.5 h-full bg-primary absolute"></div>
+<div class="w-full h-0.5 bg-primary absolute"></div>
+<div class="radar-sweep rounded-full"></div>
+</div>
+<!-- Risk Signals -->
+<div class="relative z-10 flex flex-col gap-4 w-full px-8 md:px-16">
+<!-- Signal 1 -->
+<div class="flex items-center gap-4 bg-surface rounded-xl p-4 border border-outline-variant shadow-sm fade-in-up relative overflow-hidden group" style="animation-delay: 0.6s;">
+<div class="absolute inset-0 bg-gradient-to-r from-error/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative flex items-center justify-center w-10 h-10 rounded-full bg-error-container text-on-error-container flex-shrink-0">
+<span class="absolute inline-flex h-full w-full rounded-full bg-error opacity-20 signal-ping"></span>
+<span class="material-symbols-outlined" data-icon="warning">warning</span>
+</div>
+<div class="flex-1">
+<div class="font-label-md text-label-md text-primary">17 overdue invoices identified</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Cash flow impact detected</div>
+</div>
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">chevron_right</span>
+</div>
+<!-- Signal 2 -->
+<div class="flex items-center gap-4 bg-surface rounded-xl p-4 border border-outline-variant shadow-sm fade-in-up relative overflow-hidden group" style="animation-delay: 1.2s;">
+<div class="absolute inset-0 bg-gradient-to-r from-secondary-container/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative flex items-center justify-center w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex-shrink-0">
+<span class="absolute inline-flex h-full w-full rounded-full bg-secondary opacity-20 signal-ping" style="animation-delay: 0.5s"></span>
+<span class="material-symbols-outlined" data-icon="pie_chart">pie_chart</span>
+</div>
+<div class="flex-1">
+<div class="font-label-md text-label-md text-primary">Revenue concentration detected</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Client XYZ accounts for 40%</div>
+</div>
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">chevron_right</span>
+</div>
+<!-- Signal 3 -->
+<div class="flex items-center gap-4 bg-surface rounded-xl p-4 border border-outline-variant shadow-sm fade-in-up relative overflow-hidden group" style="animation-delay: 1.8s;">
+<div class="absolute inset-0 bg-gradient-to-r from-tertiary-container/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="relative flex items-center justify-center w-10 h-10 rounded-full bg-surface-container-highest text-on-surface flex-shrink-0">
+<span class="absolute inline-flex h-full w-full rounded-full bg-outline opacity-20 signal-ping" style="animation-delay: 1s"></span>
+<span class="material-symbols-outlined" data-icon="calendar_clock">calendar_clock</span>
+</div>
+<div class="flex-1">
+<div class="font-label-md text-label-md text-primary">Contract renewal approaching</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">Vendor A requires review in 30 days</div>
+</div>
+<span class="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full max-w-xl mt-12 fade-in-up" style="animation-delay: 0.5s;">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Analysis Progress</span>
+<span class="font-mono-data text-mono-data text-primary font-medium">75%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style="width: 75%;"></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

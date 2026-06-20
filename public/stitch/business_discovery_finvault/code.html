@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Business Structure | FinVault Executive</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;family=Inter:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary": "#000000",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#009668",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-primary-container": "#7c839b",
+                        "on-surface": "#191c1e",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-tertiary-fixed": "#002113",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#bec6e0",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "outline-variant": "#c6c6cd",
+                        "on-surface-variant": "#45464d",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#515f74",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-tint": "#565e74",
+                        "surface-dim": "#d8dadc",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-primary-fixed": "#131b2e",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "on-secondary-container": "#57657b",
+                        "secondary-container": "#d5e3fd",
+                        "surface": "#f7f9fb",
+                        "inverse-surface": "#2d3133",
+                        "surface-bright": "#f7f9fb",
+                        "primary": "#000000",
+                        "surface-variant": "#e0e3e5",
+                        "primary-container": "#131b2e",
+                        "primary-fixed": "#dae2fd",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-error-container": "#93000a",
+                        "outline": "#76777d",
+                        "surface-container": "#eceef0",
+                        "background": "#f7f9fb",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary-container": "#002113",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "surface-container-low": "#f2f4f6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "40px",
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "section-gap": "64px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "mono-data": ["Geist Mono"],
+                        "headline-lg": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "mono-data": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .counter-card {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .counter-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0px 10px 30px rgba(15, 23, 42, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-x-hidden font-body-md">
+<!-- Background Animation -->
+<!-- STITCH_THREEJS_START:ANIMATION_31 class="fixed inset-0 w-full h-full z-0 opacity-40 pointer-events-none" -->
+<div class="fixed inset-0 w-full h-full z-0 opacity-40 pointer-events-none" style="display:block;">
+<script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
+<div id="threejs-container-ANIMATION_31" style="width:100%;height:100%"></div>
+<script>
+(function() {
+  const container = document.getElementById('threejs-container-ANIMATION_31');
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  // FinVault Financial Intelligence Layer Animation
+// A sophisticated network of nodes representing financial entities (Customers, Invoices, Payments)
+// slowly connecting and pulse-radiating intelligence.
+
+const scene = new THREE.Scene();
+const container = document.getElementById('threejs-container-ANIMATION_31') || document.body;
+const width = container.clientWidth || window.innerWidth;
+const height = container.clientHeight || window.innerHeight;
+
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+camera.position.z = 8;
+
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(width, height);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+const group = new THREE.Group();
+scene.add(group);
+
+const nodes = [];
+const lines = [];
+const nodeCount = 40;
+
+// Colors from FinVault Design System
+const colors = [0x0f172a, 0x3b82f6, 0x64748b, 0x94a3b8];
+
+const geo = new THREE.SphereGeometry(0.08, 16, 16);
+
+for (let i = 0; i < nodeCount; i++) {
+  const mat = new THREE.MeshPhongMaterial({ 
+    color: colors[Math.floor(Math.random() * colors.length)],
+    emissive: 0x1d4ed8,
+    emissiveIntensity: 0.2,
+    shininess: 100 
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(
+    (Math.random() - 0.5) * 12,
+    (Math.random() - 0.5) * 8,
+    (Math.random() - 0.5) * 4
+  );
+  mesh.userData = {
+    velocity: new THREE.Vector3((Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005),
+    originalPos: mesh.position.clone()
+  };
+  nodes.push(mesh);
+  group.add(mesh);
+}
+
+// Connections
+const lineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.1 });
+const lineGeo = new THREE.BufferGeometry();
+const linePositions = new Float32Array(nodes.length * nodes.length * 3);
+lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+group.add(lineMesh);
+
+const light = new THREE.PointLight(0xffffff, 1, 100);
+light.position.set(10, 10, 10);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const positions = lineMesh.geometry.attributes.position.array;
+  let counter = 0;
+
+  nodes.forEach((node, i) => {
+    node.position.add(node.userData.velocity);
+    if (Math.abs(node.position.x) > 6) node.userData.velocity.x *= -1;
+    if (Math.abs(node.position.y) > 4) node.userData.velocity.y *= -1;
+    if (Math.abs(node.position.z) > 2) node.userData.velocity.z *= -1;
+
+    // Connect close nodes
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dist = node.position.distanceTo(nodes[j].position);
+      if (dist < 3) {
+        positions[counter++] = node.position.x;
+        positions[counter++] = node.position.y;
+        positions[counter++] = node.position.z;
+        positions[counter++] = nodes[j].position.x;
+        positions[counter++] = nodes[j].position.y;
+        positions[counter++] = nodes[j].position.z;
+      }
+    }
+  });
+
+  lineMesh.geometry.attributes.position.needsUpdate = true;
+  lineMesh.geometry.setDrawRange(0, counter / 3);
+
+  group.rotation.y += 0.001;
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  const w = container.clientWidth || window.innerWidth;
+  const h = container.clientHeight || window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+animate();
+})();
+</script>
+</div>
+<!-- STITCH_THREEJS_END:ANIMATION_31 -->
+<!-- SideNavBar (Hidden on Mobile, Visible on md+) -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-64 bg-surface-container-low border-r border-outline-variant z-40 flex-col py-6 px-4">
+<div class="mb-8 px-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">account_balance</span>
+<span class="text-headline-md font-headline-md font-bold text-primary">FinVault</span>
+</div>
+<div class="flex-grow flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-md text-label-md">AI CFO</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary font-bold bg-secondary-container rounded-lg transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span class="font-label-md text-label-md">Structure</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-label-md text-label-md">Relationships</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-label-md text-label-md">Revenue</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-md text-label-md">Cash Flow</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all duration-150 active:scale-95" href="#">
+<span class="material-symbols-outlined">query_stats</span>
+<span class="font-label-md text-label-md">Risk Analysis</span>
+</a>
+</div>
+<div class="mt-auto border-t border-outline-variant pt-6 px-4">
+<div class="flex items-center gap-3 mb-4">
+<img alt="Executive User Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A small circular avatar placeholder for an executive profile. Professional lighting, neutral grey background, minimalist vector style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBj1hbCWQBlgqThMhgCejyZA-U6_fkRDJLsJr59VwMQRtPkIMqrRQcBuZWpDiSVyNR6nlsKseoVuPjENEVNkUXFhsp4LCVjDIe3GDMWry2PBuGT3uFd94FyNvsyhhKHarr1Kd-b72iROY7eLBJBbqgqTRn5dJlouxmExMAQIJLuCHOy3i7UKNnYboNa6fG_IqAqArM31bDzN3Aht8RfP0rRs52UMOv19Ln45jpTMDsCOFY8JT_OVCXAukBOvMAfHgPOhpAhyf5idg"/>
+<div>
+<div class="font-label-sm text-label-sm text-primary">FinVault Executive</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant opacity-70">Enterprise Tier</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-2 px-4 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">upgrade</span>
+                Upgrade Insights
+            </button>
+</div>
+</nav>
+<!-- TopAppBar (Visible on Mobile, Hidden on md+) -->
+<header class="md:hidden fixed top-0 w-full z-50 bg-surface border-b border-outline-variant flex justify-between items-center px-margin-mobile h-16">
+<div class="text-headline-md font-headline-md font-semibold text-primary">FinVault</div>
+<div class="flex items-center gap-4 text-primary">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors duration-150 active:opacity-80">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors duration-150 active:opacity-80">settings</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors duration-150 active:opacity-80">account_circle</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="md:ml-64 pt-20 md:pt-12 px-margin-mobile md:px-margin-desktop pb-24 max-w-container-max mx-auto relative z-10 flex flex-col min-h-screen justify-center">
+<!-- Onboarding Header -->
+<div class="max-w-3xl mx-auto text-center mb-section-gap">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full text-label-sm font-label-sm text-primary mb-6 border border-outline-variant">
+<span class="material-symbols-outlined text-[16px]">travel_explore</span>
+                AI Discovery Active
+            </div>
+<h1 class="font-display-lg text-display-lg md:text-[56px] leading-tight text-primary mb-4 tracking-tight">Understanding Your Business Structure</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant text-xl">Discovering the people, transactions, and relationships that power your company.</p>
+</div>
+<!-- Progress Bar -->
+<div class="max-w-2xl mx-auto w-full mb-16">
+<div class="flex justify-between text-label-sm font-label-sm text-on-surface-variant mb-2">
+<span>Network Analysis</span>
+<span>15% Complete</span>
+</div>
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[15%] rounded-full transition-all duration-1000 ease-out" id="progress-bar"></div>
+</div>
+</div>
+<!-- Bento Grid / Counters -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter max-w-6xl mx-auto w-full">
+<!-- Card 1: Customers -->
+<div class="counter-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-bright to-surface-container opacity-50"></div>
+<div class="relative z-10">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-primary flex items-center justify-center mb-6 mx-auto">
+<span class="material-symbols-outlined">group</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary mb-2 num-counter" data-target="42">0</div>
+<div class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Customers</div>
+</div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-tertiary-fixed-dim to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<!-- Card 2: Invoices -->
+<div class="counter-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-bright to-surface-container opacity-50"></div>
+<div class="relative z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-primary flex items-center justify-center mb-6 mx-auto">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary mb-2 num-counter" data-target="137">0</div>
+<div class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Invoices</div>
+</div>
+</div>
+<!-- Card 3: Vendors -->
+<div class="counter-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-bright to-surface-container opacity-50"></div>
+<div class="relative z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-primary flex items-center justify-center mb-6 mx-auto">
+<span class="material-symbols-outlined">store</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary mb-2 num-counter" data-target="18">0</div>
+<div class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Vendors</div>
+</div>
+</div>
+<!-- Card 4: Transactions -->
+<div class="counter-card bg-surface-container-lowest border border-outline-variant rounded-2xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-bright to-surface-container opacity-50"></div>
+<div class="relative z-10">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-primary flex items-center justify-center mb-6 mx-auto">
+<span class="material-symbols-outlined">swap_horiz</span>
+</div>
+<div class="font-display-lg text-display-lg text-primary mb-2"><span class="num-counter" data-target="2814">0</span></div>
+<div class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Transactions</div>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-16 text-center">
+<button class="bg-primary text-on-primary font-label-md text-label-md px-8 py-4 rounded-xl hover:opacity-90 transition-all duration-150 inline-flex items-center gap-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                Continue Analysis
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar (Visible on Mobile, Hidden on md+) -->
+<nav class="md:hidden fixed bottom-0 w-full bg-surface border-t border-outline-variant z-50 px-4 py-2 pb-safe">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<a class="flex flex-col items-center gap-1 p-2 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_tree</span>
+<span class="font-label-sm text-[10px]">Structure</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">hub</span>
+<span class="font-label-sm text-[10px]">Network</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-label-sm text-[10px]">Revenue</span>
+</a>
+<a class="flex flex-col items-center gap-1 p-2 text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">menu</span>
+<span class="font-label-sm text-[10px]">More</span>
+</a>
+</div>
+</nav>
+<script>
+        // Simple counter animation
+        document.addEventListener("DOMContentLoaded", () => {
+            const counters = document.querySelectorAll('.num-counter');
+            
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const duration = 2000; // ms
+                const step = target / (duration / 16); // 60fps
+                let current = 0;
+
+                const updateCounter = () => {
+                    current += step;
+                    if (current < target) {
+                        counter.innerText = Math.ceil(current).toLocaleString();
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        counter.innerText = target.toLocaleString();
+                    }
+                };
+
+                setTimeout(updateCounter, 500); // slight delay for progressive feel
+            });
+            
+            // Trigger progress bar animation
+            setTimeout(() => {
+                const pb = document.getElementById('progress-bar');
+                if(pb) {
+                    pb.style.width = '15%';
+                }
+            }, 100);
+        });
+    </script>
+</body></html>

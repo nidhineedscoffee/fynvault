@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FinVault - AI CFO Ready</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary": "#000000",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#009668",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "on-primary-container": "#7c839b",
+                        "on-surface": "#191c1e",
+                        "secondary-fixed": "#d5e3fd",
+                        "on-tertiary-fixed": "#002113",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#bec6e0",
+                        "primary-fixed-dim": "#bec6e0",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "outline-variant": "#c6c6cd",
+                        "on-surface-variant": "#45464d",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#515f74",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-tint": "#565e74",
+                        "surface-dim": "#d8dadc",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-primary-fixed": "#131b2e",
+                        "on-secondary-fixed-variant": "#3a485c",
+                        "on-secondary-fixed": "#0d1c2f",
+                        "on-secondary-container": "#57657b",
+                        "secondary-container": "#d5e3fd",
+                        "surface": "#f7f9fb",
+                        "inverse-surface": "#2d3133",
+                        "surface-bright": "#f7f9fb",
+                        "primary": "#000000",
+                        "surface-variant": "#e0e3e5",
+                        "primary-container": "#131b2e",
+                        "primary-fixed": "#dae2fd",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-fixed": "#6ffbbe",
+                        "on-error-container": "#93000a",
+                        "outline": "#76777d",
+                        "surface-container": "#eceef0",
+                        "background": "#f7f9fb",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "tertiary-container": "#002113",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#b9c7e0",
+                        "surface-container-low": "#f2f4f6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1.5rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "40px",
+                        "container-max": "1440px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "section-gap": "64px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Geist"],
+                        "headline-md": ["Geist"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Geist"],
+                        "body-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "mono-data": ["Geist Mono"],
+                        "headline-lg": ["Geist"],
+                        "display-lg": ["Geist"],
+                        "headline-lg-mobile": ["Geist"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "mono-data": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-hidden font-body-md selection:bg-secondary-fixed selection:text-on-secondary-fixed">
+<!-- Background Dashboard Preview -->
+<div class="absolute inset-0 w-full h-full z-0 opacity-40 blur-[2px] transition-all duration-1000 ease-out" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBKiJWhp9lZS07CoxUtg2MgQ09HlNrrODsIUs28jmKv7nZafN4tPYHJUJDHyMAL6ArI8r1nVbt6HvORFWuKK2ylxL6A-T9kr8crZwawNM1sLxgfbs55oJym0x10umzi_8YcgMJ_ghOefbh_FClJRZZpp44V2jjIsgme2geMkTTAJ7vWMI6MCaFFtUm2R_Ts1-ZBph5Jncg3089zW7b7S3NVdrY6rl87zR555rIptyuHbJxOB3VMootXps6Uw0s45VAq7Jl-kOZFODA'); background-size: cover; background-position: center;">
+<div class="absolute inset-0 bg-gradient-to-b from-surface/60 via-surface/80 to-surface z-10"></div>
+</div>
+<!-- Main Content Container -->
+<main class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center px-margin-mobile md:px-margin-desktop py-12 max-w-container-max mx-auto">
+<!-- Header Section -->
+<header class="text-center mb-12 animate-fade-in-up" style="animation-delay: 100ms; animation-fill-mode: both;">
+<div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-surface-container-highest shadow-[0px_10px_30px_rgba(15,23,42,0.08)] mb-6">
+<span class="material-symbols-outlined text-[32px] text-tertiary-fixed-dim" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<h1 class="font-display-lg text-display-lg text-primary mb-4">Your AI CFO Is Ready</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+                We've analyzed your business and identified opportunities, risks, and actionable insights.
+            </p>
+</header>
+<!-- Progress Bar -->
+<div class="w-full max-w-3xl mb-12 animate-fade-in-up" style="animation-delay: 200ms; animation-fill-mode: both;">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Analysis Complete</span>
+<span class="font-label-sm text-label-sm text-primary font-bold">100%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary w-full rounded-full transition-all duration-1000 ease-out"></div>
+</div>
+</div>
+<!-- Executive Briefing Card -->
+<div class="w-full max-w-4xl bg-surface-container-lowest rounded-2xl border border-outline-variant shadow-[0px_10px_30px_rgba(15,23,42,0.08)] p-6 md:p-10 mb-12 animate-fade-in-up relative overflow-hidden group" style="animation-delay: 300ms; animation-fill-mode: both;">
+<!-- AI Glow Effect -->
+<div class="absolute inset-0 bg-gradient-to-br from-tertiary-fixed/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+<div class="flex items-center gap-3 mb-8 border-b border-outline-variant pb-4">
+<span class="material-symbols-outlined text-primary">insights</span>
+<h2 class="font-headline-md text-headline-md text-primary">Executive Briefing</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-8">
+<!-- Metric 1: Financial Health -->
+<div class="flex flex-col gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Financial Health Score</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary">82</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/100</span>
+</div>
+<div class="h-1.5 w-full bg-surface-container-high rounded-full mt-2">
+<div class="h-full bg-tertiary-fixed-dim w-[82%] rounded-full"></div>
+</div>
+</div>
+<!-- Metric 2: Runway -->
+<div class="flex flex-col gap-2 md:border-l md:border-outline-variant md:pl-8">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Runway</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary">5.2</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Months</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-tertiary-container bg-tertiary-fixed/20 px-2 py-0.5 rounded-md inline-block w-max mt-1">+0.4m from last month</span>
+</div>
+<!-- Metric 3: Cash Position -->
+<div class="flex flex-col gap-2 md:border-l md:border-outline-variant md:pl-8">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Cash Position</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-primary">₹48.6L</span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant mt-1">Operating capital</span>
+</div>
+</div>
+<!-- Top Opportunity Card -->
+<div class="bg-surface-container-low rounded-xl border border-outline-variant p-6 relative">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary rounded-l-xl"></div>
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-on-primary-fixed">trending_up</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-primary font-bold mb-1">Top Opportunity: Optimize Vendor Contracts</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+                             We identified ₹3.2L in potential annualized savings by consolidating software licenses and renegotiating terms with your top 3 vendors.
+                         </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex flex-col sm:flex-row gap-4 w-full max-w-md mx-auto animate-fade-in-up" style="animation-delay: 400ms; animation-fill-mode: both;">
+<button class="flex-1 bg-primary text-on-primary font-label-md text-label-md py-3 px-6 rounded-lg shadow-sm hover:bg-inverse-surface transition-colors duration-150 flex items-center justify-center gap-2">
+                Open Dashboard
+                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<button class="flex-1 bg-surface text-primary border border-outline-variant font-label-md text-label-md py-3 px-6 rounded-lg hover:bg-surface-container-low transition-colors duration-150 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">chat_bubble</span>
+                Ask FinVault
+            </button>
+</div>
+</main>
+<style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</body></html>

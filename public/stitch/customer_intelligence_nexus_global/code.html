@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customer Intelligence | FinVault AI</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;family=Geist:wght@400;500;600;700&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-variant": "#e0e3e5",
+                    "secondary-fixed": "#d5e3fd",
+                    "surface-container-low": "#f2f4f6",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-secondary": "#ffffff",
+                    "primary-container": "#131b2e",
+                    "primary-fixed-dim": "#bec6e0",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "tertiary-fixed": "#6ffbbe",
+                    "surface-container-high": "#e6e8ea",
+                    "secondary": "#515f74",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-primary-container": "#7c839b",
+                    "surface-dim": "#d8dadc",
+                    "primary-fixed": "#dae2fd",
+                    "on-error-container": "#93000a",
+                    "outline-variant": "#c6c6cd",
+                    "primary": "#000000",
+                    "on-primary": "#ffffff",
+                    "secondary-fixed-dim": "#b9c7e0",
+                    "inverse-primary": "#bec6e0",
+                    "on-secondary-fixed": "#0d1c2f",
+                    "background": "#f7f9fb",
+                    "outline": "#76777d",
+                    "on-background": "#191c1e",
+                    "on-surface": "#191c1e",
+                    "on-secondary-fixed-variant": "#3a485c",
+                    "secondary-container": "#d5e3fd",
+                    "surface-container-highest": "#e0e3e5",
+                    "error": "#ba1a1a",
+                    "tertiary": "#000000",
+                    "surface-tint": "#565e74",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed": "#002113",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary-container": "#009668",
+                    "surface-bright": "#f7f9fb",
+                    "inverse-surface": "#2d3133",
+                    "tertiary-container": "#002113",
+                    "surface-container": "#eceef0",
+                    "on-secondary-container": "#57657b",
+                    "on-surface-variant": "#45464d",
+                    "on-primary-fixed": "#131b2e",
+                    "inverse-on-surface": "#eff1f3",
+                    "surface": "#f7f9fb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "gutter": "24px",
+                    "container-max": "1440px",
+                    "section-gap": "64px",
+                    "base": "4px",
+                    "margin-desktop": "40px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "label-sm": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "label-md": ["Geist"],
+                    "display-lg": ["Geist"],
+                    "mono-data": ["Geist Mono"],
+                    "body-sm": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body {
+            background-color: #F8FAFC;
+            -webkit-font-smoothing: antialiased;
+        }
+        .bento-card {
+            background: #ffffff;
+            border: 1px solid #E2E8F0;
+            border-radius: 24px;
+            padding: 32px;
+            transition: all 150ms ease-in-out;
+        }
+        .bento-card:hover {
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.03);
+        }
+        .ai-border {
+            position: relative;
+        }
+        .ai-border::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            z-index: -1;
+            border-radius: 25px;
+            background: linear-gradient(to right, #131b2e, #3f465c);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface">
+<!-- Side Navigation Shell -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant flex flex-col py-8 z-50">
+<div class="px-6 mb-10 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-sm">hub</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">FinVault AI</h1>
+<p class="text-[10px] font-label-sm text-on-primary-container tracking-wider">CFO INTELLIGENCE</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1 px-4 overflow-y-auto">
+<div class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150 cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Overview</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary font-bold border-r-4 border-primary bg-surface-container-low cursor-pointer">
+<span class="material-symbols-outlined">group</span>
+<span>Customers</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150 cursor-pointer">
+<span class="material-symbols-outlined">monitor_heart</span>
+<span>Financial Health</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150 cursor-pointer">
+<span class="material-symbols-outlined">receipt_long</span>
+<span>Receivables</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150 cursor-pointer">
+<span class="material-symbols-outlined">psychology</span>
+<span>Ask FinVault</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150 cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</div>
+</nav>
+<div class="px-4 mt-auto">
+<div class="p-4 bg-surface-container rounded-xl flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A professional headshot of a corporate finance executive, high-end photography, clean studio lighting, soft grey background, wearing a tailored navy blazer, professional and trustworthy expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuPcJNB6ZunSGlss9_hvrKL0FJYqEAi2zZxOFllWJAF36kz5hq4_EFtN94M9Gx9vQC7fdxHUejkqHxXSygd_kvI4qztnC0zA8SZ4Uxb6LyWyBIRGt6blQNMvydoHdGUgzdO9fY0ltmTPFG4Blayd2qrrI1yeC05TV3vlvRa4tCQ4fTpZRw22fkLA74Fzbj9hoAk5kRoF0eYaoemfIOu1_tfZzxs5U74XZ1TkBaqZtD_crNQg1tlssjhkS8QmPzZrno_J1KlxTPQNg"/>
+<div class="flex-1 min-w-0">
+<p class="font-label-md text-primary truncate">Aditya Verma</p>
+<p class="text-[10px] text-on-surface-variant">Senior Controller</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex items-center justify-between px-margin-desktop bg-surface border-b border-outline-variant z-40">
+<div class="flex items-center gap-4 flex-1">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-label-md focus:ring-1 focus:ring-primary" placeholder="Search customers or invoices..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer transition-colors">help</span>
+<div class="h-8 w-[1px] bg-outline-variant mx-2"></div>
+<button class="bg-primary text-white font-label-md px-6 py-2 rounded-full hover:opacity-90 active:scale-95 transition-all">Export Report</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 pb-12 px-margin-desktop min-h-screen">
+<div class="max-w-container-max mx-auto">
+<!-- Header Identity Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+<div class="flex items-center gap-6">
+<div class="w-20 h-20 bg-white border border-outline-variant rounded-2xl flex items-center justify-center p-3 shadow-sm">
+<img class="w-full h-full object-contain" data-alt="A sophisticated minimalist corporate logo for 'Nexus Global' featuring interlocking geometric silver spheres, representing global connectivity and financial stability, set against a crisp white studio background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD04GQKQ4W1HJWLI2izNZqBOpEuwKyrpZUyEXWCy57XXQAYGB3-JxpVEB0RXknA4nGT0LiI2wnEUBwyiJDdw8hQ_WiLxy2uv4t56Al3LWryiAMOFfDrmyX7rJ9JgiPxypGMnbdpcRJcrF7cjnO082fsNlLpM71loK8AozC724HRyZVnah7lgG4cYTHihUyDzzvSJ7OcP7OnYDNLvI4u1b3qt0IyeE8hFRXIeMODhQ2V7lzV2PXVhuOXvimpCIB1An7GOeW5026KC7M"/>
+</div>
+<div>
+<div class="flex items-center gap-3 mb-1">
+<h2 class="font-headline-lg text-headline-lg text-primary">Nexus Global</h2>
+<span class="px-3 py-1 bg-primary text-white font-label-sm text-[10px] rounded-full uppercase tracking-widest">Strategic Account</span>
+</div>
+<p class="font-body-md text-on-surface-variant">Global Logistics &amp; Supply Chain Solutions</p>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2.5 border border-outline text-primary font-label-md rounded-full hover:bg-surface-container transition-colors">Edit Profile</button>
+<button class="px-6 py-2.5 bg-primary text-white font-label-md rounded-full hover:opacity-90 active:scale-95 transition-all">Action Center</button>
+</div>
+</div>
+<!-- Top Row Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter mb-gutter">
+<div class="bento-card">
+<p class="font-label-sm text-on-surface-variant uppercase mb-2">Total Revenue Generated</p>
+<h3 class="font-display-lg text-display-lg text-primary">₹42.8L</h3>
+<div class="mt-4 flex items-center text-on-tertiary-container gap-1 font-label-md">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>12% YoY growth</span>
+</div>
+</div>
+<div class="bento-card">
+<p class="font-label-sm text-on-surface-variant uppercase mb-2">Outstanding Invoices</p>
+<h3 class="font-display-lg text-display-lg text-primary">₹8.4L</h3>
+<div class="mt-4 flex items-center text-on-surface-variant gap-1 font-label-md">
+<span class="material-symbols-outlined text-sm">receipt</span>
+<span>4 pending invoices</span>
+</div>
+</div>
+<div class="bento-card">
+<p class="font-label-sm text-on-surface-variant uppercase mb-2">Payment Behavior</p>
+<h3 class="font-display-lg text-display-lg text-primary">12 Days</h3>
+<div class="mt-4 flex items-center text-error gap-1 font-label-md">
+<span class="material-symbols-outlined text-sm">warning</span>
+<span>Average Latency</span>
+</div>
+</div>
+<div class="bento-card border-error/20">
+<p class="font-label-sm text-on-surface-variant uppercase mb-2">Risk Score</p>
+<div class="flex items-baseline gap-2">
+<h3 class="font-display-lg text-display-lg text-error">72</h3>
+<span class="text-on-surface-variant font-body-md">/100</span>
+</div>
+<div class="mt-4 flex items-center text-error gap-1 font-label-md">
+<span>High Risk Potential</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Main Content Column -->
+<div class="lg:col-span-8 space-y-gutter">
+<!-- Payment History Timeline -->
+<div class="bento-card">
+<div class="flex items-center justify-between mb-8">
+<h4 class="font-headline-md text-headline-md text-primary">Payment History</h4>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-surface-container text-on-surface-variant font-label-sm rounded-lg cursor-pointer">Q3 2023</span>
+<span class="px-3 py-1 bg-primary text-white font-label-sm rounded-lg cursor-pointer">Q4 2023</span>
+</div>
+</div>
+<div class="space-y-6">
+<div class="flex items-center gap-6 group">
+<div class="w-16 font-mono-data text-on-surface-variant text-sm">DEC 12</div>
+<div class="flex-1 p-4 bg-surface-container-low rounded-xl flex items-center justify-between border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-fixed text-lg">check_circle</span>
+</div>
+<div>
+<p class="font-label-md text-primary">INV-88291</p>
+<p class="text-xs text-on-surface-variant">Logistics Fleet Management</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-primary">₹12,40,000</p>
+<p class="text-xs text-on-tertiary-container">Paid on time</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6 group">
+<div class="w-16 font-mono-data text-on-surface-variant text-sm">NOV 28</div>
+<div class="flex-1 p-4 bg-error-container/30 rounded-xl flex items-center justify-between border border-error/20">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-error-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-error-container text-lg">history</span>
+</div>
+<div>
+<p class="font-label-md text-primary">INV-87102</p>
+<p class="text-xs text-on-surface-variant">International Cargo Duties</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-primary">₹6,20,000</p>
+<p class="text-xs text-error">Overdue by 15 days</p>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-6 group">
+<div class="w-16 font-mono-data text-on-surface-variant text-sm">OCT 15</div>
+<div class="flex-1 p-4 bg-surface-container-low rounded-xl flex items-center justify-between border border-transparent hover:border-outline-variant transition-all">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary-fixed text-lg">check_circle</span>
+</div>
+<div>
+<p class="font-label-md text-primary">INV-86540</p>
+<p class="text-xs text-on-surface-variant">Maintenance Contract Q3</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-label-md text-primary">₹8,50,000</p>
+<p class="text-xs text-on-tertiary-container">Paid (Late 4 days)</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- AI Intelligence Section -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<div class="bento-card border-primary/10 bg-gradient-to-br from-white to-surface-container-low ai-border">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">psychology</span>
+<h4 class="font-label-sm uppercase tracking-wider text-primary">Intelligence Insights</h4>
+</div>
+<div class="space-y-4">
+<div class="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-outline-variant/30">
+<p class="font-body-md text-primary">Customer concentration is exceptionally high (<span class="font-bold">42% of revenue</span>).</p>
+</div>
+<div class="p-4 bg-white/50 backdrop-blur-sm rounded-xl border border-outline-variant/30">
+<p class="font-body-md text-primary">Recent delays in payment are predicted to impact company runway by <span class="font-bold text-error">15 days</span> next month.</p>
+</div>
+</div>
+</div>
+<div class="bento-card">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-on-surface-variant">mail_lock</span>
+<h4 class="font-label-sm uppercase tracking-wider text-on-surface-variant">Recent Communication</h4>
+</div>
+<div class="p-4 bg-surface-container rounded-xl">
+<p class="font-label-sm text-on-surface-variant mb-2">AI SUMMARY OF RECENT EMAILS</p>
+<p class="font-body-sm text-on-surface leading-relaxed">
+                                    Correspondence indicates internal restructuring at Nexus Global. Mention of "revised AP workflows" in three separate threads suggests temporary operational friction rather than liquidity issues.
+                                </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Column -->
+<div class="lg:col-span-4 space-y-gutter">
+<!-- Action Panel -->
+<div class="bento-card bg-primary text-white border-none shadow-xl">
+<h4 class="font-headline-md mb-6">Immediate Actions</h4>
+<div class="space-y-3">
+<button class="w-full py-4 px-6 bg-white text-primary font-bold rounded-xl flex items-center justify-between hover:scale-[1.02] active:scale-95 transition-all">
+<span>Send Smart Reminder</span>
+<span class="material-symbols-outlined">forward_to_inbox</span>
+</button>
+<button class="w-full py-4 px-6 bg-primary-container text-white font-bold rounded-xl flex items-center justify-between border border-white/10 hover:bg-white/10 transition-all">
+<span>Schedule Review Call</span>
+<span class="material-symbols-outlined">calendar_today</span>
+</button>
+<button class="w-full py-4 px-6 bg-primary-container text-white font-bold rounded-xl flex items-center justify-between border border-white/10 hover:bg-white/10 transition-all">
+<span>Draft Revised Contract</span>
+<span class="material-symbols-outlined">edit_document</span>
+</button>
+</div>
+</div>
+<!-- Risk Evidence -->
+<div class="bento-card border-error/30">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-error">warning</span>
+<h4 class="font-label-md font-bold text-error">Risk Evidence</h4>
+</div>
+<ul class="space-y-4">
+<li class="flex gap-4">
+<div class="w-1.5 h-1.5 rounded-full bg-error mt-2"></div>
+<div>
+<p class="font-label-md text-primary">Frequent late payments in Q3</p>
+<p class="text-xs text-on-surface-variant">Average delay increased by 4.2 days vs Q2.</p>
+</div>
+</li>
+<li class="flex gap-4">
+<div class="w-1.5 h-1.5 rounded-full bg-error mt-2"></div>
+<div>
+<p class="font-label-md text-primary">Recent change in AP contact</p>
+<p class="text-xs text-on-surface-variant">Long-term point of contact replaced on Oct 24th.</p>
+</div>
+</li>
+<li class="flex gap-4">
+<div class="w-1.5 h-1.5 rounded-full bg-outline mt-2"></div>
+<div>
+<p class="font-label-md text-primary">Credit limit nearing utilization</p>
+<p class="text-xs text-on-surface-variant">88% of assigned credit currently deployed.</p>
+</div>
+</li>
+</ul>
+</div>
+<!-- Stakeholders -->
+<div class="bento-card">
+<h4 class="font-label-sm uppercase tracking-wider text-on-surface-variant mb-6">Key Stakeholders</h4>
+<div class="space-y-4">
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full" data-alt="A portrait of a male corporate treasurer, mature and authoritative, wearing professional attire, soft studio lighting, focused gaze, conveying financial expertise and corporate leadership." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXAWzcHUUSVZGTn5VPhZ5c7qj2t7J_Tb1u8e7Kep87U1H4YEYJw6kJ_kCrcSndivjqR2dWK5UYsMg5fpRvRgg9VFfUHSCQ_FW5lT6EGr1I3e58VxGXLTzBgUnslPZeHbS_R4VeTYiMHQ9qfmseYZb8MsM1jqx1bCtwn9xHSk9PWW5DvkguICbt0w5_PgZfzhj4Uj53B6M6sDGDIrvxDcxaq4VaRUbUOE5F-nDG9eWUip8_rq2Eio55SxeyWWtkfkdAnBadb7m4DQk"/>
+<div>
+<p class="text-sm font-bold text-primary">Marcus Thorne</p>
+<p class="text-[10px] text-on-surface-variant uppercase">Treasurer</p>
+</div>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant text-sm">mail</span>
+</div>
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full" data-alt="A professional headshot of a female accounting manager, wearing glasses and a formal business suit, smiling warmly but professional, bright and clean office background with soft bokeh." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2BQB7JlSYHmizt9q-jtmfrtGmaHIUANZfjMFeFkGSdFuSSXIvR6Y_mP-X6SFn5IpPMaM2pCHjZRXAD-QOgyqhFsbiMavvTmhimlMdkGPW200PDIZDajv_gXxJsnOLJVkCk66GoYteIbFjjswoPUzN4ACWYJJ6b3FRYLe-BcohmRrg4a2wLriQx46cRoZ1GtsFmpswByzREE2brG4SUijv-MKnkWRNbJmUa8_403Lc3ZWNgiv9nkttnRDwLSefYH3hWNUw4lLYS6A"/>
+<div>
+<p class="text-sm font-bold text-primary">Sarah Chen</p>
+<p class="text-[10px] text-on-surface-variant uppercase">AP Manager (New)</p>
+</div>
+<span class="material-symbols-outlined ml-auto text-on-surface-variant text-sm">mail</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Map/Geographic Focus -->
+<div class="mt-gutter">
+<div class="bento-card h-[400px] overflow-hidden p-0 relative">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover" data-alt="A highly detailed, professional map visualization of global trade routes connecting Southeast Asia to European ports, featuring subtle glowing lines on a dark slate background, designed for a high-end corporate dashboard." data-location="Singapore" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV5RkJdMYg40TXBDmp1qzjjALXJQlirCn5vDFCyxnAXxB7wx6oSPzC_-lzpmLDyWogpY_93e7Xoi5ta6JFTI0DsvhAusR-_dcpt5rTmjkwco2vzW6xWAkBi7DLam-VwtKJcYtiUTk88MoWL3b1590WzJzexoECMnejvz8x3NNLn0yq4TTrVRXx6s78965kJWVfkBPtbQQMLnSN3g0JxqqvcHN-M6kuQXV_TMUwwtWttPILXqU8nTdvXvJeKv6hw03YOg9vr-yqCDs"/>
+</div>
+<div class="absolute top-8 left-8 z-10 bg-white/90 backdrop-blur-md p-6 rounded-2xl border border-outline-variant shadow-lg max-w-sm">
+<h4 class="font-headline-md mb-2">Regional Exposure</h4>
+<p class="font-body-sm text-on-surface-variant">Nexus Global operates primary entities in Singapore, London, and Rotterdam. Financial risk is currently centralized in the APAC maritime division.</p>
+<div class="mt-4 pt-4 border-t border-outline-variant flex justify-between">
+<div>
+<p class="text-[10px] uppercase text-on-surface-variant">Main Hub</p>
+<p class="font-bold text-primary">Singapore</p>
+</div>
+<div class="text-right">
+<p class="text-[10px] uppercase text-on-surface-variant">Active Projects</p>
+<p class="font-bold text-primary">14</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Simple hover interaction for cards
+        document.querySelectorAll('.bento-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

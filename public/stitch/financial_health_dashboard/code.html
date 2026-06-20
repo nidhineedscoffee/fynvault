@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FinVault AI | Financial Health Dashboard</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Geist:wght@400;500;600;700;800&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<!-- Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#e6e8ea",
+                    "surface-dim": "#d8dadc",
+                    "background": "#f7f9fb",
+                    "surface-bright": "#f7f9fb",
+                    "surface-variant": "#e0e3e5",
+                    "tertiary": "#000000",
+                    "on-primary-container": "#7c839b",
+                    "on-background": "#191c1e",
+                    "tertiary-fixed": "#6ffbbe",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-surface-variant": "#45464d",
+                    "primary": "#000000",
+                    "on-secondary-container": "#57657b",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#d5e3fd",
+                    "surface": "#f7f9fb",
+                    "surface-tint": "#565e74",
+                    "error-container": "#ffdad6",
+                    "on-error": "#ffffff",
+                    "primary-fixed-dim": "#bec6e0",
+                    "outline": "#76777d",
+                    "outline-variant": "#c6c6cd",
+                    "inverse-primary": "#bec6e0",
+                    "on-secondary-fixed-variant": "#3a485c",
+                    "secondary": "#515f74",
+                    "surface-container-low": "#f2f4f6",
+                    "on-primary-fixed-variant": "#3f465c",
+                    "on-primary": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-secondary-fixed": "#0d1c2f",
+                    "tertiary-container": "#002113",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "secondary-container": "#d5e3fd",
+                    "secondary-fixed-dim": "#b9c7e0",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-tertiary-container": "#009668",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#2d3133",
+                    "primary-container": "#131b2e",
+                    "on-tertiary-fixed": "#002113",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-surface": "#191c1e",
+                    "on-primary-fixed": "#131b2e",
+                    "surface-container": "#eceef0",
+                    "primary-fixed": "#dae2fd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "section-gap": "64px",
+                    "margin-desktop": "40px",
+                    "margin-mobile": "16px",
+                    "container-max": "1440px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Geist"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "display-lg": ["Geist"],
+                    "headline-lg-mobile": ["Geist"],
+                    "headline-lg": ["Geist"],
+                    "label-md": ["Geist"],
+                    "body-sm": ["Inter"],
+                    "mono-data": ["Geist Mono"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "mono-data": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f7f9fb;
+            color: #191c1e;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .ai-border {
+            position: relative;
+        }
+        .ai-border::after {
+            content: "";
+            position: absolute;
+            inset: -1px;
+            border-radius: 24px;
+            padding: 1px;
+            background: linear-gradient(to right, #000000, #515f74);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-background">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface-container-lowest dark:bg-surface-container-lowest border-r border-outline-variant dark:border-outline-variant flex flex-col h-full py-8 z-50">
+<div class="px-6 mb-10">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-on-primary-container">FinVault AI</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">CFO Intelligence</p>
+</div>
+<nav class="flex-1 overflow-y-auto">
+<ul class="space-y-1">
+<!-- Active Navigation: Financial Health -->
+<li>
+<a class="flex items-center px-6 py-3 text-primary font-bold border-r-4 border-primary bg-surface-container-low transition-colors duration-150" href="#">
+<span class="material-symbols-outlined mr-3">monitor_heart</span>
+<span class="font-label-md text-label-md">Financial Health</span>
+</a>
+</li>
+<!-- Inactive items -->
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">dashboard</span><span class="font-label-md text-label-md">Overview</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">payments</span><span class="font-label-md text-label-md">Revenue</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">account_balance_wallet</span><span class="font-label-md text-label-md">Cash Flow</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">receipt_long</span><span class="font-label-md text-label-md">Receivables</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">pending_actions</span><span class="font-label-md text-label-md">Payables</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">group</span><span class="font-label-md text-label-md">Customers</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">store</span><span class="font-label-md text-label-md">Vendors</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">warning</span><span class="font-label-md text-label-md">Risks</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">psychology</span><span class="font-label-md text-label-md">Ask FinVault</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">settings</span><span class="font-label-md text-label-md">Settings</span></a></li>
+<li><a class="flex items-center px-6 py-3 text-on-surface-variant font-label-md hover:bg-surface-container-high transition-colors duration-150" href="#"><span class="material-symbols-outlined mr-3">hub</span><span class="font-label-md text-label-md">Integrations</span></a></li>
+</ul>
+</nav>
+<div class="px-6 mt-auto">
+<div class="flex items-center gap-3 p-3 bg-surface-container rounded-xl mb-4">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="Professional studio portrait of a high-level CFO executive in a modern workspace, soft lighting, minimalist attire, grey tones and sharp focus, corporate executive aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB18bD88GD2wWcG6sKsWLzmHgdH24k2ycTMug65tbcdqKEnQtMktJwwiRYAy1Y6BewOBEIJbq7AtX9k6kqyIGC957jQXRVfqiZE6BdC9mvr6t1PJoSOB-kYC-bi-eqhKeIDnp6VIl56jY8Sy0V9CM14swccefi6wBnfQEky7Q0Vr8Q1bOlgtRXppPRpuwxjJ8KlK1mgoCyabTChN_o4F-us7_Db2mLXyCZQciJYAZopA-q4SaeH8K-U317K8dQt6y4xe9zAx12yJus"/>
+<div class="overflow-hidden">
+<p class="font-label-md text-label-md truncate">Alex Rivera</p>
+<p class="text-xs text-on-surface-variant truncate">Lead Controller</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity">
+                Export Report
+            </button>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex items-center justify-between px-margin-desktop bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant z-40">
+<div class="flex items-center w-1/3">
+<div class="relative w-full max-w-sm">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg font-body-sm text-body-sm focus:ring-1 focus:ring-primary" placeholder="Search insights, transactions, or risks..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">help</span></button>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-24 pb-12 px-margin-desktop min-h-screen">
+<div class="max-w-container-max mx-auto">
+<!-- Financial Health Score Section -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-gutter mb-section-gap">
+<div class="lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+<div class="relative w-48 h-48 flex-shrink-0">
+<!-- Progress Ring SVG -->
+<svg class="w-full h-full -rotate-90">
+<circle class="text-surface-container-high" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" stroke-dasharray="552.92" stroke-dashoffset="99.5" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="font-display-lg text-display-lg">82</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">/ 100</span>
+</div>
+</div>
+<div class="flex-1 text-center md:text-left">
+<div class="flex items-center justify-center md:justify-start gap-2 mb-2">
+<h2 class="font-headline-lg text-headline-lg">Financial Health</h2>
+<span class="px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span> Healthy
+                            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Your score improved by <span class="font-bold text-primary">4 points</span> this month due to optimized accounts receivable and reduced burn rate. You're currently in the top 15% of peers in your sector.</p>
+<div class="grid grid-cols-3 gap-4 border-t border-outline-variant pt-6">
+<div>
+<p class="text-xs text-on-surface-variant uppercase font-bold tracking-wider mb-1">Efficiency</p>
+<p class="font-headline-md text-headline-md">94%</p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant uppercase font-bold tracking-wider mb-1">Liquidity</p>
+<p class="font-headline-md text-headline-md">78%</p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant uppercase font-bold tracking-wider mb-1">Stability</p>
+<p class="font-headline-md text-headline-md">81%</p>
+</div>
+</div>
+</div>
+<!-- Background Accent -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-primary opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+</div>
+<!-- AI Quick Insight -->
+<div class="lg:col-span-4 ai-border bg-surface-container-lowest rounded-[24px] p-8 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<span class="font-label-md text-label-md font-bold uppercase tracking-widest text-on-surface-variant">AI Intelligence</span>
+</div>
+<h3 class="font-headline-md text-headline-md mb-4">Optimizing Runway</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Based on current burn and revenue trajectory, I recommend shifting $140k from low-yield accounts to a money market fund to increase passive returns by 4.2% annually.</p>
+</div>
+<button class="mt-6 flex items-center justify-center gap-2 text-primary font-bold hover:underline">
+                        Explore Strategy <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- Key Metrics Grid -->
+<section class="mb-section-gap">
+<div class="flex items-center justify-between mb-8">
+<h3 class="font-headline-md text-headline-md">Key Performance Indicators</h3>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container-low rounded-lg font-label-md text-label-md hover:bg-surface-container-high transition-colors">Past 30 Days</button>
+<button class="p-2 bg-surface-container-low rounded-lg flex items-center justify-center hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">calendar_today</span></button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Metric Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 transition-all hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary-container text-on-primary-container rounded-xl">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<span class="text-emerald-600 font-bold flex items-center text-sm">+12.4% <span class="material-symbols-outlined text-xs">north_east</span></span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Revenue</p>
+<p class="font-headline-lg text-headline-lg mb-4">$420,500.00</p>
+<div class="bg-surface-container-low p-3 rounded-xl border border-transparent group-hover:border-primary/10 transition-colors">
+<p class="text-xs text-on-surface-variant italic">"Revenue is growing 12% MoM, driven by Enterprise tier upgrades."</p>
+</div>
+</div>
+<!-- Metric Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 transition-all hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-secondary-container text-on-secondary-container rounded-xl">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</div>
+<span class="text-error font-bold flex items-center text-sm">+3.1% <span class="material-symbols-outlined text-xs">north_east</span></span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Expenses</p>
+<p class="font-headline-lg text-headline-lg mb-4">$182,300.00</p>
+<div class="bg-surface-container-low p-3 rounded-xl border border-transparent group-hover:border-primary/10 transition-colors">
+<p class="text-xs text-on-surface-variant italic">"AWS costs increased by 8% due to server scaling in EU-West."</p>
+</div>
+</div>
+<!-- Metric Card 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 transition-all hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container-high rounded-xl">
+<span class="material-symbols-outlined">savings</span>
+</div>
+<span class="text-emerald-600 font-bold flex items-center text-sm">+18.0% <span class="material-symbols-outlined text-xs">north_east</span></span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Net Cash</p>
+<p class="font-headline-lg text-headline-lg mb-4">$1.24M</p>
+<div class="bg-surface-container-low p-3 rounded-xl border border-transparent group-hover:border-primary/10 transition-colors">
+<p class="text-xs text-on-surface-variant italic">"Cash position strengthened by recent series A-2 injection."</p>
+</div>
+</div>
+<!-- Metric Card 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 transition-all hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container-high rounded-xl">
+<span class="material-symbols-outlined">timer</span>
+</div>
+<span class="text-on-surface-variant font-bold flex items-center text-sm">Stable</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Runway</p>
+<p class="font-headline-lg text-headline-lg mb-4">18 Months</p>
+<div class="bg-surface-container-low p-3 rounded-xl border border-transparent group-hover:border-primary/10 transition-colors">
+<p class="text-xs text-on-surface-variant italic">"Sufficient capital to maintain operations until Q4 2025."</p>
+</div>
+</div>
+<!-- Metric Card 5 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 transition-all hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container-high rounded-xl">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<span class="text-error font-bold flex items-center text-sm">-5.2% <span class="material-symbols-outlined text-xs">south_east</span></span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Receivables</p>
+<p class="font-headline-lg text-headline-lg mb-4">$84,200.00</p>
+<div class="bg-surface-container-low p-3 rounded-xl border border-transparent group-hover:border-primary/10 transition-colors">
+<p class="text-xs text-on-surface-variant italic">"Average collection time decreased to 14 days."</p>
+</div>
+</div>
+<!-- Metric Card 6 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-8 transition-all hover:shadow-[0px_4px_20px_rgba(0,0,0,0.03)] group">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-surface-container-high rounded-xl">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<span class="text-on-surface-variant font-bold flex items-center text-sm">+2.0% <span class="material-symbols-outlined text-xs">north_east</span></span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Payables</p>
+<p class="font-headline-lg text-headline-lg mb-4">$12,450.00</p>
+<div class="bg-surface-container-low p-3 rounded-xl border border-transparent group-hover:border-primary/10 transition-colors">
+<p class="text-xs text-on-surface-variant italic">"All vendor payments scheduled and within terms."</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Layout: Risks and Feed -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Risk Center -->
+<div class="lg:col-span-2">
+<h3 class="font-headline-md text-headline-md mb-6">Risk Center</h3>
+<div class="space-y-4">
+<!-- Critical Risk -->
+<div class="bg-error-container/10 border border-error/20 rounded-[24px] p-6 flex items-start gap-4">
+<div class="p-3 bg-error text-on-error rounded-full">
+<span class="material-symbols-outlined">report</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-2">
+<h4 class="font-bold text-error">Unpaid Enterprise Invoice</h4>
+<span class="px-2 py-0.5 bg-error text-on-error text-[10px] font-bold uppercase rounded">Critical</span>
+</div>
+<div class="grid grid-cols-2 gap-x-8 gap-y-4">
+<div>
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Impact</p>
+<p class="font-label-md text-label-md">-$45,000 Cash Flow</p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Reason</p>
+<p class="font-label-md text-label-md">Net-30 term exceeded (42 days)</p>
+</div>
+<div class="col-span-2">
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Action</p>
+<div class="flex items-center justify-between">
+<p class="font-label-md text-label-md">Send automated escalating dunning notice</p>
+<button class="bg-error text-on-error px-4 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">Execute Action</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Warning Risk -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-[24px] p-6 flex items-start gap-4">
+<div class="p-3 bg-amber-500 text-white rounded-full">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between mb-2">
+<h4 class="font-bold text-primary">Vendor Pricing Shift</h4>
+<span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold uppercase rounded">Warning</span>
+</div>
+<div class="grid grid-cols-2 gap-x-8 gap-y-4">
+<div>
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Impact</p>
+<p class="font-label-md text-label-md">-$1,200/mo OPEX</p>
+</div>
+<div>
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Reason</p>
+<p class="font-label-md text-label-md">Cloudflare rate limit adjustments</p>
+</div>
+<div class="col-span-2">
+<p class="text-xs text-on-surface-variant font-bold uppercase tracking-wider mb-1">Action</p>
+<div class="flex items-center justify-between">
+<p class="font-label-md text-label-md">Review usage tiers or consolidate plans</p>
+<button class="border border-outline px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-surface-container-high transition-colors">Review Details</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Actions / Task Feed -->
+<div>
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-headline-md text-headline-md">Intelligence Feed</h3>
+<button class="text-primary text-xs font-bold hover:underline">View All</button>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 hover:border-primary transition-colors cursor-pointer group">
+<div class="w-10 h-10 flex-shrink-0 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">edit_note</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">Draft Payment Reminder</p>
+<p class="text-xs text-on-surface-variant">For Acme Corp ($12,000 overdue)</p>
+<p class="text-[10px] text-surface-dim mt-2 uppercase font-bold">2 hours ago</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 hover:border-primary transition-colors cursor-pointer group">
+<div class="w-10 h-10 flex-shrink-0 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">summarize</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">Generate CFO Report</p>
+<p class="text-xs text-on-surface-variant">Quarterly performance summary for board</p>
+<p class="text-[10px] text-surface-dim mt-2 uppercase font-bold">5 hours ago</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 hover:border-primary transition-colors cursor-pointer group">
+<div class="w-10 h-10 flex-shrink-0 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">rebase_edit</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">Reconcile 14 Transactions</p>
+<p class="text-xs text-on-surface-variant">Auto-mapped by AI for review</p>
+<p class="text-[10px] text-surface-dim mt-2 uppercase font-bold">Yesterday</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 hover:border-primary transition-colors cursor-pointer group opacity-60">
+<div class="w-10 h-10 flex-shrink-0 bg-surface-container rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">done_all</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">Tax Filing Ready</p>
+<p class="text-xs text-on-surface-variant">W-9 data export completed</p>
+<p class="text-[10px] text-surface-dim mt-2 uppercase font-bold">2 days ago</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Floating Action Button (Limited Use Context: Global Actions) -->
+<button class="fixed bottom-8 right-8 bg-primary text-on-primary w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-50">
+<span class="material-symbols-outlined">add</span>
+</button>
+<script>
+        // Micro-interaction for sidebar tabs
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                // Prevent default for demo
+                e.preventDefault();
+                
+                // Reset others (in real app this would be routing)
+                document.querySelectorAll('nav a').forEach(l => {
+                    l.classList.remove('text-primary', 'font-bold', 'border-r-4', 'border-primary', 'bg-surface-container-low');
+                    l.classList.add('text-on-surface-variant');
+                });
+                
+                // Set active
+                link.classList.add('text-primary', 'font-bold', 'border-r-4', 'border-primary', 'bg-surface-container-low');
+                link.classList.remove('text-on-surface-variant');
+            });
+        });
+
+        // Simple hover animation for metric cards
+        const cards = document.querySelectorAll('.group');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-4px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body></html>

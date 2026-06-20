@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Financial Relationship Mapping</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e0e3e5",
+                      "tertiary": "#000000",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#009668",
+                      "on-primary": "#ffffff",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "on-primary-container": "#7c839b",
+                      "on-surface": "#191c1e",
+                      "secondary-fixed": "#d5e3fd",
+                      "on-tertiary-fixed": "#002113",
+                      "error-container": "#ffdad6",
+                      "inverse-primary": "#bec6e0",
+                      "primary-fixed-dim": "#bec6e0",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#191c1e",
+                      "outline-variant": "#c6c6cd",
+                      "on-surface-variant": "#45464d",
+                      "on-secondary": "#ffffff",
+                      "secondary": "#515f74",
+                      "surface-container-high": "#e6e8ea",
+                      "surface-tint": "#565e74",
+                      "surface-dim": "#d8dadc",
+                      "on-primary-fixed-variant": "#3f465c",
+                      "on-primary-fixed": "#131b2e",
+                      "on-secondary-fixed-variant": "#3a485c",
+                      "on-secondary-fixed": "#0d1c2f",
+                      "on-secondary-container": "#57657b",
+                      "secondary-container": "#d5e3fd",
+                      "surface": "#f7f9fb",
+                      "inverse-surface": "#2d3133",
+                      "surface-bright": "#f7f9fb",
+                      "primary": "#000000",
+                      "surface-variant": "#e0e3e5",
+                      "primary-container": "#131b2e",
+                      "primary-fixed": "#dae2fd",
+                      "inverse-on-surface": "#eff1f3",
+                      "tertiary-fixed": "#6ffbbe",
+                      "on-error-container": "#93000a",
+                      "outline": "#76777d",
+                      "surface-container": "#eceef0",
+                      "background": "#f7f9fb",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "tertiary-container": "#002113",
+                      "surface-container-lowest": "#ffffff",
+                      "secondary-fixed-dim": "#b9c7e0",
+                      "surface-container-low": "#f2f4f6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "margin-desktop": "40px",
+                      "container-max": "1440px",
+                      "gutter": "24px",
+                      "base": "4px",
+                      "section-gap": "64px"
+              },
+              "fontFamily": {
+                      "label-md": [
+                              "Geist"
+                      ],
+                      "headline-md": [
+                              "Geist"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Geist"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "mono-data": [
+                              "Geist Mono"
+                      ],
+                      "headline-lg": [
+                              "Geist"
+                      ],
+                      "display-lg": [
+                              "Geist"
+                      ],
+                      "headline-lg-mobile": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "mono-data": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "56px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&family=Inter:wght@100..900&display=swap');
+      </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant transition-colors duration-200">
+<div class="flex justify-between items-center px-margin-desktop h-16 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-headline-md font-semibold text-primary dark:text-primary">FinVault</span>
+</div>
+<nav class="hidden md:flex items-center gap-8 h-full">
+<!-- Intent: Linear/Transactional or Onboarding context, suppressing main nav items to focus on canvas -->
+</nav>
+<div class="flex items-center gap-4">
+<button aria-label="notifications" class="text-on-surface-variant hover:text-primary transition-colors duration-150 p-2 rounded-full hover:bg-surface-container cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="settings" class="text-on-surface-variant hover:text-primary transition-colors duration-150 p-2 rounded-full hover:bg-surface-container cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<button aria-label="account_circle" class="text-on-surface-variant hover:text-primary transition-colors duration-150 p-2 rounded-full hover:bg-surface-container cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Side Navigation (Suppressed for this focused canvas view) -->
+<aside class="hidden md:flex flex-col h-full py-6 px-4 fixed left-0 top-0 h-full w-64 bg-surface-container-low border-r border-outline-variant z-40 pt-24 invisible lg:visible opacity-0">
+<!-- Intentionally left blank as per Shell Visibility rules for Linear/Transactional/Task-Focused intents -->
+</aside>
+<!-- Main Content Canvas -->
+<main class="w-full min-h-screen pt-24 pb-12 flex flex-col items-center justify-center relative z-10">
+<!-- Background Animation -->
+<div class="absolute inset-0 w-full h-full -z-10 overflow-hidden pointer-events-none opacity-40 mix-blend-multiply">
+<!-- STITCH_THREEJS_START:ANIMATION_31 class="absolute inset-0 w-full h-full" -->
+<div class="absolute inset-0 w-full h-full" style="display:block;">
+<script src="https://ajax.googleapis.com/ajax/libs/threejs/r125/three.min.js"></script>
+<div id="threejs-container-ANIMATION_31" style="width:100%;height:100%"></div>
+<script>
+(function() {
+  const container = document.getElementById('threejs-container-ANIMATION_31');
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  // FinVault Financial Intelligence Layer Animation
+// A sophisticated network of nodes representing financial entities (Customers, Invoices, Payments)
+// slowly connecting and pulse-radiating intelligence.
+
+const scene = new THREE.Scene();
+const container = document.getElementById('threejs-container-ANIMATION_31') || document.body;
+const width = container.clientWidth || window.innerWidth;
+const height = container.clientHeight || window.innerHeight;
+
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+camera.position.z = 8;
+
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(width, height);
+renderer.setPixelRatio(window.devicePixelRatio);
+container.appendChild(renderer.domElement);
+
+const group = new THREE.Group();
+scene.add(group);
+
+const nodes = [];
+const lines = [];
+const nodeCount = 40;
+
+// Colors from FinVault Design System
+const colors = [0x0f172a, 0x3b82f6, 0x64748b, 0x94a3b8];
+
+const geo = new THREE.SphereGeometry(0.08, 16, 16);
+
+for (let i = 0; i < nodeCount; i++) {
+  const mat = new THREE.MeshPhongMaterial({ 
+    color: colors[Math.floor(Math.random() * colors.length)],
+    emissive: 0x1d4ed8,
+    emissiveIntensity: 0.2,
+    shininess: 100 
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(
+    (Math.random() - 0.5) * 12,
+    (Math.random() - 0.5) * 8,
+    (Math.random() - 0.5) * 4
+  );
+  mesh.userData = {
+    velocity: new THREE.Vector3((Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005, (Math.random() - 0.5) * 0.005),
+    originalPos: mesh.position.clone()
+  };
+  nodes.push(mesh);
+  group.add(mesh);
+}
+
+// Connections
+const lineMat = new THREE.LineBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.1 });
+const lineGeo = new THREE.BufferGeometry();
+const linePositions = new Float32Array(nodes.length * nodes.length * 3);
+lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+group.add(lineMesh);
+
+const light = new THREE.PointLight(0xffffff, 1, 100);
+light.position.set(10, 10, 10);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x404040));
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  const positions = lineMesh.geometry.attributes.position.array;
+  let counter = 0;
+
+  nodes.forEach((node, i) => {
+    node.position.add(node.userData.velocity);
+    if (Math.abs(node.position.x) > 6) node.userData.velocity.x *= -1;
+    if (Math.abs(node.position.y) > 4) node.userData.velocity.y *= -1;
+    if (Math.abs(node.position.z) > 2) node.userData.velocity.z *= -1;
+
+    // Connect close nodes
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dist = node.position.distanceTo(nodes[j].position);
+      if (dist < 3) {
+        positions[counter++] = node.position.x;
+        positions[counter++] = node.position.y;
+        positions[counter++] = node.position.z;
+        positions[counter++] = nodes[j].position.x;
+        positions[counter++] = nodes[j].position.y;
+        positions[counter++] = nodes[j].position.z;
+      }
+    }
+  });
+
+  lineMesh.geometry.attributes.position.needsUpdate = true;
+  lineMesh.geometry.setDrawRange(0, counter / 3);
+
+  group.rotation.y += 0.001;
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  const w = container.clientWidth || window.innerWidth;
+  const h = container.clientHeight || window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+animate();
+})();
+</script>
+</div>
+<!-- STITCH_THREEJS_END:ANIMATION_31 -->
+</div>
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop w-full flex flex-col items-center">
+<!-- Header Section -->
+<div class="text-center mb-section-gap max-w-3xl">
+<h1 class="font-display-lg text-display-lg text-primary mb-4 tracking-tight">Building Financial Relationships</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Connecting customers, invoices, payments, expenses, and cash flow.</p>
+</div>
+<!-- Intelligence Graph Visualization Canvas -->
+<div class="w-full max-w-5xl bg-surface-container-lowest border border-surface-variant rounded-[24px] p-8 md:p-12 mb-section-gap relative shadow-[0px_10px_30px_rgba(15,23,42,0.04)] backdrop-blur-sm bg-white/90">
+<!-- Decorative AI Border Gradient -->
+<div class="absolute inset-0 rounded-[24px] pointer-events-none border border-transparent" style="background: linear-gradient(to right, #00000010, #00211310) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude;"></div>
+<div class="flex flex-col md:flex-row items-center justify-between gap-8 w-full relative z-10 py-12">
+<!-- Node 1: Customer -->
+<div class="flex flex-col items-center gap-4 w-full md:w-1/4">
+<div class="w-20 h-20 rounded-full bg-surface-container-highest flex items-center justify-center border-2 border-surface-variant shadow-[0px_4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300 hover:scale-105 cursor-pointer">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="person">person</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Customer</span>
+</div>
+<!-- Connection Line 1 -->
+<div class="hidden md:flex h-px bg-outline-variant w-1/4 relative">
+<div class="absolute inset-0 bg-primary h-full animate-[pulse_2s_ease-in-out_infinite]" style="width: 50%;"></div>
+<span class="material-symbols-outlined text-outline absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest px-2 text-sm" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<!-- Node 2: Invoice -->
+<div class="flex flex-col items-center gap-4 w-full md:w-1/4">
+<div class="w-20 h-20 rounded-full bg-secondary-container flex items-center justify-center border-2 border-secondary-fixed shadow-[0px_4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300 hover:scale-105 cursor-pointer">
+<span class="material-symbols-outlined text-on-secondary-container text-3xl" data-icon="receipt_long">receipt_long</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Invoice</span>
+</div>
+<!-- Connection Line 2 -->
+<div class="hidden md:flex h-px bg-outline-variant w-1/4 relative">
+<span class="material-symbols-outlined text-outline absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest px-2 text-sm" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<!-- Node 3: Payment -->
+<div class="flex flex-col items-center gap-4 w-full md:w-1/4">
+<div class="w-20 h-20 rounded-full bg-surface-container-high flex items-center justify-center border-2 border-surface-variant shadow-[0px_4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300 hover:scale-105 cursor-pointer">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="payments">payments</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">Payment</span>
+</div>
+<!-- Connection Line 3 -->
+<div class="hidden md:flex h-px bg-outline-variant w-1/4 relative">
+<span class="material-symbols-outlined text-outline absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-surface-container-lowest px-2 text-sm" data-icon="arrow_forward">arrow_forward</span>
+</div>
+<!-- Node 4: Revenue -->
+<div class="flex flex-col items-center gap-4 w-full md:w-1/4">
+<div class="w-20 h-20 rounded-full bg-tertiary-fixed flex items-center justify-center border-2 border-tertiary-fixed-dim shadow-[0px_4px_20px_rgba(0,0,0,0.03)] transition-transform duration-300 hover:scale-105 cursor-pointer">
+<span class="material-symbols-outlined text-on-tertiary-fixed text-3xl" data-icon="account_balance">account_balance</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface font-semibold">Revenue</span>
+</div>
+</div>
+<!-- Floating Data Chips -->
+<div class="absolute top-8 left-12 bg-surface-container-highest/50 px-3 py-1 rounded-lg backdrop-blur-md border border-surface-variant flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">Real-time Sync</span>
+</div>
+<div class="absolute bottom-8 right-12 bg-surface-container-highest/50 px-3 py-1 rounded-lg backdrop-blur-md border border-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase">AI Mapping Active</span>
+</div>
+</div>
+<!-- Progress Indicator -->
+<div class="w-full max-w-md flex flex-col gap-3">
+<div class="flex justify-between items-center w-full">
+<span class="font-label-md text-label-md text-on-surface-variant">Mapping Infrastructure...</span>
+<span class="font-mono-data text-mono-data text-primary">25%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-1000 ease-out" style="width: 25%;"></div>
+</div>
+</div>
+<!-- Actions -->
+<div class="mt-12 flex gap-4">
+<button class="bg-primary text-on-primary font-label-md text-label-md px-6 py-3 rounded-lg hover:opacity-90 transition-opacity duration-150 active:scale-95 shadow-[0px_4px_20px_rgba(0,0,0,0.05)]">
+                    Continue Setup
+                 </button>
+</div>
+</div>
+</main>
+</body></html>
