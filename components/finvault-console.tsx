@@ -188,7 +188,7 @@ export function FinvaultConsole() {
     if (!cleanQuestion) return;
     setMessages((current) => [...current, { role: "user", text: cleanQuestion }]);
     if (!clientId) {
-      setMessages((current) => [...current, { role: "fynny", text: "Select or paste a client UUID first. I will not answer from global or guessed data.", blocked: true }]);
+      setMessages((current) => [...current, { role: "fynny", text: "Choose a client before asking. Fynny answers only from that client's verified financial memory.", blocked: true }]);
       return;
     }
     setAsking(true);
@@ -224,7 +224,8 @@ export function FinvaultConsole() {
   return (
     <main className="h-screen overflow-hidden bg-[#f9f9f9] text-[#1a1c1c]">
       <LiveBanner />
-      <div className="flex h-[calc(100vh-32px)] overflow-hidden">
+      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <div className="flex h-[calc(100vh-84px)] overflow-hidden md:h-[calc(100vh-32px)]">
         <SideNav activeTab={activeTab} setActiveTab={setActiveTab} authenticated={Boolean(session.data?.authenticated)} />
         {activeTab === "ask" ? (
           <AskWorkspace
@@ -243,18 +244,18 @@ export function FinvaultConsole() {
             asking={asking}
           />
         ) : (
-          <WorkbenchShell title={titleForTab(activeTab)} subtitle={subtitleForTab(activeTab)} clientId={clientId} setClientId={setClientId} refresh={refresh} refreshing={refreshing}>
+          <WorkbenchShell title={titleForTab(activeTab)} subtitle={subtitleForTab(activeTab)} clientId={clientId} setClientId={setClientId} selectedClient={selectedClient} clientRows={clientRows} refresh={refresh} refreshing={refreshing}>
             {refreshing ? <AgenticLoading variant="portfolio" compact className="mb-6" /> : null}
-            {hasMigrationBlocker ? <SystemNotice title="Supabase migration required" body="Production Supabase is missing Processing Layer tables. Run supabase/schema.sql to activate processing, readiness, reports, and Ask Fynny." /> : null}
+            {hasMigrationBlocker ? <SystemNotice title="Workspace setup needed" body="Some processing services are not fully configured yet. Finish setup to activate readiness, reports, and Ask Fynny." /> : null}
             {activeTab === "processing" ? <ProcessingScreen jobs={jobs} error={processing.error} /> : null}
             {activeTab === "clients" ? <ClientsScreen clients={clientRows} error={clients.error} setClientId={setClientId} setActiveTab={setActiveTab} /> : null}
-            {activeTab === "sources" ? <SourcesScreen sources={dataSources} error={sources.error} clientId={clientId} requestConsent={requestConsent} requestingSource={requestingSource} /> : null}
+            {activeTab === "sources" ? <SourcesScreen sources={dataSources} error={sources.error} clientId={clientId} selectedClient={selectedClient} requestConsent={requestConsent} requestingSource={requestingSource} /> : null}
             {activeTab === "validation" ? <ValidationScreen issues={openIssues} error={issues.error} /> : null}
             {activeTab === "memory" ? <MemoryScreen clientId={clientId} isReady={isReady} readiness={readiness.data} /> : null}
             {activeTab === "reports" ? <ReportsScreen reports={reportRows} error={reports.error} isReady={isReady} /> : null}
             {activeTab === "exports" ? <ExportsScreen exports={exportRows} error={exports.error} isReady={isReady} /> : null}
-            {activeTab === "advisory" ? <SimpleScreen icon="auto_graph" title={clientId ? (isReady ? "Advisory engine can discover opportunities." : "Advisory waits for Intelligence Ready.") : "Select a client"} body="Opportunities are generated from verified records, reconciliation state, and financial memory. Fynny will not fabricate recommendations." /> : null}
-            {activeTab === "portal" ? <SimpleScreen icon="vpn_key" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Select a client"} body="Client visibility, consent approvals, report publishing, and revocation flows are backed by the live client APIs." /> : null}
+            {activeTab === "advisory" ? <SimpleScreen icon="auto_graph" title={clientId ? (isReady ? "Advisory engine can discover opportunities." : "Advisory waits for Intelligence Ready.") : "Choose a client"} body="Opportunities are generated from verified records, reconciliation state, and financial memory. Fynny will not fabricate recommendations." /> : null}
+            {activeTab === "portal" ? <SimpleScreen icon="vpn_key" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Choose a client"} body="Client visibility, consent approvals, report publishing, and revocation flows are backed by live workspace services." /> : null}
             {activeTab === "settings" ? <SettingsScreen providers={providerRows} status={status.data} session={session.data} /> : null}
           </WorkbenchShell>
         )}
@@ -267,7 +268,7 @@ function LiveBanner() {
   return (
     <div className="h-8 border-b border-[#e2e2e2] bg-[#f4f3f3] px-4 text-center">
       <span className="inline-flex h-full items-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[#5f5e5e]">
-        Live environment - no mock financial data is rendered. Connect practice data to see insights.
+        Live workspace - connect approved practice data to generate client intelligence.
       </span>
     </div>
   );
@@ -308,6 +309,22 @@ function SideNav({ activeTab, setActiveTab, authenticated }: { activeTab: TabId;
         ) : null}
       </div>
     </aside>
+  );
+}
+
+function MobileNav({ activeTab, setActiveTab }: { activeTab: TabId; setActiveTab: (tab: TabId) => void }) {
+  return (
+    <nav className="flex h-[52px] gap-2 overflow-x-auto border-b border-[#e2e2e2] bg-white px-3 py-2 md:hidden">
+      {navItems.map((item) => {
+        const active = activeTab === item.id;
+        return (
+          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex shrink-0 items-center gap-2 rounded-full px-4 text-[11px] font-bold uppercase tracking-[0.08em] transition ${active ? "bg-[#111111] text-white" : "bg-[#f4f3f3] text-[#5f5e5e]"}`}>
+            <Icon name={item.icon} className="text-[18px]" filled={active} />
+            {item.label}
+          </button>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -438,25 +455,30 @@ function AskWorkspace(props: {
 }
 
 function ClientRail({ clients, clientId, setClientId }: { clients: Client[]; clientId: string; setClientId: (id: string) => void }) {
+  const [query, setQuery] = useState("");
+  const filteredClients = clients.filter((client) => {
+    const haystack = `${client.name} ${client.business_type ?? ""} ${client.contact_email ?? ""}`.toLowerCase();
+    return haystack.includes(query.toLowerCase());
+  });
   return (
     <aside className="hidden h-full w-72 shrink-0 flex-col border-r border-[#e2e2e2] bg-white lg:flex">
       <div className="border-b border-[#e2e2e2] p-5">
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5f5e5e]"><Icon name="search" className="text-[20px]" /></span>
-          <input value={clientId} onChange={(event) => setClientId(event.target.value.trim())} placeholder="Search clients..." className="h-12 w-full rounded-xl border-0 bg-[#f4f3f3] pl-12 pr-4 text-[16px] text-[#1a1c1c] outline-none placeholder:text-[#667085] focus:ring-1 focus:ring-[#7a1f2b]" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search clients..." className="h-12 w-full rounded-xl border-0 bg-[#f4f3f3] pl-12 pr-4 text-[16px] text-[#1a1c1c] outline-none placeholder:text-[#667085] focus:ring-1 focus:ring-[#7a1f2b]" />
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-3">
-        <p className="px-2 py-4 text-[11px] font-medium uppercase tracking-[0.22em] text-[#a0a0a0]">Recent Insights</p>
-        {clients.length ? clients.map((client) => {
+        <p className="px-2 py-4 text-[11px] font-medium uppercase tracking-[0.22em] text-[#a0a0a0]">Client Portfolio</p>
+        {filteredClients.length ? filteredClients.map((client) => {
           const active = client.id === clientId;
           return (
             <button key={client.id} onClick={() => setClientId(client.id)} className={`mb-2 w-full rounded-xl border p-4 text-left transition ${active ? "border-[#dcc0c0] bg-[#eeeeee]" : "border-transparent hover:bg-[#f4f3f3]"}`}>
               <p className={`truncate text-[18px] font-semibold ${active ? "text-[#5b0617]" : "text-[#111111]"}`}>{client.name}</p>
-              <p className="mt-1 truncate text-[13px] text-[#5f5e5e]">{client.business_type || client.contact_email || shortId(client.id)}</p>
+              <p className="mt-1 truncate text-[13px] text-[#5f5e5e]">{client.business_type || client.contact_email || "Client workspace"}</p>
             </button>
           );
-        }) : <div className="rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-5 text-sm leading-6 text-[#5f5e5e]">No clients found. Create a client through the API or paste a client UUID above.</div>}
+        }) : <div className="rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-5 text-sm leading-6 text-[#5f5e5e]">{clients.length ? "No clients match that search." : "No clients connected yet. Add or invite your first client to begin."}</div>}
       </div>
     </aside>
   );
@@ -501,7 +523,7 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#e8e8e8] text-[18px] font-semibold text-[#5f5e5e]">{initials(selectedClient?.name)}</div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[#1a1c1c]">{selectedClient?.name || (clientId ? "Selected Client" : "No client selected")}</p>
-            <p className="truncate text-xs text-[#5f5e5e]">{selectedClient?.business_type || selectedClient?.contact_email || (clientId ? shortId(clientId) : "Paste or select a client UUID")}</p>
+            <p className="truncate text-xs text-[#5f5e5e]">{selectedClient?.business_type || selectedClient?.contact_email || (clientId ? "Selected workspace" : "Choose a client to begin")}</p>
           </div>
         </div>
       </section>
@@ -532,7 +554,7 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
   );
 }
 
-function WorkbenchShell({ title, subtitle, clientId, setClientId, refresh, refreshing, children }: { title: string; subtitle: string; clientId: string; setClientId: (id: string) => void; refresh: () => Promise<void>; refreshing: boolean; children: ReactNode }) {
+function WorkbenchShell({ title, subtitle, clientId, setClientId, selectedClient, clientRows, refresh, refreshing, children }: { title: string; subtitle: string; clientId: string; setClientId: (id: string) => void; selectedClient?: Client; clientRows: Client[]; refresh: () => Promise<void>; refreshing: boolean; children: ReactNode }) {
   return (
     <main className="min-w-0 flex-1 overflow-y-auto bg-[#f9f9f9]">
       <header className="sticky top-0 z-40 border-b border-[#e2e2e2] bg-white">
@@ -543,7 +565,12 @@ function WorkbenchShell({ title, subtitle, clientId, setClientId, refresh, refre
             <p className="hidden truncate text-[16px] text-[#5f5e5e] md:block">{subtitle}</p>
           </div>
           <div className="flex items-center gap-3">
-            <input value={clientId} onChange={(event) => setClientId(event.target.value.trim())} placeholder="Client UUID" className="hidden h-9 w-72 rounded-full border border-[#dcc0c0] bg-[#f4f3f3] px-4 text-sm outline-none focus:border-[#7a1f2b] lg:block" />
+            <label className="sr-only" htmlFor="workspace-client-select">Choose client</label>
+            <select id="workspace-client-select" value={clientId} onChange={(event) => setClientId(event.target.value)} className="hidden h-9 w-72 rounded-full border border-[#dcc0c0] bg-[#f4f3f3] px-4 text-sm outline-none focus:border-[#7a1f2b] lg:block">
+              <option value="">{clientRows.length ? "Choose client" : "No clients connected"}</option>
+              {clientRows.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
+            </select>
+            {selectedClient ? <span className="hidden max-w-40 truncate text-xs font-semibold uppercase tracking-[0.12em] text-[#5f5e5e] xl:inline">{selectedClient.name}</span> : null}
             <button onClick={() => void refresh()} className="grid h-9 w-9 place-items-center rounded-full text-[#5f5e5e] hover:bg-[#f4f3f3] hover:text-[#5b0617]">{refreshing ? <AgenticGlyph variant="portfolio" /> : <Icon name="refresh" className="text-[22px]" />}</button>
             <button className="grid h-9 w-9 place-items-center rounded-full text-[#5f5e5e] hover:text-[#5b0617]"><Icon name="notifications" className="text-[24px]" /></button>
             <button className="grid h-9 w-9 place-items-center rounded-full text-[#5f5e5e] hover:text-[#5b0617]"><Icon name="help_outline" className="text-[24px]" /></button>
@@ -620,7 +647,7 @@ function PipelineHealth({ jobs }: { jobs: ProcessingJob[] }) {
   );
 }
 
-function SourcesScreen(props: { sources: DataSource[]; error: string | null; clientId: string; requestConsent: (sourceType: string) => Promise<void>; requestingSource: string | null }) {
+function SourcesScreen(props: { sources: DataSource[]; error: string | null; clientId: string; selectedClient?: Client; requestConsent: (sourceType: string) => Promise<void>; requestingSource: string | null }) {
   return (
     <section className="space-y-10">
       <div className="flex gap-8 overflow-x-auto border-b border-[#e2e2e2]">{["Upload", "Email", "WhatsApp Collection", "Google Drive", "Tally Export", "Zoho Export", "Bank Statement", "GST Data"].map((tab, index) => <button key={tab} className={`whitespace-nowrap px-1 pb-4 text-[12px] font-semibold uppercase tracking-[0.12em] ${index === 0 ? "border-b-2 border-[#7a1f2b] text-[#5b0617]" : "text-[#5f5e5e]"}`}>{tab}</button>)}</div>
@@ -629,7 +656,7 @@ function SourcesScreen(props: { sources: DataSource[]; error: string | null; cli
         <div className="col-span-12 space-y-6 lg:col-span-4">
           <Card title="Upload Configuration">
             <label className="mb-2 block text-[12px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">Client Selection</label>
-            <div className="mb-6 rounded border border-[#dcc0c0] bg-[#f4f3f3] p-4 text-sm text-[#5f5e5e]">{props.clientId || "Select client UUID from top bar"}</div>
+            <div className="mb-6 rounded border border-[#dcc0c0] bg-[#f4f3f3] p-4 text-sm text-[#5f5e5e]">{props.selectedClient?.name ?? (props.clientId ? "Selected client workspace" : "Choose a client first")}</div>
             <div className="grid grid-cols-2 gap-4"><FieldBox label="Fiscal Period" value="Current Period" /><FieldBox label="Data Type" value="Financial Docs" /></div>
             <button disabled={!props.clientId} className="mt-6 flex w-full items-center justify-center gap-3 rounded-lg bg-[#7a1f2b] py-4 text-[16px] font-semibold text-white disabled:opacity-50"><Icon name="upload_file" className="text-[22px]" /> Secure Upload</button>
           </Card>
@@ -647,13 +674,13 @@ function SourcesScreen(props: { sources: DataSource[]; error: string | null; cli
 }
 
 function ClientsScreen({ clients, error, setClientId, setActiveTab }: { clients: Client[]; error: string | null; setClientId: (id: string) => void; setActiveTab: (tab: TabId) => void }) {
-  return <Card title="Client Workspace"><DataTable headers={["Client", "Business Type", "Contact", "Created", "Action"]} empty={error ?? "No clients found. Create a client through /api/clients to populate this workspace."} rows={clients.map((client) => [client.name, client.business_type ?? "-", client.contact_email ?? "-", formatDate(client.created_at), "Open"])} onRowClick={(index) => { const client = clients[index]; if (client) { setClientId(client.id); setActiveTab("ask"); } }} /></Card>;
+  return <Card title="Client Workspace"><DataTable headers={["Client", "Business Type", "Contact", "Created", "Action"]} empty={error ?? "No clients connected yet. Add your first client to begin processing."} rows={clients.map((client) => [client.name, client.business_type ?? "-", client.contact_email ?? "-", formatDate(client.created_at), "Open"])} onRowClick={(index) => { const client = clients[index]; if (client) { setClientId(client.id); setActiveTab("ask"); } }} /></Card>;
 }
 function ValidationScreen({ issues, error }: { issues: Issue[]; error: string | null }) {
   return <Card title="Validation Center"><DataTable headers={["Severity", "Category", "Issue", "Status", "Suggested Fix"]} empty={error ?? "No open validation issues for this client."} rows={issues.map((issue) => [titleCase(issue.severity), titleCase(issue.category), issue.message, titleCase(issue.status), issue.suggested_fix ?? "Review source document"])} /></Card>;
 }
 function MemoryScreen({ clientId, isReady, readiness }: { clientId: string; isReady: boolean; readiness: ReadinessResponse | null }) {
-  return <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><Card title="Financial Memory Graph"><EmptyState icon="memory" title={clientId ? (isReady ? "Memory API is ready to load client events." : "Memory builds after validation and normalization.") : "Select a client"} body="Financial memory contains events, entities, and relationships generated from approved client data only." /></Card><Card title="Readiness Factors"><div className="space-y-4">{Object.entries(readiness?.data?.factors ?? {}).map(([name, score]) => <FactorBar key={name} label={titleCase(name)} value={score} />)}{!readiness?.data ? <p className="text-sm text-[#5f5e5e]">No client readiness loaded.</p> : null}</div></Card></section>;
+  return <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><Card title="Financial Memory Graph"><EmptyState icon="memory" title={clientId ? (isReady ? "Financial memory is ready to show client events." : "Memory builds after validation and normalization.") : "Choose a client"} body="Financial memory contains events, entities, and relationships generated from approved client data only." /></Card><Card title="Readiness Factors"><div className="space-y-4">{Object.entries(readiness?.data?.factors ?? {}).map(([name, score]) => <FactorBar key={name} label={titleCase(name)} value={score} />)}{!readiness?.data ? <p className="text-sm text-[#5f5e5e]">No readiness profile loaded yet.</p> : null}</div></Card></section>;
 }
 function ReportsScreen({ reports, error, isReady }: { reports: Report[]; error: string | null; isReady: boolean }) {
   return <Card title="Reports"><DataTable headers={["Report", "Status", "Published", "Created"]} empty={error ?? (isReady ? "No reports generated yet." : "Reports are blocked until Intelligence Ready is true.")} rows={reports.map((report) => [titleCase(report.report_type), titleCase(report.status), report.published_to_client ? "Yes" : "No", formatDate(report.created_at)])} /></Card>;

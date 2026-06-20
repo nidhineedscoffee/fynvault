@@ -37,7 +37,17 @@ const clientVolumes: Choice[] = [
   { label: "250+", description: "Multi-team operation.", icon: "apartment" }
 ];
 
-const workflowSources = ["Email", "WhatsApp", "Excel", "Tally", "Zoho Books", "GST Files", "Bank Statements", "Google Drive", "Other"];
+const workflowSources: Choice[] = [
+  { label: "Email", description: "Financial attachments and accountant threads.", icon: "mail" },
+  { label: "WhatsApp", description: "Forwarded client documents and collection links.", icon: "forum" },
+  { label: "Excel", description: "Spreadsheets, trackers, and reconciliations.", icon: "table_chart" },
+  { label: "Tally", description: "Accounting exports and ledgers.", icon: "account_balance_wallet" },
+  { label: "Zoho Books", description: "Books, invoices, and accounting exports.", icon: "account_balance" },
+  { label: "GST Files", description: "Returns, filings, and compliance documents.", icon: "receipt_long" },
+  { label: "Bank Statements", description: "Statements and transaction histories.", icon: "assured_workload" },
+  { label: "Google Drive", description: "Approved folders and shared client files.", icon: "add_to_drive" },
+  { label: "Other", description: "Any other finance source your firm uses.", icon: "hub" }
+];
 
 const bottlenecks: Choice[] = [
   { label: "Collecting Documents", description: "Gathering files, chasing signatures, and organizing uploads.", icon: "folder_open" },
@@ -129,7 +139,7 @@ function OnboardingFlow({ userLabel, onComplete }: { userLabel: string; onComple
       return <SplitChoice title="How many active clients do you manage?" subtitle="This helps us configure your portfolio workspace perfectly to scale with your business." choices={clientVolumes} selected={selected.volume as string} onSelect={(value) => setSelected((current) => ({ ...current, volume: value }))} />;
     }
     if (step === "sources") {
-      return <ChipStep title="Where does client information usually come from?" subtitle="Most firms use multiple sources." items={workflowSources} selected={(selected.sources as string[]) ?? []} onChange={(value) => setSelected((current) => ({ ...current, sources: value }))} />;
+      return <ChipStep title="Where does client information usually come from?" subtitle="Most firms use multiple sources. Pick every source your team handles." items={workflowSources} selected={(selected.sources as string[]) ?? []} onChange={(value) => setSelected((current) => ({ ...current, sources: value }))} />;
     }
     if (step === "bottleneck") {
       return <ChoiceGrid title="What consumes the most time today?" subtitle="Identify your primary bottleneck to tailor workflow optimization." choices={bottlenecks} selected={selected.bottleneck as string} onSelect={(value) => setSelected((current) => ({ ...current, bottleneck: value }))} wide />;
@@ -211,23 +221,31 @@ function SplitChoice({ title, subtitle, choices, selected, onSelect }: { title: 
   );
 }
 
-function ChipStep({ title, subtitle, items, selected, onChange }: { title: string; subtitle: string; items: string[]; selected: string[]; onChange: (value: string[]) => void }) {
+function ChipStep({ title, subtitle, items, selected, onChange }: { title: string; subtitle: string; items: Choice[]; selected: string[]; onChange: (value: string[]) => void }) {
   function toggle(item: string) {
     onChange(selected.includes(item) ? selected.filter((value) => value !== item) : [...selected, item]);
   }
   return (
-    <section className="mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-[1200px] flex-col items-center justify-center px-6 pb-32 pt-8 md:px-16">
-      <div className="mb-20 max-w-2xl text-center">
+    <section className="mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-[1200px] flex-col items-center justify-center px-5 pb-32 pt-8 sm:px-6 md:px-16">
+      <div className="mb-12 max-w-2xl text-center md:mb-16">
         <h1 className="font-[var(--font-source-serif)] text-[32px] font-semibold leading-[1.25] tracking-[-0.01em] text-[#111111] md:text-[48px]">{title}</h1>
         <p className="mt-4 text-lg leading-8 text-[#564242]">{subtitle}</p>
       </div>
-      <div className="grid w-full max-w-3xl grid-cols-2 gap-4 md:grid-cols-3">
+      <div className="grid w-full max-w-5xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => {
-          const active = selected.includes(item);
+          const active = selected.includes(item.label);
           return (
-            <button key={item} onClick={() => toggle(item)} className={`flex items-center justify-between rounded-lg bg-white p-6 text-left transition ${active ? "border-2 border-[#111111]" : "border border-[#e2e2e2] hover:border-[#111111]"}`}>
-              <span className="text-sm font-semibold uppercase tracking-[0.05em] text-[#111111]">{item}</span>
-              <Icon name="check_circle" className={`text-xl ${active ? "text-[#111111]" : "text-transparent"}`} />
+            <button key={item.label} onClick={() => toggle(item.label)} className={`group flex min-h-[118px] items-start gap-4 rounded-2xl bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#111111] hover:shadow-[0_14px_40px_rgba(0,0,0,0.06)] ${active ? "border-2 border-[#111111] shadow-[0_14px_40px_rgba(0,0,0,0.06)]" : "border border-[#e2e2e2]"}`}>
+              <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl transition ${active ? "bg-[#111111] text-white" : "bg-[#f4f3f3] text-[#5b0617] group-hover:bg-[#f0e7e9]"}`}>
+                <Icon name={item.icon} className="text-[25px]" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-bold uppercase tracking-[0.08em] text-[#111111]">{item.label}</span>
+                  <Icon name="check_circle" className={`text-xl ${active ? "text-[#111111]" : "text-transparent"}`} />
+                </span>
+                <span className="mt-2 block text-sm leading-6 text-[#5f5e5e]">{item.description}</span>
+              </span>
             </button>
           );
         })}
