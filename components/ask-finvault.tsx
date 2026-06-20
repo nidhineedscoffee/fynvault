@@ -5,9 +5,10 @@ import { Send, ShieldCheck } from "lucide-react";
 
 type AskResponse = {
   answer: string;
-  confidence: string;
-  sources: Array<{ label: string; source: string }>;
-  calculation_reference: string[];
+  confidence?: string;
+  sources?: Array<{ label: string; source: string }>;
+  calculation_reference?: string[];
+  error?: string;
 };
 
 export function AskFinVault() {
@@ -18,20 +19,25 @@ export function AskFinVault() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    const result = await fetch("/api/ask", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question })
-    });
-    setResponse(await result.json());
-    setLoading(false);
+    try {
+      const result = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question })
+      });
+      setResponse(await result.json());
+    } catch {
+      setResponse({ answer: "Unable to reach Ask Fynny right now.", error: "network_error" });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <section className="rounded-lg border border-line bg-white p-5 shadow-panel">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-ink">Ask FinVault</h2>
+          <h2 className="text-base font-semibold text-ink">Ask Fynny</h2>
           <p className="mt-1 text-sm text-coal/65">Answers are generated only after rules and validation pass.</p>
         </div>
         <ShieldCheck className="size-5 text-fern" aria-hidden />
@@ -59,14 +65,14 @@ export function AskFinVault() {
           <p className="text-sm leading-6 text-ink">{response.answer}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-sm border border-line bg-white px-2 py-1 text-xs font-medium text-fern">
-              Confidence: {response.confidence}
+              Confidence: {response.confidence ?? "low"}
             </span>
             <span className="rounded-sm border border-line bg-white px-2 py-1 text-xs font-medium text-coal/70">
-              {response.sources.length} sources
+              {(response.sources ?? []).length} sources
             </span>
           </div>
           <div className="mt-3 max-h-28 overflow-auto text-xs leading-5 text-coal/65">
-            {response.calculation_reference.map((item) => (
+            {(response.calculation_reference ?? []).map((item) => (
               <p key={item}>{item}</p>
             ))}
           </div>

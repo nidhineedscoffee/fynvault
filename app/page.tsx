@@ -1,5 +1,5 @@
-import { StitchStaticPage } from "@/components/stitch-static-page";
+import { FynnyEntry } from "@/components/fynny-entry";
 
 export default function Home() {
-  return <StitchStaticPage slug="get_started_finvault" title="FinVault Sign Up" />;
+  return <FynnyEntry />;
 }

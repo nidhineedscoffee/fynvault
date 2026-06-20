@@ -1,60 +1,143 @@
-# FinVault
+# Fynny
 
-FinVault is a hackathon-ready AI Financial Operating System for SMB founders and finance teams. It turns Zoho Books, Gmail, and document evidence into a structured financial graph, runs deterministic finance calculations, validates evidence, and only then asks AI to explain the verified result.
+Fynny is a secure data collection and processing layer for CA firms. It collects scattered client financial data only with client consent, processes it into clean financial records, builds financial memory, and gates intelligence products behind an Intelligence Ready score.
 
-## Run locally
+## Backbone
+
+```text
+Consent -> Read-only Collection -> Processing Layer -> Financial Memory -> Intelligence Ready -> Reports / Advisory / Ask Fynny
+```
+
+The Processing Layer is the central backend pipeline. Reports, advisory, client visibility, Ask Fynny, and financial memory must pass through it.
+
+## Processing Stages
+
+1. Collection
+2. Classification
+3. Extraction
+4. Validation
+5. Normalization
+6. Memory Build
+7. Intelligence Ready
+
+Every uploaded document creates a `processing_jobs` row and seven `processing_stages` rows through the database trigger in `supabase/schema.sql`.
+
+## Intelligence Readiness Score
+
+`GET /api/intelligence-ready/:clientId` calculates the gateway score from:
+
+- Data Completeness
+- Validation Status
+- Reconciliation Status
+- Missing Inputs
+- Processing Confidence
+
+No intelligence endpoint should generate output until `intelligenceReady` is true.
+
+## Secure Collection
+
+Fynny only collects financial documents the client approves. Access is read-only and can be revoked anytime.
+
+Supported source types:
+
+- WhatsApp manual uploads or forwarded files only for MVP
+- Email
+- Gmail
+- Google Drive
+- Tally
+- Zoho Books
+- QuickBooks
+- Accounting exports
+- Bank statements
+- GST files
+- TDS files
+- Spreadsheets
+- CSV
+- XLSX
+- Payroll reports
+- PDFs
+
+Direct WhatsApp scraping is intentionally blocked.
+
+Classified document types include invoice, purchase register, sales register, bank statement, GST data, TDS data, payroll, contract, and other.
+
+Intelligence datasets include cash flow, receivables, payables, GST, compliance, advisory, MIS report, client visibility, and exports.
+
+## API Surface
+
+```text
+GET  /api/auth/me
+GET  /api/firm
+POST /api/firm
+GET  /api/clients
+POST /api/clients
+GET  /api/clients/:id
+PATCH /api/clients/:id
+DELETE /api/clients/:id
+
+GET  /api/processing
+GET  /api/processing/jobs
+GET  /api/processing/jobs/:id
+POST /api/processing/retry
+POST /api/processing/jobs/:id/retry
+GET  /api/processing/issues
+GET  /api/processing/clients/:id
+GET  /api/clients/:id/processing
+GET  /api/clients/:id/validation-issues
+GET  /api/validation-issues/:id
+PATCH /api/validation-issues/:id
+GET  /api/intelligence-ready/:clientId
+
+GET  /api/clients/:id/consent
+POST /api/clients/:id/consent/request
+POST /api/client-portal/consent/:id/approve
+POST /api/client-portal/consent/:id/revoke
+GET  /api/clients/:id/data-sources
+POST /api/clients/:id/data-sources/connect
+POST /api/clients/:id/data-sources/create
+POST /api/clients/:id/data-sources/sync
+GET  /api/clients/:id/document-requests
+POST /api/clients/:id/document-requests
+POST /api/document-requests/:id/upload-link
+GET  /api/clients/:id/documents
+POST /api/clients/:id/documents
+POST /api/public-upload/:token
+GET  /api/documents/:id
+DELETE /api/documents/:id
+POST /api/documents/:id/process
+
+POST /api/clients/:id/calculate
+GET  /api/clients/:id/snapshot
+GET  /api/clients/:id/memory
+POST /api/clients/:id/ask
+GET  /api/clients/:id/reports
+POST /api/clients/:id/reports
+POST /api/reports/:id/publish
+GET  /api/clients/:id/exports
+POST /api/clients/:id/exports
+GET  /api/clients/:id/advisory
+POST /api/clients/:id/advisory
+GET  /api/client-portal/:id
+
+GET  /api/dashboard?clientId=<uuid>
+GET  /api/graph?clientId=<uuid>
+POST /api/ask      { "clientId": "<uuid>", "question": "..." }
+POST /api/actions  { "clientId": "<uuid>", "action": "risk_report" }
+```
+
+## Run Locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Apply `supabase/schema.sql` in Supabase before using the new Processing Layer tables.
 
-## Architecture
-
-```text
-Data Sources -> Normalization -> Financial Graph -> Rules Engine -> Validation Engine -> AI Explanation Layer
-```
-
-The LLM never calculates numbers. Calculations live in `lib/rules-engine.ts`, source checks live in `lib/validation-engine.ts`, and AI explanation assembly lives in `lib/ai.ts`.
-
-## MVP scope
-
-- Executive command center dashboard
-- Financial health score from weighted backend metrics
-- Risk engine with evidence, impact, and recommended actions
-- Ask FinVault route with metric mapping, validation, and source-backed answers
-- Action engine route for collection plans, board summaries, and payment reminders
-- Zoho and Gmail OAuth/sync route placeholders with normalized entity contracts
-- Supabase schema for organizations, memberships, graph entities, integrations, evidence, alerts, and actions
-
-## Production integrations
-
-Copy `.env.example` to `.env.local`, fill provider keys, create the Supabase tables in `supabase/schema.sql`, then replace the demo seed in `lib/financial-graph.ts` with reads from Supabase.
-
-### Required callback URLs
-
-Configure these in provider dashboards:
+## Provider Redirects
 
 ```text
-Zoho Books OAuth redirect: http://localhost:3000/api/sync/zoho
-Google OAuth redirect:     http://localhost:3000/api/sync/gmail
+ScaleKit: https://fynvault.vercel.app/api/auth/scalekit/callback
+Zoho:     https://fynvault.vercel.app/api/sync/zoho
+Google:   https://fynvault.vercel.app/api/sync/gmail
 ```
-
-For deployment, replace `http://localhost:3000` with `NEXT_PUBLIC_APP_URL`.
-
-### API routes
-
-```text
-GET  /api/status                 Safe env/provider readiness check
-GET  /api/integrations/status    OAuth URLs, redirect URIs, missing provider vars
-GET  /api/dashboard              Calculated financial dashboard model
-GET  /api/graph                  Normalized graph seed and relationship edges
-POST /api/ask                    Source-backed Ask FinVault answers
-POST /api/actions                Validated action drafts
-GET  /api/sync/zoho              Zoho OAuth start/callback
-GET  /api/sync/gmail             Gmail OAuth start/callback
-```
-
-Zoho and Gmail callbacks exchange OAuth codes when credentials are configured. If Supabase is configured, integration credentials are written to `integration_connections`; otherwise the API returns a demo-mode persistence message. OpenAI is optional: if `OPENAI_API_KEY` is missing, Ask FinVault returns a deterministic validated explanation.

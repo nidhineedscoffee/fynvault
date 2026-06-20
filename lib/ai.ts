@@ -106,7 +106,15 @@ export async function explainValidatedResult(input: {
 
     const payload = await response.json();
     const content = payload.choices?.[0]?.message?.content;
-    const parsed = typeof content === "string" ? JSON.parse(content) : null;
+    let parsed: { answer?: string; confidence?: "high" | "medium" | "low" } | null = null;
+
+    if (typeof content === "string") {
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        parsed = null;
+      }
+    }
 
     return {
       answer: parsed?.answer ?? fallback.answer,

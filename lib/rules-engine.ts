@@ -4,11 +4,30 @@ const currentPeriod = "2026-06";
 const priorPeriod = "2026-05";
 
 function money(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
   return Math.round(value);
 }
 
 function monthOf(date: string) {
   return date.slice(0, 7);
+}
+
+function safeDivide(numerator: number, denominator: number) {
+  if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) {
+    return 0;
+  }
+
+  return numerator / denominator;
+}
+
+function maxPercent(rows: number[], total: number) {
+  if (!rows.length || total <= 0) {
+    return 0;
+  }
+
+  return Math.max(...rows.map((value) => safeDivide(value, total) * 100));
 }
 
 function evidenceFor(graph: FinancialGraph, ids: string[]): MetricEvidence[] {
@@ -39,13 +58,19 @@ export function calculateMetrics(graph: FinancialGraph): Record<string, MetricRe
   const priorRevenueInvoices = invoices.filter((invoice) => monthOf(invoice.issuedAt) === priorPeriod);
   const currentRevenue = currentRevenueInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   const priorRevenue = priorRevenueInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const revenueGrowth = priorRevenue ? ((currentRevenue - priorRevenue) / priorRevenue) * 100 : 0;
-  const averageInvoiceValue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0) / invoices.length;
+  const revenueGrowth = safeDivide(currentRevenue - priorRevenue, priorRevenue) * 100;
+  const averageInvoiceValue = safeDivide(
+    invoices.reduce((sum, invoice) => sum + invoice.amount, 0),
+    invoices.length
+  );
   const totalReceivables = invoices.filter((invoice) => invoice.status !== "paid").reduce((sum, invoice) => sum + invoice.amount, 0);
   const overdueInvoices = invoices.filter((invoice) => invoice.status === "overdue");
   const overdueAmount = overdueInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   const paidInvoiceTotal = invoices.filter((invoice) => invoice.status === "paid").reduce((sum, invoice) => sum + invoice.amount, 0);
-  const collectionEfficiency = paidInvoiceTotal / invoices.reduce((sum, invoice) => sum + invoice.amount, 0) * 100;
+  const collectionEfficiency = safeDivide(
+    paidInvoiceTotal,
+    invoices.reduce((sum, invoice) => sum + invoice.amount, 0)
+  ) * 100;
   const dso = totalReceivables / Math.max(currentRevenue / 30, 1);
   const cashInflow = payments.filter((payment) => monthOf(payment.paidAt) === priorPeriod).reduce((sum, payment) => sum + payment.amount, 0);
   const cashOutflow = expenses.filter((expense) => monthOf(expense.incurredAt) === priorPeriod).reduce((sum, expense) => sum + expense.amount, 0);
@@ -54,9 +79,9 @@ export function calculateMetrics(graph: FinancialGraph): Record<string, MetricRe
   const runwayMonths = graph.organization.cashBalance / Math.max(monthlyBurn, 1);
   const currentExpenses = expenses.filter((expense) => monthOf(expense.incurredAt) === currentPeriod).reduce((sum, expense) => sum + expense.amount, 0);
   const priorExpenses = expenses.filter((expense) => monthOf(expense.incurredAt) === priorPeriod).reduce((sum, expense) => sum + expense.amount, 0);
-  const expenseGrowth = priorExpenses ? ((currentExpenses - priorExpenses) / priorExpenses) * 100 : 0;
-  const grossMargin = currentRevenue ? ((currentRevenue - currentExpenses) / currentRevenue) * 100 : 0;
-  const netMargin = currentRevenue ? ((currentRevenue - currentExpenses - 24000) / currentRevenue) * 100 : 0;
+  const expenseGrowth = safeDivide(currentExpenses - priorExpenses, priorExpenses) * 100;
+  const grossMargin = safeDivide(currentRevenue - currentExpenses, currentRevenue) * 100;
+  const netMargin = safeDivide(currentRevenue - currentExpenses - 24000, currentRevenue) * 100;
   const ebitda = currentRevenue - currentExpenses - 18000;
   const outstandingBills = bills.filter((bill) => bill.status === "open").reduce((sum, bill) => sum + bill.amount, 0);
 
@@ -65,13 +90,19 @@ export function calculateMetrics(graph: FinancialGraph): Record<string, MetricRe
     total: invoices.filter((invoice) => invoice.customerId === customer.id).reduce((sum, invoice) => sum + invoice.amount, 0)
   }));
   const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-  const revenueConcentration = Math.max(...revenueByCustomer.map((row) => row.total / totalRevenue * 100));
+  const revenueConcentration = maxPercent(
+    revenueByCustomer.map((row) => row.total),
+    totalRevenue
+  );
   const expenseByVendor = graph.vendors.map((vendor) => ({
     vendor,
     total: expenses.filter((expense) => expense.vendorId === vendor.id).reduce((sum, expense) => sum + expense.amount, 0)
   }));
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const vendorConcentration = Math.max(...expenseByVendor.map((row) => row.total / totalExpenses * 100));
+  const vendorConcentration = maxPercent(
+    expenseByVendor.map((row) => row.total),
+    totalExpenses
+  );
 
   const invoiceEvidence = evidenceFor(graph, invoices.flatMap((invoice) => invoice.evidenceIds));
   const currentInvoiceEvidence = evidenceFor(graph, currentRevenueInvoices.flatMap((invoice) => invoice.evidenceIds));
