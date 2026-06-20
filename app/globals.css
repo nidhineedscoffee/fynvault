@@ -220,6 +220,19 @@ textarea {
   animation: fynny-answer-card 2.4s ease-in-out infinite;
 }
 
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ececec;
+  border-radius: 999px;
+}
+
 .doc-card,
 .record-block,
 .memory-chip,

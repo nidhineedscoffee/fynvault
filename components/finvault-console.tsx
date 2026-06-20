@@ -50,6 +50,13 @@ const navItems: Array<{ id: TabId; label: string; icon: string }> = [
 ];
 const processingStages = ["collection", "classification", "extraction", "validation", "normalization", "memory_build", "intelligence_ready"];
 const sourceTypes = ["gmail", "google_drive", "zoho_books", "bank_statement", "gst_file", "spreadsheet", "pdf", "whatsapp"];
+const askSuggestions = [
+  { icon: "warning", title: "Client Risks", prompt: "Identify the top client risks from validated data.", body: "Find attention areas once a client is intelligence ready." },
+  { icon: "account_balance_wallet", title: "Cash Flow", prompt: "Explain cash-flow pressure and runway using verified records.", body: "Use receivables, payables, and bank records." },
+  { icon: "verified_user", title: "Compliance", prompt: "List compliance gaps and missing filing inputs.", body: "Check GST, TDS, and missing validation blockers." },
+  { icon: "trending_up", title: "Advisory", prompt: "Find advisory opportunities from financial memory.", body: "Surface tax, working capital, and risk opportunities." },
+  { icon: "dashboard_customize", title: "Portfolio Intelligence", prompt: "Compare this client against readiness, issues, and source coverage.", body: "Summarize what is ready and what still blocks reports.", wide: true }
+];
 
 function emptyState<T>(): ApiState<T> {
   return { loading: true, data: null, error: null };
@@ -319,51 +326,109 @@ function AskWorkspace(props: {
   submitAsk: (event: FormEvent<HTMLFormElement>) => void;
   asking: boolean;
 }) {
+  const hasUserQuestion = props.messages.some((message) => message.role === "user");
+  const latestFynny = [...props.messages].reverse().find((message) => message.role === "fynny");
+  const visibleMessages = hasUserQuestion ? props.messages : [];
+
   return (
-    <main className="flex min-w-0 flex-1 overflow-hidden bg-white">
+    <main className="flex min-w-0 flex-1 overflow-hidden bg-[#ffffff]">
       <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} />
-      <section className="relative flex min-w-0 flex-1 flex-col bg-white">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-8">
+      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-6 md:px-8">
           <div className="flex items-center gap-3">
             <span className={`h-2 w-2 rounded-full ${props.isReady ? "bg-[#00875a]" : "bg-[#ba1a1a]"}`} />
-            <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">{props.isReady ? "Fynny IQ: Ready" : "Fynny IQ: Readiness Required"}</span>
+            <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">{props.isReady ? "Trust Layer: High confidence" : "Trust Layer: Readiness required"}</span>
           </div>
-          <div className="rounded-full bg-[#eeeeee] px-6 py-3 text-[13px] font-medium text-[#5b0617]">Rules calculate. Fynny explains.</div>
+          <div className="hidden rounded-full border border-[#ececec] bg-[#f9f9f9] px-5 py-2 text-[12px] font-semibold text-[#5b0617] md:block">Rules calculate. Fynny explains.</div>
         </header>
-        <div className="flex-1 overflow-y-auto px-8 pb-36 pt-12">
-          <div className="mx-auto max-w-4xl space-y-10">
-            {props.messages.map((message, index) =>
-              message.role === "user" ? (
-                <div key={`${message.role}-${index}`} className="flex justify-end">
-                  <div className="max-w-xl rounded-2xl rounded-tr-none border border-[#dcc0c0] bg-[#f4f3f3] p-5 text-[20px] leading-8 text-[#1a1c1c]">{message.text}</div>
-                </div>
-              ) : (
-                <div key={`${message.role}-${index}`} className="flex gap-5">
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#700018] text-white"><Icon name="psychology" className="text-[20px]" filled /></div>
-                  <div className="flex-1 space-y-5">
-                    <div>
-                      <h3 className="text-[26px] font-semibold tracking-[-0.01em] text-[#111111]">{message.blocked ? "Processing Gate Active" : "Ask Fynny Intelligence Console"}</h3>
-                      <p className="mt-3 max-w-2xl text-[18px] leading-8 text-[#5f5e5e]">{message.text}</p>
-                    </div>
-                    <InsightGrid readinessScore={props.readinessScore} issueCount={props.openIssues.length} sourceCount={props.dataSources.length} />
-                    <VerifiedSources sources={props.dataSources} />
+
+        <div className="custom-scrollbar flex-1 overflow-y-auto px-6 pb-40 pt-10 md:px-10">
+          <div className="mx-auto w-full max-w-[1000px]">
+            {!hasUserQuestion ? (
+              <section className="flex min-h-[calc(100vh-260px)] flex-col items-center justify-center space-y-10">
+                <div className="relative grid h-40 w-40 place-items-center md:h-56 md:w-56">
+                  <div className="absolute inset-0 rounded-full border border-[#ececec] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_62%)]" />
+                  <div className="absolute h-28 w-28 rounded-full bg-[#7a1f2b]/10 blur-3xl" />
+                  <div className="relative grid h-20 w-20 place-items-center rounded-[28px] bg-[#5b0617] text-white shadow-[0_24px_70px_rgba(122,31,43,0.24)]">
+                    <Icon name="psychology" className="text-[34px]" filled />
                   </div>
+                  {["article", "analytics", "memory"].map((icon, index) => (
+                    <div key={icon} className="absolute grid h-11 w-11 place-items-center rounded-2xl border border-[#ececec] bg-white text-[#5b0617] shadow-[0_8px_30px_rgba(0,0,0,0.04)]" style={{ transform: `rotate(${index * 120}deg) translateY(-92px) rotate(-${index * 120}deg)` }}>
+                      <Icon name={icon} className="text-[20px]" />
+                    </div>
+                  ))}
                 </div>
-              )
+                <div className="space-y-3 text-center">
+                  <h1 className="text-[38px] font-bold leading-tight tracking-[-0.03em] text-[#1a1c1c] md:text-[56px]">What would you like to know?</h1>
+                  <p className="mx-auto max-w-2xl text-[16px] leading-7 text-[#5f5e5e]">
+                    Ask about clients, reports, risks, compliance, cash flow, or advisory opportunities. Fynny answers only from verified processing data.
+                  </p>
+                </div>
+                {latestFynny ? (
+                  <div className="max-w-2xl rounded-2xl border border-[#ececec] bg-[#f9f9f9] p-5 text-center text-sm leading-6 text-[#5f5e5e]">
+                    {latestFynny.text}
+                  </div>
+                ) : null}
+                <div className="grid w-full grid-cols-1 gap-4 pt-4 md:grid-cols-2 lg:grid-cols-3">
+                  {askSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.title}
+                      type="button"
+                      onClick={() => props.setQuestion(suggestion.prompt)}
+                      className={`rounded-xl border border-[#ececec] bg-white p-6 text-left shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:border-[#5b0617] ${suggestion.wide ? "lg:col-span-2" : ""}`}
+                    >
+                      <Icon name={suggestion.icon} className="mb-5 text-[28px] text-[#5b0617]" />
+                      <h3 className="text-[20px] font-semibold leading-snug text-[#1a1c1c]">{suggestion.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">{suggestion.body}</p>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <section className="space-y-12 pb-8">
+                {visibleMessages.map((message, index) =>
+                  message.role === "user" ? (
+                    <div key={`${message.role}-${index}`} className="flex justify-end">
+                      <div className="max-w-2xl rounded-2xl rounded-tr-md border border-[#dcc0c0] bg-[#f4f3f3] px-6 py-5 text-[17px] leading-8 text-[#1a1c1c] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">{message.text}</div>
+                    </div>
+                  ) : (
+                    <article key={`${message.role}-${index}`} className="space-y-8">
+                      <div className="flex items-start justify-between gap-6">
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#5f5e5e]">Intelligence Response {props.selectedClient ? `- ${props.selectedClient.name}` : ""}</span>
+                          <h2 className="mt-2 font-[var(--font-source-serif)] text-[34px] italic leading-tight text-[#1a1c1c] md:text-[44px]">{message.blocked ? "Processing gate active" : "Financial memory response"}</h2>
+                        </div>
+                        <button type="button" className="hidden items-center gap-2 rounded-lg border border-[#ececec] bg-white px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5f5e5e] transition hover:bg-[#f4f3f3] md:flex">
+                          <Icon name="description" className="text-[18px]" />
+                          Generate Client Report
+                        </button>
+                      </div>
+                      <div className="rounded-xl border border-[#ececec] bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+                        <span className="mb-4 block text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5b0617]">Executive Summary</span>
+                        <p className="font-[var(--font-source-serif)] text-[28px] leading-snug text-[#1a1c1c]">{message.text}</p>
+                      </div>
+                      <InsightGrid readinessScore={props.readinessScore} issueCount={props.openIssues.length} sourceCount={props.dataSources.length} />
+                      <VerifiedSources sources={props.dataSources} />
+                    </article>
+                  )
+                )}
+                {props.asking ? <AgenticLoading variant="thinking" /> : null}
+              </section>
             )}
-            {props.asking ? <AgenticLoading variant="thinking" /> : null}
           </div>
         </div>
-        <form onSubmit={props.submitAsk} className="absolute bottom-10 left-8 right-8 mx-auto max-w-4xl">
-          <div className="flex h-[76px] items-center gap-4 rounded-2xl border border-[#e2e2e2] bg-white px-7 shadow-[0_2px_10px_rgba(0,0,0,0.08)]">
-            <button type="button" className="text-[#5f5e5e]"><Icon name="attach_file" className="text-[24px]" /></button>
-            <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Command Fynny... (e.g., Compare Q1 sales)" className="min-w-0 flex-1 border-0 bg-transparent text-[18px] text-[#1a1c1c] outline-none placeholder:text-[#9a9a9a] focus:ring-0" />
-            <button type="submit" disabled={props.asking} className="grid h-12 w-12 place-items-center rounded-xl bg-[#700018] text-white disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[26px]" />}</button>
+        <form onSubmit={props.submitAsk} className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-5 md:p-6">
+          <div className="pointer-events-auto mx-auto flex w-full max-w-[800px] items-center gap-4 rounded-2xl border border-[#ececec] bg-white p-3 shadow-[0_4px_20px_rgba(0,0,0,0.08)]">
+            <div className="min-w-0 flex-1 px-3">
+              <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask about clients, reports, risks, compliance, cash flow, or advisory opportunities." className="w-full border-0 bg-transparent py-3 text-[16px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
+            </div>
+            <button type="button" className="grid h-11 w-11 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617]"><Icon name="attach_file" className="text-[22px]" /></button>
+            <button type="submit" disabled={props.asking} className="grid h-12 w-12 place-items-center rounded-xl bg-[#5b0617] text-white transition active:scale-95 disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[24px]" />}</button>
           </div>
-          <div className="mt-5 flex justify-center gap-12 text-[13px] text-[#5f5e5e]">
-            <span><Icon name="rocket_launch" className="text-[16px]" /> Project Runway</span>
-            <span><Icon name="receipt_long" className="text-[16px]" /> Tax Optimization</span>
-            <span><Icon name="warning" className="text-[16px]" /> Alert Detection</span>
+          <div className="pointer-events-auto mt-4 hidden justify-center gap-10 text-[12px] text-[#5f5e5e] md:flex">
+            <button type="button" onClick={() => props.setQuestion("Project cash runway from verified records.")} className="transition hover:text-[#5b0617]"><Icon name="rocket_launch" className="text-[16px]" /> Project Runway</button>
+            <button type="button" onClick={() => props.setQuestion("Find tax optimization opportunities from readiness data.")} className="transition hover:text-[#5b0617]"><Icon name="receipt_long" className="text-[16px]" /> Tax Optimization</button>
+            <button type="button" onClick={() => props.setQuestion("Detect alerts and missing data blockers for this client.")} className="transition hover:text-[#5b0617]"><Icon name="warning" className="text-[16px]" /> Alert Detection</button>
           </div>
         </form>
       </section>
@@ -398,36 +463,71 @@ function ClientRail({ clients, clientId, setClientId }: { clients: Client[]; cli
 }
 
 function ClientContextRail({ selectedClient, clientId, readinessScore, sources, issues }: { selectedClient?: Client; clientId: string; readinessScore: number; sources: DataSource[]; issues: Issue[] }) {
+  const confidence = readinessScore >= 80 ? "High" : readinessScore >= 50 ? "Medium" : "Low";
+  const circumference = 251.2;
+  const offset = circumference - (circumference * Math.min(100, readinessScore)) / 100;
+
   return (
-    <aside className="hidden h-full w-[312px] shrink-0 flex-col border-l border-[#e2e2e2] bg-[#f9f9f9] xl:flex">
-      <div className="border-b border-[#e2e2e2] bg-white p-8">
-        <div className="grid h-20 w-20 place-items-center rounded-3xl bg-[#111111] text-xl font-bold text-white shadow-[inset_0_0_30px_rgba(255,255,255,0.7)]">{initials(selectedClient?.name)}</div>
-        <h2 className="mt-6 text-[22px] font-medium text-[#111111]">{selectedClient?.name || (clientId ? "Selected Client" : "No Client Selected")}</h2>
-        <p className="mt-1 text-[18px] leading-7 text-[#5f5e5e]">{selectedClient?.business_type || selectedClient?.contact_email || "Paste or select a client UUID."}</p>
-      </div>
-      <div className="space-y-8 p-8">
-        <div>
-          <div className="flex items-center justify-between">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Data Readiness</p>
-            <p className="text-[20px] font-bold text-[#700018]">{readinessScore}%</p>
-          </div>
-          <div className="mt-6 h-2 overflow-hidden rounded-full bg-[#e2e2e2]"><div className="h-full bg-[#700018]" style={{ width: `${Math.min(100, readinessScore)}%` }} /></div>
+    <aside className="custom-scrollbar hidden h-full w-[320px] shrink-0 flex-col space-y-10 overflow-y-auto border-l border-[#e2e2e2] bg-[#f4f3f3] p-6 xl:flex">
+      <section className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Icon name="verified" className="text-[24px] text-[#5b0617]" />
+          <h3 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Trust Layer</h3>
         </div>
-        <div>
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#5f5e5e]">Connected Sources</p>
-          <div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceLine key={source.id} source={source} />) : <p className="text-sm text-[#5f5e5e]">No approved sources connected.</p>}</div>
-        </div>
-        <div className="border-t border-[#e2e2e2] pt-6">
-          <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ba1a1a]">Missing Data</p>
-          {issues.length ? issues.slice(0, 2).map((issue) => (
-            <div key={issue.id} className="mb-3 rounded-xl border border-[#efb8b8] bg-[#fff7f7] p-5">
-              <p className="flex items-center gap-2 text-[16px] font-bold text-[#111111]"><Icon name="error" className="text-[18px] text-[#ba1a1a]" /> {titleCase(issue.category)}</p>
-              <p className="mt-2 text-[13px] leading-5 text-[#5f5e5e]">{issue.message}</p>
-              <p className="mt-4 text-[12px] font-medium underline text-[#700018]">Request from Client</p>
+        <div className="flex flex-col items-center rounded-xl border border-[#ececec] bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+          <div className="relative h-24 w-24">
+            <svg className="h-full w-full -rotate-90">
+              <circle className="text-[#e2e2e2]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeWidth="6" />
+              <circle className="text-[#5b0617]" cx="48" cy="48" fill="transparent" r="40" stroke="currentColor" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" strokeWidth="6" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-[20px] font-semibold text-[#1a1c1c]">{readinessScore}%</span>
             </div>
-          )) : <div className="rounded-xl border border-[#e2e2e2] bg-white p-5 text-sm text-[#5f5e5e]">No open missing-data issues.</div>}
+          </div>
+          <div className="mt-4 text-center">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Data Completeness</span>
+            <span className="text-sm text-[#5f5e5e]">{readinessScore > 0 ? "Calculated from live readiness factors." : "Waiting for processed client data."}</span>
+          </div>
         </div>
-      </div>
+        <div className="flex items-center justify-between rounded-xl border border-[#ececec] bg-white p-4">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">Confidence</span>
+          <span className={`rounded-full px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${confidence === "High" ? "bg-[#d1fae5] text-[#065f46]" : confidence === "Medium" ? "bg-[#fef3c7] text-[#854d0e]" : "bg-[#ffdad6] text-[#93000a]"}`}>{confidence}</span>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5f5e5e]/60">Client Referenced</h3>
+        <div className="flex items-center gap-3 rounded-lg border border-[#ececec] bg-white p-3">
+          <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#e8e8e8] text-[18px] font-semibold text-[#5f5e5e]">{initials(selectedClient?.name)}</div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#1a1c1c]">{selectedClient?.name || (clientId ? "Selected Client" : "No client selected")}</p>
+            <p className="truncate text-xs text-[#5f5e5e]">{selectedClient?.business_type || selectedClient?.contact_email || (clientId ? shortId(clientId) : "Paste or select a client UUID")}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5f5e5e]/60">Sources Used</h3>
+        <div className="space-y-2">
+          {sources.length ? sources.slice(0, 5).map((source) => (
+            <div key={source.id} className="flex items-center gap-2 rounded-lg border border-transparent p-2 text-[#5f5e5e] transition hover:border-[#ececec] hover:bg-white hover:text-[#5b0617]">
+              <Icon name={iconForSource(source.source_type)} className="text-[18px]" />
+              <span className="truncate text-sm">{titleCase(source.provider || source.source_type)}</span>
+            </div>
+          )) : <p className="rounded-lg border border-dashed border-[#dcc0c0] bg-white p-4 text-sm leading-6 text-[#5f5e5e]">No approved sources connected yet.</p>}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5f5e5e]/60">Missing Data</h3>
+        {issues.length ? issues.slice(0, 3).map((issue) => (
+          <div key={issue.id} className="rounded-xl border border-[#efb8b8] bg-white p-4">
+            <p className="flex items-center gap-2 text-sm font-bold text-[#1a1c1c]"><Icon name="error" className="text-[18px] text-[#ba1a1a]" /> {titleCase(issue.category)}</p>
+            <p className="mt-2 text-xs leading-5 text-[#5f5e5e]">{issue.message}</p>
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#700018]">Request from client</p>
+          </div>
+        )) : <div className="rounded-xl border border-[#ececec] bg-white p-4 text-sm leading-6 text-[#5f5e5e]">No open missing-data issues.</div>}
+      </section>
     </aside>
   );
 }
