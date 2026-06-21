@@ -83,7 +83,12 @@ export async function GET(request: Request) {
         refreshTokenReceived: Boolean(tokenResult.refreshToken),
         accessToken: tokenResult.accessToken,
         refreshToken: tokenResult.refreshToken,
-        capabilities: ["zoho_books", "customers", "invoices", "payments", "bills", "reports"]
+        capabilities: ["zoho_books", "customers", "invoices", "payments", "bills", "expenses"],
+        metadata: {
+          apiDomain: tokenResult.apiDomain,
+          zohoAccountsBaseUrl: env.ZOHO_ACCOUNTS_BASE_URL,
+          zohoBooksBaseUrl: tokenResult.apiDomain ? `${tokenResult.apiDomain}/books/v3` : env.ZOHO_BOOKS_BASE_URL
+        }
       })
     : { ok: false as const, status: 400, error: "clientId is required to attach Zoho Books to a client." };
 

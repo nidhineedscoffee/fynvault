@@ -89,6 +89,11 @@ function asObject(value: unknown) {
   return value && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
+function providerMessage(result: ProviderFetchResult) {
+  const payload = asObject(result.payload);
+  return firstString(payload.message) || firstString(payload.error) || firstString(payload.code) || result.error || "Provider request failed.";
+}
+
 function isTextAttachment(filename: string, mimeType: string) {
   return mimeType.startsWith("text/") || TEXT_ATTACHMENT_EXTENSIONS.has(extensionOf(filename));
 }
@@ -293,8 +298,11 @@ async function readDriveFileText(accessToken: string, file: Record<string, unkno
 }
 
 async function collectZoho(input: CollectInput): Promise<CollectedDocument[]> {
-  const orgs = await fetchJson(new URL(`${env.ZOHO_BOOKS_BASE_URL}/organizations`), input.accessToken);
-  if (!orgs.ok) throw new Error(`Zoho organization sync failed${orgs.status ? ` (${orgs.status})` : ""}.`);
+  const booksBaseUrl = firstString(input.dataSource.metadata?.zohoBooksBaseUrl) || `${firstString(input.dataSource.metadata?.apiDomain) || env.ZOHO_BOOKS_BASE_URL.replace(/\/books\/v3$/, "")}/books/v3`;
+  const orgs = await fetchJson(new URL(`${booksBaseUrl}/organizations`), input.accessToken);
+  if (!orgs.ok) {
+    throw new Error(`Zoho organization sync failed${orgs.status ? ` (${orgs.status})` : ""}: ${providerMessage(orgs)}`);
+  }
   const organizations = Array.isArray((orgs.payload as { organizations?: unknown[] }).organizations)
     ? (orgs.payload as { organizations: Array<Record<string, unknown>> }).organizations
     : [];
@@ -302,19 +310,24 @@ async function collectZoho(input: CollectInput): Promise<CollectedDocument[]> {
   if (!organizationId) throw new Error("Zoho Books organization was not found for this account.");
 
   const endpoints = [
+    { key: "contacts", path: "contacts", category: "other", columns: ["contact_id", "contact_name", "company_name", "contact_type", "email", "outstanding_receivable_amount", "outstanding_payable_amount"] },
     { key: "invoices", path: "invoices", category: "sales_register", columns: ["invoice_number", "customer_name", "date", "due_date", "total", "balance", "status"] },
     { key: "bills", path: "bills", category: "purchase_register", columns: ["bill_number", "vendor_name", "date", "due_date", "total", "balance", "status"] },
     { key: "customerpayments", path: "customerpayments", category: "bank_statement", columns: ["payment_number", "customer_name", "date", "amount", "payment_mode", "status"] },
     { key: "expenses", path: "expenses", category: "purchase_register", columns: ["expense_id", "vendor_name", "date", "amount", "expense_category_name", "status"] }
   ];
   const collected: CollectedDocument[] = [];
+  const moduleErrors: string[] = [];
 
   for (const endpoint of endpoints) {
-    const url = new URL(`${env.ZOHO_BOOKS_BASE_URL}/${endpoint.path}`);
+    const url = new URL(`${booksBaseUrl}/${endpoint.path}`);
     url.searchParams.set("organization_id", organizationId);
     url.searchParams.set("per_page", "25");
     const result = await fetchJson(url, input.accessToken);
-    if (!result.ok) continue;
+    if (!result.ok) {
+      moduleErrors.push(`${endpoint.path}${result.status ? ` (${result.status})` : ""}: ${providerMessage(result)}`);
+      continue;
+    }
     const records = Array.isArray((result.payload as Record<string, unknown>)[endpoint.key])
       ? (result.payload as Record<string, unknown>)[endpoint.key] as Array<Record<string, unknown>>
       : [];
@@ -326,8 +339,37 @@ async function collectZoho(input: CollectInput): Promise<CollectedDocument[]> {
       extractedText: recordsToCsv(records.slice(0, 25), endpoint.columns),
       metadata: {
         zohoOrganizationId: organizationId,
+        zohoBooksBaseUrl: booksBaseUrl,
         module: endpoint.path,
         recordCount: records.length
+      }
+    });
+  }
+
+  if (!collected.length) {
+    if (moduleErrors.length === endpoints.length) {
+      throw new Error(`Zoho Books sync could not read any modules. ${moduleErrors.slice(0, 3).join(" | ")}`);
+    }
+    collected.push({
+      name: "Zoho Books organization profile",
+      sourceType: "zoho_books",
+      documentCategory: "other",
+      extractedText: recordsToCsv(
+        organizations.slice(0, 5).map((organization) => ({
+          organization_id: organization.organization_id,
+          name: organization.name,
+          edition: organization.edition,
+          country: organization.country,
+          currency_code: organization.currency_code,
+          status: "connected_no_financial_records_found"
+        })),
+        ["organization_id", "name", "edition", "country", "currency_code", "status"]
+      ),
+      metadata: {
+        zohoOrganizationId: organizationId,
+        zohoBooksBaseUrl: booksBaseUrl,
+        module: "organizations",
+        moduleErrors: moduleErrors.slice(0, 5)
       }
     });
   }

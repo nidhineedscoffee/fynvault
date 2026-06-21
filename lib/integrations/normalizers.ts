@@ -81,7 +81,14 @@ export function getZohoOAuthUrl(context?: { clientId?: string; organizationId?: 
     return null;
   }
 
-  const scope = "ZohoBooks.fullaccess.all";
+  const scope = [
+    "ZohoBooks.settings.READ",
+    "ZohoBooks.contacts.READ",
+    "ZohoBooks.invoices.READ",
+    "ZohoBooks.bills.READ",
+    "ZohoBooks.customerpayments.READ",
+    "ZohoBooks.expenses.READ"
+  ].join(",");
   const url = new URL("/oauth/v2/auth", env.ZOHO_ACCOUNTS_BASE_URL);
   url.searchParams.set("scope", scope);
   url.searchParams.set("client_id", env.ZOHO_CLIENT_ID ?? "");
@@ -111,6 +118,55 @@ export function getGoogleOAuthUrl(options: { provider?: "gmail" | "google_drive"
   url.searchParams.set("state", oauthState(provider, { clientId: options.clientId, organizationId: options.organizationId }));
   url.searchParams.set("scope", scope);
   return url.toString();
+}
+
+export async function refreshZohoAccessToken(refreshToken: string) {
+  if (!hasZohoConfig()) {
+    return {
+      configured: false,
+      missing: missingProviderVars("zoho")
+    };
+  }
+
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    client_id: env.ZOHO_CLIENT_ID ?? "",
+    client_secret: env.ZOHO_CLIENT_SECRET ?? "",
+    refresh_token: refreshToken
+  });
+
+  let response: Response;
+  try {
+    response = await fetch(new URL("/oauth/v2/token", env.ZOHO_ACCOUNTS_BASE_URL), {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body
+    });
+  } catch (error) {
+    return {
+      configured: true,
+      ok: false,
+      error: `Network error while refreshing Zoho token: ${error instanceof Error ? error.message : "unknown error"}`
+    } satisfies TokenExchangeFailure;
+  }
+
+  const payload = await parseResponsePayload(response);
+  if (!response.ok) {
+    return {
+      configured: true,
+      ok: false,
+      status: response.status,
+      error: payload
+    } satisfies TokenExchangeFailure;
+  }
+
+  return {
+    configured: true,
+    ok: true,
+    accessToken: payload.access_token as string | undefined,
+    expiresIn: payload.expires_in as number | undefined,
+    apiDomain: payload.api_domain as string | undefined
+  };
 }
 
 async function parseResponsePayload(response: Response) {

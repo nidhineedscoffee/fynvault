@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { collectAndProcessDataSource } from "./integration-sync";
+import { refreshZohoAccessToken } from "./integrations/normalizers";
 import { decryptIntegrationSecret, encryptIntegrationSecret } from "./security";
 import { createSupabaseServerClient } from "./supabase";
 
@@ -268,8 +269,33 @@ export async function syncDataSource(clientId: string, dataSourceId: string) {
   }
 
   const now = new Date().toISOString();
-  const metadata = (dataSource.metadata ?? {}) as Record<string, unknown>;
-  const accessToken = decryptIntegrationSecret(metadata.encryptedAccessToken);
+  let metadata = (dataSource.metadata ?? {}) as Record<string, unknown>;
+  let accessToken = decryptIntegrationSecret(metadata.encryptedAccessToken);
+
+  if (dataSource.source_type === "zoho_books") {
+    const refreshToken = decryptIntegrationSecret(metadata.encryptedRefreshToken);
+    const expiresAt = typeof metadata.expiresAt === "string" ? Date.parse(metadata.expiresAt) : 0;
+    const shouldRefresh = Boolean(refreshToken && (!accessToken || !expiresAt || expiresAt - Date.now() < 120_000));
+    if (shouldRefresh && refreshToken) {
+      const refreshed = await refreshZohoAccessToken(refreshToken);
+      if (refreshed.configured && refreshed.ok && refreshed.accessToken) {
+        const refreshedExpiresAt = refreshed.expiresIn ? new Date(Date.now() + refreshed.expiresIn * 1000).toISOString() : metadata.expiresAt;
+        accessToken = refreshed.accessToken;
+        metadata = {
+          ...metadata,
+          encryptedAccessToken: encryptIntegrationSecret(refreshed.accessToken),
+          expiresAt: refreshedExpiresAt,
+          apiDomain: refreshed.apiDomain ?? metadata.apiDomain,
+          zohoBooksBaseUrl: refreshed.apiDomain ? `${refreshed.apiDomain}/books/v3` : metadata.zohoBooksBaseUrl,
+          tokenRefreshedAt: new Date().toISOString()
+        };
+        await supabase.from("data_sources").update({ metadata }).eq("id", dataSourceId);
+      } else {
+        await supabase.from("data_sources").update({ connection_status: "error" }).eq("id", dataSourceId);
+        return fail(409, "Zoho token refresh failed. Reconnect Zoho Books and confirm the OAuth redirect URI matches this deployment.");
+      }
+    }
+  }
 
   if (["gmail", "google_drive", "zoho_books"].includes(dataSource.source_type) && !accessToken) {
     await supabase.from("data_sources").update({ connection_status: "error" }).eq("id", dataSourceId);
@@ -380,6 +406,7 @@ export async function completeOAuthDataSourceConnection(clientId: string, input:
   accessToken?: string;
   refreshToken?: string;
   capabilities?: string[];
+  metadata?: Record<string, unknown>;
 }) {
   const invalid = validateClientId(clientId);
   if (invalid) {
@@ -405,7 +432,8 @@ export async function completeOAuthDataSourceConnection(clientId: string, input:
     expiresAt: input.expiresAt,
     accessTokenReceived: Boolean(input.accessTokenReceived),
     refreshTokenReceived: Boolean(input.refreshTokenReceived),
-    capabilities: input.capabilities ?? []
+    capabilities: input.capabilities ?? [],
+    ...(input.metadata ?? {})
   };
   const encryptedAccessToken = encryptIntegrationSecret(input.accessToken);
   const encryptedRefreshToken = encryptIntegrationSecret(input.refreshToken);
