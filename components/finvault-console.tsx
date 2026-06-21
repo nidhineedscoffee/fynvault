@@ -61,6 +61,10 @@ type SubmissionPendingResponse = {
   data?: {
     pending: SubmissionRequest[];
     health: SubmissionHealth;
+    setupRequired?: boolean;
+    setupMessage?: string;
+    requiredTables?: string[];
+    setupFile?: string;
   };
   error?: string;
 };
@@ -297,7 +301,7 @@ function sourceLogoTileClass(source: string, active = false) {
 export function FinvaultConsole() {
   const [activeTab, setActiveTab] = useState<TabId>("ask");
   const [clientId, setClientId] = useState("");
-  const [question, setQuestion] = useState("What can you tell me once this client is intelligence ready?");
+  const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<AskMessage[]>([
     { role: "fynny", text: "I will answer only from intelligence-ready client data. Select a client, complete processing, and I will explain the evidence without inventing numbers." }
   ]);
@@ -676,7 +680,7 @@ export function FinvaultConsole() {
     }
     const now = new Date();
     const dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toISOString().slice(0, 10);
-    const payload = await readJson<{ ok?: boolean; error?: string }>("/api/submissions/create-cycle", {
+    const payload = await readJson<{ ok?: boolean; error?: string; setupRequired?: boolean }>("/api/submissions/create-cycle", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -693,9 +697,9 @@ export function FinvaultConsole() {
           { documentCategory: "gst_data", label: "GST Data", priority: "high" }
         ]
       })
-    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Cycle creation failed." }));
+    }).catch((error): { ok: false; error: string; setupRequired?: boolean } => ({ ok: false, error: error instanceof Error ? error.message : "Cycle creation failed." }));
     if (payload.ok === false) {
-      setSourceNotice({ tone: "error", title: "Collection cycle unavailable", body: payload.error ?? "Please check submission table setup." });
+      setSourceNotice({ tone: payload.setupRequired ? "warning" : "error", title: payload.setupRequired ? "Database setup required" : "Collection cycle unavailable", body: payload.error ?? "Please check submission table setup." });
     } else {
       setSourceNotice({ tone: "success", title: "Monthly MIS cycle created", body: "Fynny is now tracking required documents and reminder status for this client." });
       await refreshClient(clientId);
@@ -765,7 +769,7 @@ export function FinvaultConsole() {
             {activeTab === "processing" ? <ProcessingScreen jobs={jobs} error={processing.error} selectedClient={selectedClient} setActiveTab={setActiveTab} setQuestion={setQuestion} /> : null}
             {activeTab === "clients" ? <ClientsScreen clients={clientRows} error={clients.error} setClientId={setClientId} setActiveTab={setActiveTab} createClient={createClient} creatingClient={creatingClient} notice={chatNotice} /> : null}
             {activeTab === "sources" ? <SourcesScreen sources={dataSources} error={sources.error} clientId={clientId} selectedClient={selectedClient} connectSource={connectSource} uploadDocument={uploadDocument} syncSource={syncSource} requestingSource={requestingSource} uploadingDocument={uploadingDocument} syncingSource={syncingSource} notice={sourceNotice} setActiveTab={setActiveTab} /> : null}
-            {activeTab === "collection" ? <CollectionScreen pending={submissions.data?.data?.pending ?? []} health={submissions.data?.data?.health} error={submissions.error} selectedClient={selectedClient} createMonthlyCycle={createMonthlyCycle} sendReminder={sendReminder} escalateSubmission={escalateSubmission} notice={sourceNotice} /> : null}
+            {activeTab === "collection" ? <CollectionScreen pending={submissions.data?.data?.pending ?? []} health={submissions.data?.data?.health} setupRequired={submissions.data?.data?.setupRequired} setupMessage={submissions.data?.data?.setupMessage} requiredTables={submissions.data?.data?.requiredTables} setupFile={submissions.data?.data?.setupFile} error={submissions.error} selectedClient={selectedClient} createMonthlyCycle={createMonthlyCycle} sendReminder={sendReminder} escalateSubmission={escalateSubmission} notice={sourceNotice} /> : null}
             {activeTab === "validation" ? <ValidationScreen issues={openIssues} error={issues.error} /> : null}
             {activeTab === "memory" ? <MemoryScreen clientId={clientId} isReady={isReady} readiness={readiness.data} /> : null}
             {activeTab === "reports" ? <ReportsScreen reports={reportRows} error={reports.error} isReady={isReady} /> : null}
@@ -1049,41 +1053,40 @@ function AskWorkspace(props: {
   }
 
   return (
-    <main className="flex min-w-0 flex-1 overflow-hidden bg-[#ffffff]">
+    <main className="flex min-w-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(122,31,43,0.08),transparent_34%),linear-gradient(180deg,#fffdfb_0%,#f7f3f0_100%)]">
       <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} openClients={props.openClients} />
-      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-5 md:px-7">
+      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#eadfdc] bg-white/76 px-5 backdrop-blur-xl md:px-7">
           <div className="flex items-center gap-3">
             <span className={`h-2 w-2 rounded-full ${props.isReady ? "bg-[#00875a]" : "bg-[#ba1a1a]"}`} />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">{props.isReady ? "Verified context" : "Processing context required"}</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.12em] text-[#5f5e5e]">{props.isReady ? "Verified financial memory" : "Readiness required for reports"}</span>
           </div>
-          <div className="hidden rounded-full border border-[#ececec] bg-[#f9f9f9] px-4 py-2 text-[11px] font-semibold text-[#5b0617] md:block">Only uploads and connected sources become context.</div>
+          <div className="hidden rounded-full border border-[#eadbd6] bg-white px-4 py-2 text-[11px] font-bold text-[#5b0617] shadow-[0_8px_24px_rgba(47,35,31,0.05)] md:block">Fynny answers only from connected data and uploaded files.</div>
         </header>
 
-        <div className="custom-scrollbar flex-1 overflow-y-auto px-5 pb-36 pt-8 md:px-8">
-          <div className="mx-auto w-full max-w-[820px]">
+        <div className="custom-scrollbar flex-1 overflow-y-auto px-4 pb-40 pt-7 sm:px-5 md:px-8">
+          <div className="mx-auto w-full max-w-[920px]">
             {!hasUserQuestion ? (
-              <section className="flex min-h-[calc(100dvh-230px)] flex-col items-center justify-center space-y-7">
-                <div className="relative grid h-28 w-28 place-items-center md:h-36 md:w-36">
-                  <div className="absolute inset-0 rounded-full border border-[#ececec] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_62%)]" />
-                  <div className="absolute h-20 w-20 rounded-full bg-[#7a1f2b]/10 blur-2xl" />
-                  <div className="relative grid h-16 w-16 place-items-center rounded-[24px] bg-[#5b0617] text-white shadow-[0_18px_48px_rgba(122,31,43,0.2)]">
-                    <Icon name="psychology" className="text-[30px]" filled />
+              <section className="flex min-h-[calc(100dvh-230px)] flex-col items-center justify-center space-y-6">
+                <div className="relative w-full overflow-hidden rounded-[34px] border border-[#eee2de] bg-white/82 p-6 text-center shadow-[0_28px_90px_rgba(47,35,31,0.09)] backdrop-blur-xl sm:p-8">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#7A1F2B]/50 to-transparent" />
+                  <div className="pointer-events-none absolute left-1/2 top-0 h-44 w-44 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#7A1F2B]/10 blur-3xl" />
+                  <div className="relative mx-auto grid h-20 w-20 place-items-center rounded-[28px] bg-[#111111] text-white shadow-[0_24px_58px_rgba(17,17,17,0.18)]">
+                    <Icon name="auto_awesome" className="text-[34px]" filled />
                   </div>
-                  {["article", "analytics", "memory"].map((icon, index) => (
-                    <div key={icon} className="absolute grid h-9 w-9 place-items-center rounded-xl border border-[#ececec] bg-white text-[#5b0617] shadow-[0_8px_30px_rgba(0,0,0,0.04)]" style={{ transform: `rotate(${index * 120}deg) translateY(-58px) rotate(-${index * 120}deg)` }}>
-                      <Icon name={icon} className="text-[17px]" />
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-3 text-center">
-                  <h1 className="text-[34px] font-bold leading-tight tracking-[-0.03em] text-[#1a1c1c] md:text-[48px]">Ask Fynny</h1>
-                  <p className="mx-auto max-w-xl text-[15px] leading-7 text-[#5f5e5e]">
-                    Ask short questions. The CA team connects sources and uploads files, and Fynny answers only from processed financial context.
+                  <p className="relative mt-6 text-[11px] font-black uppercase tracking-[0.26em] text-[#7A1F2B]">Fynny financial copilot</p>
+                  <h1 className="relative mx-auto mt-3 max-w-3xl text-[36px] font-black leading-[0.98] tracking-[-0.065em] text-[#111111] md:text-[58px]">Ask for the report. Fynny handles the evidence.</h1>
+                  <p className="relative mx-auto mt-5 max-w-2xl text-[15px] leading-7 text-[#655f5b]">
+                    Connect Gmail, Drive, Zoho, or upload files. Fynny processes the records, checks readiness, and returns export-ready financial intelligence without inventing numbers.
                   </p>
+                  <div className="relative mt-6 flex flex-wrap justify-center gap-2">
+                    <span className="rounded-full border border-[#eadbd6] bg-[#fff8f5] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#7A1F2B]">{props.selectedClient?.name ?? "Choose a client"}</span>
+                    <span className="rounded-full border border-[#eadbd6] bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#655f5b]">{props.dataSources.length} connected source{props.dataSources.length === 1 ? "" : "s"}</span>
+                    <span className="rounded-full border border-[#eadbd6] bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#655f5b]">Readiness {props.readinessScore}%</span>
+                  </div>
                 </div>
                 {latestFynny ? (
-                  <div className="max-w-2xl rounded-2xl border border-[#ececec] bg-[#f9f9f9] p-5 text-center text-sm leading-6 text-[#5f5e5e]">
+                  <div className="max-w-2xl rounded-2xl border border-[#eadbd6] bg-white/82 p-5 text-center text-sm leading-6 text-[#5f5e5e] shadow-[0_16px_45px_rgba(47,35,31,0.06)]">
                     {latestFynny.text}
                   </div>
                 ) : null}
@@ -1097,17 +1100,20 @@ function AskWorkspace(props: {
                     </button>
                   </div>
                 ) : null}
-                <div className="grid w-full grid-cols-1 gap-3 pt-2 md:grid-cols-3">
-                  {askSuggestions.slice(0, 3).map((suggestion) => (
+                <div className="grid w-full grid-cols-1 gap-3 pt-1 sm:grid-cols-2 xl:grid-cols-3">
+                  {askSuggestions.map((suggestion) => (
                     <button
                       key={suggestion.title}
                       type="button"
                       onClick={() => props.setQuestion(suggestion.prompt)}
-                      className="rounded-2xl border border-[#ececec] bg-white p-4 text-left shadow-[0_4px_20px_rgba(0,0,0,0.035)] transition hover:-translate-y-0.5 hover:border-[#5b0617]"
+                      className={`group rounded-[24px] border border-[#eee2de] bg-white/90 p-4 text-left shadow-[0_14px_38px_rgba(47,35,31,0.06)] transition hover:-translate-y-1 hover:border-[#7A1F2B] hover:shadow-[0_22px_58px_rgba(47,35,31,0.10)] ${suggestion.wide ? "sm:col-span-2 xl:col-span-1" : ""}`}
                     >
-                      <Icon name={suggestion.icon} className="mb-3 text-[22px] text-[#5b0617]" />
-                      <h3 className="text-[16px] font-semibold leading-snug text-[#1a1c1c]">{suggestion.title}</h3>
-                      <p className="mt-1 text-xs leading-5 text-[#5f5e5e]">{suggestion.body}</p>
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#fff3ee] text-[#7A1F2B] transition group-hover:bg-[#7A1F2B] group-hover:text-white"><Icon name={suggestion.icon} className="text-[21px]" /></span>
+                        <Icon name="north_east" className="text-[18px] text-[#c6b5ae] transition group-hover:text-[#7A1F2B]" />
+                      </div>
+                      <h3 className="text-[16px] font-black leading-snug tracking-[-0.02em] text-[#1a1c1c]">{suggestion.title}</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#655f5b]">{suggestion.body}</p>
                     </button>
                   ))}
                 </div>
@@ -1120,7 +1126,7 @@ function AskWorkspace(props: {
                       <div className="max-w-[620px] rounded-2xl rounded-tr-md border border-[#dcc0c0] bg-[#f4f3f3] px-5 py-3 text-[15px] leading-7 text-[#1a1c1c] shadow-[0_4px_20px_rgba(0,0,0,0.03)]">{message.text}</div>
                     </div>
                   ) : (
-                    <article key={`${message.role}-${index}`} className="rounded-3xl border border-[#ececec] bg-white p-5 shadow-[0_8px_34px_rgba(0,0,0,0.04)]">
+                    <article key={`${message.role}-${index}`} className="rounded-[28px] border border-[#eee2de] bg-white/92 p-5 shadow-[0_18px_55px_rgba(47,35,31,0.07)]">
                       <div className="mb-3 flex items-center justify-between gap-4">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#5b0617]">{message.blocked ? "Action needed" : "Fynny"}</span>
                         <span className="rounded-full bg-[#f9f9f9] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5f5e5e]">{props.selectedClient?.name ?? "No client"}</span>
@@ -1135,13 +1141,13 @@ function AskWorkspace(props: {
             )}
           </div>
         </div>
-        <form onSubmit={props.submitAsk} className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white via-white to-transparent p-4 md:p-5">
+        <form onSubmit={props.submitAsk} className="pointer-events-none absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#fffdfb] via-[#fffdfb]/95 to-transparent p-4 md:p-5">
           <div className="pointer-events-auto mx-auto mb-2 flex max-w-[720px] flex-wrap items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">
             <span className="rounded-full border border-[#ececec] bg-white px-3 py-1">{contextLabel}</span>
             <span className="rounded-full border border-[#ececec] bg-white px-3 py-1">{props.isReady ? "Intelligence ready" : `Readiness ${props.readinessScore}%`}</span>
           </div>
           <input ref={chatFileInputRef} type="file" className="hidden" accept=".csv,.txt,.pdf,.xlsx,.xls,.json" multiple onChange={handleChatFile} />
-          <div className="pointer-events-auto mx-auto flex w-full max-w-[720px] items-center gap-2 rounded-2xl border border-[#e8e0e0] bg-white p-2 shadow-[0_16px_50px_rgba(0,0,0,0.1)]">
+          <div className="pointer-events-auto mx-auto flex w-full max-w-[780px] items-center gap-2 rounded-[24px] border border-[#eadbd6] bg-white/92 p-2 shadow-[0_22px_70px_rgba(47,35,31,0.14)] backdrop-blur-xl">
             <div className="relative min-w-0 flex-1 px-3">
               {showTypingPlaceholder ? (
                 <div className="pointer-events-none absolute inset-x-3 top-1/2 flex -translate-y-1/2 items-center overflow-hidden text-[15px] text-[#8b8581]">
@@ -1155,12 +1161,12 @@ function AskWorkspace(props: {
                 onFocus={() => setAskInputFocused(true)}
                 onBlur={() => setAskInputFocused(false)}
                 placeholder={showTypingPlaceholder ? "" : "Ask from processed records or attach a file..."}
-                className="w-full border-0 bg-transparent py-3 text-[15px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0"
+                className="w-full border-0 bg-transparent py-3 text-[15px] font-medium text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0"
               />
             </div>
-            <button type="button" onClick={() => chatFileInputRef.current?.click()} disabled={props.uploadingDocument} className="grid h-10 w-10 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] disabled:cursor-wait disabled:opacity-60" aria-label="Attach financial file">{props.uploadingDocument ? <AgenticGlyph variant="validation" /> : <Icon name="attach_file" className="text-[21px]" />}</button>
-            <button type="button" onClick={props.openSources} className="hidden h-10 items-center gap-2 rounded-xl px-3 text-[12px] font-semibold text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] sm:flex"><Icon name="add_link" className="text-[18px]" /> Sources</button>
-            <button type="submit" disabled={props.asking} className="grid h-11 w-11 place-items-center rounded-xl bg-[#5b0617] text-white transition active:scale-95 disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[22px]" />}</button>
+            <button type="button" onClick={() => chatFileInputRef.current?.click()} disabled={props.uploadingDocument} className="grid h-11 w-11 place-items-center rounded-2xl text-[#5f5e5e] transition hover:bg-[#fff3ee] hover:text-[#5b0617] disabled:cursor-wait disabled:opacity-60" aria-label="Attach financial file">{props.uploadingDocument ? <AgenticGlyph variant="validation" /> : <Icon name="attach_file" className="text-[21px]" />}</button>
+            <button type="button" onClick={props.openSources} className="hidden h-11 items-center gap-2 rounded-2xl px-3 text-[12px] font-bold text-[#5f5e5e] transition hover:bg-[#fff3ee] hover:text-[#5b0617] sm:flex"><Icon name="add_link" className="text-[18px]" /> Sources</button>
+            <button type="submit" disabled={props.asking} className="grid h-12 w-12 place-items-center rounded-2xl bg-[#5b0617] text-white shadow-[0_14px_32px_rgba(91,6,23,0.24)] transition hover:-translate-y-0.5 hover:bg-[#7A1F2B] active:scale-95 disabled:opacity-60">{props.asking ? <AgenticGlyph variant="thinking" /> : <Icon name="arrow_upward" className="text-[22px]" />}</button>
           </div>
         </form>
       </section>
@@ -1828,6 +1834,10 @@ function ClientsScreen({
 function CollectionScreen({
   pending,
   health,
+  setupRequired,
+  setupMessage,
+  requiredTables,
+  setupFile,
   error,
   selectedClient,
   createMonthlyCycle,
@@ -1837,6 +1847,10 @@ function CollectionScreen({
 }: {
   pending: SubmissionRequest[];
   health?: SubmissionHealth;
+  setupRequired?: boolean;
+  setupMessage?: string;
+  requiredTables?: string[];
+  setupFile?: string;
   error: string | null;
   selectedClient?: Client;
   createMonthlyCycle: () => Promise<void>;
@@ -1849,7 +1863,9 @@ function CollectionScreen({
     ? overdueCount
       ? "Follow up on overdue clients first."
       : "Everything pending is still inside the expected window."
-    : "Create a reporting cycle to activate reminders.";
+    : setupRequired
+      ? "Database setup is pending."
+      : "Create a reporting cycle to activate reminders.";
   return (
     <section className="space-y-7">
       <div className="relative overflow-hidden rounded-[34px] border border-[#eee2de] bg-[#111111] p-7 text-white shadow-[0_28px_90px_rgba(17,17,17,0.18)] md:p-8">
@@ -1889,7 +1905,8 @@ function CollectionScreen({
         {notice ? <div className="mt-5"><ActionNoticeCard notice={notice} /></div> : null}
       </Card>
       <Card title="Collection Queue">
-        {error ? <ActionNoticeCard notice={{ tone: "error", title: "Collection setup needed", body: error }} /> : null}
+        {setupRequired ? <CollectionSetupCard message={setupMessage} requiredTables={requiredTables} setupFile={setupFile} /> : null}
+        {error && !setupRequired ? <ActionNoticeCard notice={{ tone: "error", title: "Collection queue unavailable", body: error }} /> : null}
         {pending.length ? (
           <div className="overflow-hidden rounded-[24px] border border-[#eee2de] bg-white shadow-[0_18px_60px_rgba(47,35,31,0.06)]">
             <div className="flex flex-col gap-3 border-b border-[#f0e6e2] bg-[#faf6f3] px-5 py-4 md:flex-row md:items-center md:justify-between">
@@ -1928,9 +1945,39 @@ function CollectionScreen({
             </table>
             </div>
           </div>
-        ) : <EmptyState icon="assignment_late" title="No Pending Submissions" body={error ?? "Create a reporting cycle to start tracking required client documents and reminders."} />}
+        ) : setupRequired ? null : <EmptyState icon="assignment_late" title="No Pending Submissions" body={error ?? "Create a reporting cycle to start tracking required client documents and reminders."} />}
       </Card>
     </section>
+  );
+}
+function CollectionSetupCard({ message, requiredTables, setupFile }: { message?: string; requiredTables?: string[]; setupFile?: string }) {
+  return (
+    <div className="rounded-[24px] border border-[#eadbd6] bg-[#fffaf7] p-5 shadow-[0_16px_45px_rgba(122,31,43,0.06)]">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#fff0e8] text-[#7A1F2B]">
+              <Icon name="database" className="text-[22px]" />
+            </span>
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#7A1F2B]">One-time Supabase setup</p>
+              <h4 className="mt-1 text-[20px] font-black tracking-[-0.03em] text-[#111111]">Collection tables are ready in the codebase.</h4>
+            </div>
+          </div>
+          <p className="mt-4 max-w-3xl text-sm leading-6 text-[#655f5b]">{message ?? "Apply the Supabase schema once to enable reporting cycles, reminder tracking, escalations, and secure client upload links."}</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(requiredTables ?? ["submission_cycles", "submission_requirements", "submission_requests", "submission_reminders", "submission_escalations", "client_upload_links"]).map((table) => (
+              <span key={table} className="rounded-full border border-[#eadbd6] bg-white px-3 py-1.5 font-[var(--font-platform-mono)] text-[11px] font-semibold text-[#7A1F2B]">{table}</span>
+            ))}
+          </div>
+        </div>
+        <div className="shrink-0 rounded-2xl border border-[#eadbd6] bg-white p-4">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#766b67]">Schema file</p>
+          <p className="mt-2 font-[var(--font-platform-mono)] text-xs font-bold text-[#111111]">{setupFile ?? "supabase/schema.sql"}</p>
+          <p className="mt-2 max-w-[220px] text-xs leading-5 text-[#655f5b]">Run this SQL in Supabase SQL Editor once for the live project.</p>
+        </div>
+      </div>
+    </div>
   );
 }
 function ValidationScreen({ issues, error }: { issues: Issue[]; error: string | null }) {
@@ -2053,7 +2100,70 @@ function SystemNotice({ title, body }: { title: string; body: string }) {
   return <section className="rounded-xl border border-[#ba1a1a] bg-[#ffdad6]/40 p-5"><div className="flex gap-3"><span className="text-[#ba1a1a]"><Icon name="warning" className="text-[24px]" /></span><div><h3 className="text-[16px] font-bold text-[#1a1c1c]">{title}</h3><p className="mt-1 text-sm leading-6 text-[#564242]">{body}</p></div></div></section>;
 }
 function SettingsScreen({ providers, status, session }: { providers: Array<[string, boolean]>; status: StatusResponse | null; session: SessionResponse | null }) {
-  return <section className="grid gap-6 lg:grid-cols-2"><Card title="API Integrations"><div className="divide-y divide-[#f4f3f3]">{providers.map(([name, ready]) => <div key={name} className="flex items-center justify-between py-4"><span className="text-[15px] font-semibold capitalize text-[#1a1c1c]">{name}</span><span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${ready ? "bg-emerald-50 text-emerald-700" : "bg-[#ffdad6] text-[#93000a]"}`}><Icon name={ready ? "check_circle" : "error"} className="text-[16px]" />{ready ? "Ready" : "Missing"}</span></div>)}</div></Card><Card title="Authentication"><div className="space-y-4"><FieldBox label="ScaleKit Session" value={session?.authenticated ? session.user?.email ?? session.user?.name ?? "Authenticated" : "Not signed in"} /><FieldBox label="Environment" value={status?.mode ?? "Unknown"} /></div></Card></section>;
+  const readyCount = providers.filter(([, ready]) => ready).length;
+  const totalCount = providers.length || 1;
+  const readiness = Math.round((readyCount / totalCount) * 100);
+  const operatingItems = [
+    { icon: "security", title: "Firm data isolation", body: "Clients, uploads, reports, and memory are scoped to the signed-in firm workspace." },
+    { icon: "key", title: "ScaleKit sign-in", body: session?.authenticated ? `Signed in as ${session.user?.email ?? session.user?.name ?? "workspace user"}.` : "Sign in with ScaleKit before connecting client sources." },
+    { icon: "database", title: "Supabase backbone", body: "Database, storage, processing jobs, collection cycles, and financial memory run through Supabase." },
+    { icon: "hub", title: "Source collection", body: "Gmail, Drive, Zoho, and uploads stay read-only and client-routed before intelligence generation." }
+  ];
+  return (
+    <section className="space-y-6">
+      <div className="relative overflow-hidden rounded-[34px] border border-[#eee2de] bg-[#111111] p-7 text-white shadow-[0_28px_90px_rgba(17,17,17,0.18)]">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#7A1F2B]/50 blur-3xl" />
+        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#e6c4bd]">Workspace operations</p>
+            <h2 className="mt-3 max-w-3xl text-[34px] font-black leading-[0.98] tracking-[-0.06em] md:text-[50px]">Keep Fynny production-ready.</h2>
+            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-white/70">This area is for operating the product, not showing raw API keys. Use it to confirm login, data isolation, source collection, and readiness posture.</p>
+          </div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/50">System posture</p>
+            <p className="mt-2 font-[var(--font-platform-mono)] text-[42px] font-black tracking-[-0.06em]">{readiness}%</p>
+            <p className="text-xs text-white/55">Operational readiness</p>
+          </div>
+        </div>
+      </div>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {operatingItems.map((item) => (
+          <div key={item.title} className="rounded-[26px] border border-[#eee2de] bg-white/88 p-5 shadow-[0_18px_55px_rgba(47,35,31,0.07)]">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#fff3ee] text-[#7A1F2B]"><Icon name={item.icon} className="text-[22px]" /></span>
+            <h3 className="mt-4 text-[17px] font-black tracking-[-0.03em] text-[#111111]">{item.title}</h3>
+            <p className="mt-2 text-sm leading-6 text-[#655f5b]">{item.body}</p>
+          </div>
+        ))}
+      </section>
+      <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card title="Setup Checklist">
+          <div className="space-y-3">
+            {[
+              ["Client workspace", "Create/select a client before upload or sync.", true],
+              ["Source connections", "Connect Gmail, Drive, Zoho, or upload sample financial files.", readyCount >= 3],
+              ["Processing layer", "Run validation, normalization, memory, and readiness checks.", true],
+              ["Client outputs", "Generate reports and exports only after Intelligence Ready.", true]
+            ].map(([title, body, done]) => (
+              <div key={String(title)} className="flex gap-4 rounded-2xl border border-[#eee2de] bg-[#fbf8f6] p-4">
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-2xl ${done ? "bg-emerald-50 text-emerald-700" : "bg-[#fff3ee] text-[#7A1F2B]"}`}><Icon name={done ? "check_circle" : "radio_button_unchecked"} className="text-[20px]" /></span>
+                <div>
+                  <p className="text-[15px] font-black text-[#111111]">{title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[#655f5b]">{body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card title="Workspace Session">
+          <div className="space-y-4">
+            <FieldBox label="Signed-in user" value={session?.authenticated ? session.user?.email ?? session.user?.name ?? "Authenticated" : "Not signed in"} />
+            <FieldBox label="Environment" value={status?.mode ?? "Production workspace"} />
+            <p className="rounded-2xl border border-[#eadbd6] bg-[#fffaf7] p-4 text-sm leading-6 text-[#655f5b]">Fynny hides raw provider readiness from the main product UI. If a source needs setup, the relevant connect/sync flow will show a contextual action.</p>
+          </div>
+        </Card>
+      </section>
+    </section>
+  );
 }
 function iconForSource(source: string) {
   if (source.includes("gmail") || source.includes("email")) return "mail";

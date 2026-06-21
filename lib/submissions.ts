@@ -47,8 +47,39 @@ function unavailable() {
 }
 
 function dbError(error: { message: string }) {
-  const missing = /relation .* does not exist|schema cache|does not exist/i.test(error.message);
-  return fail(missing ? 503 : 500, missing ? "Submission tables are not configured yet. Create submission_cycles, submission_requirements, submission_requests, submission_reminders, submission_escalations, and client_upload_links in Supabase." : error.message);
+  const missing = isMissingSubmissionSchema(error);
+  return fail(missing ? 503 : 500, missing ? collectionSetupMessage : error.message, missing ? { setupRequired: true } : undefined);
+}
+
+const collectionSetupMessage = "Collection Engine database setup is pending. Apply supabase/schema.sql once in Supabase to enable reporting cycles, reminders, escalations, and client upload links.";
+
+function isMissingSubmissionSchema(error: { message: string }) {
+  return /relation .* does not exist|schema cache|does not exist/i.test(error.message);
+}
+
+function emptySubmissionQueue() {
+  return {
+    pending: [],
+    health: {
+      pendingUploads: 0,
+      overdueClients: 0,
+      dueToday: 0,
+      highPriority: 0,
+      submissionCompletionRate: 100,
+      reportsBlocked: 0
+    },
+    setupRequired: true,
+    setupMessage: collectionSetupMessage,
+    requiredTables: [
+      "submission_cycles",
+      "submission_requirements",
+      "submission_requests",
+      "submission_reminders",
+      "submission_escalations",
+      "client_upload_links"
+    ],
+    setupFile: "supabase/schema.sql"
+  };
 }
 
 function daysBetween(date: Date, now = new Date()) {
@@ -193,7 +224,12 @@ export async function listPendingSubmissions(firmId: string, filters: { status?:
   if (filters.priority) query = query.eq("priority", filters.priority);
   if (filters.status) query = query.eq("status", filters.status);
   const { data, error } = await query;
-  if (error) return dbError(error);
+  if (error) {
+    if (isMissingSubmissionSchema(error)) {
+      return { ok: true as const, data: emptySubmissionQueue() };
+    }
+    return dbError(error);
+  }
   const now = new Date();
   const pending = (data ?? []).map((row) => {
     const due = new Date(row.due_date);
