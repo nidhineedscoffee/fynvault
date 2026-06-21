@@ -174,6 +174,9 @@ export async function connectDataSource(clientId: string, input: z.infer<typeof 
   if (input.sourceType === "whatsapp") {
     return fail(400, "Direct WhatsApp access is not supported for MVP. Use manual upload, collection email, or mobile portal upload.");
   }
+  if (input.sourceType === "tally") {
+    return fail(423, "Tally direct API is locked for this MVP. Upload Tally CSV/XLSX exports through Secure Upload.");
+  }
 
   const supabase = createSupabaseServerClient();
   if (!supabase) {

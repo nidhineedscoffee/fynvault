@@ -58,6 +58,8 @@ type SourceOption = {
   category: SourceCategory;
   description: string;
   action: "upload" | "connect" | "manual";
+  locked?: boolean;
+  lockedReason?: string;
 };
 
 const navItems: Array<{ id: TabId; label: string; icon: string }> = [
@@ -78,7 +80,7 @@ const sourceOptions: SourceOption[] = [
   { id: "gmail", label: "Gmail", provider: "Google", icon: "mail", category: "integration", action: "connect", description: "Connect Gmail for financial emails and attachments only." },
   { id: "google_drive", label: "Google Drive", provider: "Google", icon: "add_to_drive", category: "integration", action: "connect", description: "Connect Drive folders and pull financial files into processing." },
   { id: "zoho_books", label: "Zoho Books", provider: "Zoho", icon: "account_balance", category: "integration", action: "connect", description: "Bring books, invoices, customers, and accounting exports into Fynny." },
-  { id: "tally", label: "Tally", provider: "Tally", icon: "receipt_long", category: "integration", action: "connect", description: "Connect Tally exports and ledgers for processing, validation, and MIS intelligence." },
+  { id: "tally", label: "Tally", provider: "Tally", icon: "receipt_long", category: "integration", action: "connect", locked: true, lockedReason: "Tally direct API is locked for this MVP. Upload Tally CSV/XLSX exports instead.", description: "Locked for direct API. Upload Tally exports as CSV/XLSX for processing, validation, and MIS intelligence." },
   { id: "slack", sourceType: "email", label: "Slack", provider: "Slack", icon: "tag", category: "integration", action: "connect", description: "Collect approved finance files from client workflow channels." },
   { id: "bank_statement", label: "Bank Statements", provider: "Manual upload", icon: "assured_workload", category: "upload", action: "upload", description: "Process statement files through validation and financial memory." },
   { id: "gst_file", label: "GST Files", provider: "Manual upload", icon: "receipt_long", category: "upload", action: "upload", description: "Validate GST inputs, filing periods, and missing compliance records." },
@@ -390,6 +392,10 @@ export function FinvaultConsole() {
   async function connectSource(source: SourceOption) {
     if (!clientId) {
       guideToClient();
+      return;
+    }
+    if (source.locked) {
+      setSourceNotice({ tone: "warning", title: `${source.label} is locked`, body: source.lockedReason ?? "This integration is not enabled yet." });
       return;
     }
     setRequestingSource(source.id);
@@ -1152,6 +1158,10 @@ function SourcesScreen(props: {
 
   function runPrimaryAction(source = selectedSource) {
     setSelectedSource(source);
+    if (source.locked) {
+      props.setActiveTab("sources");
+      return;
+    }
     if (source.action === "upload") {
       uploadSourceRef.current = source;
       fileInputRef.current?.click();
@@ -1252,15 +1262,15 @@ function SourcesScreen(props: {
             const active = selectedSource.id === source.id;
             const loading = props.requestingSource === source.id || (props.uploadingDocument && active);
             return (
-              <button key={source.id} onClick={() => runPrimaryAction(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
+              <button key={source.id} onClick={() => runPrimaryAction(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${source.locked ? "opacity-65" : ""} ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
                 <div className="mb-5 flex items-start justify-between gap-3">
                   <div className={`grid h-14 w-14 place-items-center rounded-2xl ring-1 ${sourceLogoTileClass(source.id, active)}`}>{loading ? <AgenticGlyph variant="validation" /> : <SourceLogo source={source.id} className="h-8 w-8" />}</div>
-                  <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.action === "connect" ? "direct" : source.category}</span>
+                  <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.locked ? "locked" : source.action === "connect" ? "direct" : source.category}</span>
                 </div>
                 <p className="text-[17px] font-semibold text-[#111111]">{source.label}</p>
                 <p className="mt-2 text-[13px] leading-6 text-[#5f5e5e]">{source.description}</p>
                 <span className="mt-5 inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-[#700018]">
-                  {source.action === "connect" ? "Connect" : "Select"} <Icon name="arrow_forward" className="text-[16px]" />
+                  {source.locked ? "Locked" : source.action === "connect" ? "Connect" : "Select"} <Icon name={source.locked ? "lock" : "arrow_forward"} className="text-[16px]" />
                 </span>
               </button>
             );
