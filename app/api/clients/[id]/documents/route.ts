@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { serviceResponse } from "@/lib/api-response";
 import { UploadDocumentSchema, listRowsForClient, uploadDocumentForClient } from "@/lib/mvp";
+import { requireClientAccess } from "@/lib/workspace-auth";
 
 async function clientIdFrom(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -10,6 +11,9 @@ async function clientIdFrom(request: Request, context: { params: Promise<{ id: s
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const id = await clientIdFrom(_request, context);
+  const access = await requireClientAccess(_request, id);
+  if (!access.ok) return serviceResponse(access);
+
   return serviceResponse(await listRowsForClient("documents", id));
 }
 
@@ -21,5 +25,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const id = await clientIdFrom(request, context);
-  return serviceResponse(await uploadDocumentForClient(id, parsed.data));
+  const access = await requireClientAccess(request, id);
+  if (!access.ok) return serviceResponse(access);
+
+  return serviceResponse(await uploadDocumentForClient(id, { ...parsed.data, firmId: access.firmId }));
 }

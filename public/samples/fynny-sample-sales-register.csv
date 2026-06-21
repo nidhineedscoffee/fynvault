@@ -1,6 +1,9 @@
-invoice_number,invoice_date,customer,gstin,taxable_value,cgst,sgst,igst,total_amount,due_date,status
-FV-2026-04-001,2026-04-02,Acme Retail,29ABCDE1234F1Z5,210000,18900,18900,0,247800,2026-04-17,paid
-FV-2026-04-002,2026-04-06,Northstar Foods,27AAACN1111Q1Z9,160000,14400,14400,0,188800,2026-04-21,paid
-FV-2026-04-003,2026-04-12,Delta Traders,24AABCD9876L1Z2,125000,0,0,22500,147500,2026-04-27,paid
-FV-2026-04-004,2026-04-17,Zenith Components,29AAACZ2456K1Z1,98000,8820,8820,0,115640,2026-05-02,overdue
-FV-2026-04-005,2026-04-25,Orion Services,27AAACO8765M1Z3,76000,6840,6840,0,89680,2026-05-10,open
+﻿invoice_no,invoice_date,period,customer_name,customer_gstin,place_of_supply,invoice_type,item_category,taxable_value,cgst,sgst,igst,total_amount,amount_received,outstanding_amount,due_date,payment_status,aging_days,sales_owner,source_reference,reconciliation_status,notes
+FV-2026-04-001,2026-04-02,2026-04,Acme Retail Pvt Ltd,29ABCDE1234F1Z5,Karnataka,B2B,Packaged foods,210000,18900,18900,0,247800,247800,0,2026-04-17,paid,0,Rhea,SO-APR-001,matched,Receipt matched to bank UTR240403001
+FV-2026-04-002,2026-04-06,2026-04,Northstar Foods LLP,27AAACN1111Q1Z9,Maharashtra,B2B,Private label supply,160000,14400,14400,0,188800,188800,0,2026-04-21,paid,0,Kabir,SO-APR-002,matched,Receipt matched to bank UTR240414901
+FV-2026-04-003,2026-04-12,2026-04,Delta Traders,24AABCD9876L1Z2,Gujarat,B2B,Distributor sales,125000,0,0,22500,147500,147500,0,2026-04-27,paid,0,Rhea,SO-APR-003,matched,IGST sale matched to GSTR-1
+FV-2026-04-004,2026-04-17,2026-04,Zenith Components,29AAACZ2456K1Z1,Karnataka,B2B,Corporate pantry,98000,8820,8820,0,115640,0,115640,2026-05-02,overdue,50,Kabir,SO-APR-004,open,Follow up required; no receipt in bank statement
+FV-2026-04-005,2026-04-25,2026-04,Orion Services,27AAACO8765M1Z3,Maharashtra,B2B,Monthly supply,76000,6840,6840,0,89680,25000,64680,2026-05-10,partial,42,Rhea,SO-APR-005,partial_match,Part payment received; balance pending
+FV-2026-05-001,2026-05-03,2026-05,Acme Retail Pvt Ltd,29ABCDE1234F1Z5,Karnataka,B2B,Packaged foods,236000,21240,21240,0,278480,278480,0,2026-05-18,paid,0,Rhea,SO-MAY-001,matched,Repeat customer growth visible
+FV-2026-05-002,2026-05-09,2026-05,Fresh Basket Stores,29AAFCB4412D1Z8,Karnataka,B2B,Organic snacks,184500,16605,16605,0,217710,80000,137710,2026-05-24,partial,28,Kabir,SO-MAY-002,partial_match,Potential working capital action
+FV-2026-06-001,2026-06-04,2026-06,Fresh Basket Stores,29AAFCB4412D1Z8,Karnataka,B2B,Organic snacks,245000,22050,22050,0,289100,0,289100,2026-06-19,open,2,Kabir,SO-JUN-001,open,New invoice not due long enough for escalation

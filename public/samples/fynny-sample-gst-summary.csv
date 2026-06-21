@@ -1,4 +1,6 @@
-period,return_type,filing_status,taxable_sales,output_gst,eligible_itc,gst_paid,variance,notes
-2026-04,GSTR-1,ready,669000,107220,0,0,107220,Sales register reconciled
-2026-04,GSTR-3B,needs_review,669000,107220,68400,62400,-6000,ITC mismatch with purchase register
-2026-04,ITC Reconciliation,needs_review,0,0,68400,0,6000,Vendor invoice pending confirmation
+﻿period,return_type,filing_status,taxable_sales,exempt_sales,export_sales,output_cgst,output_sgst,output_igst,total_output_gst,eligible_itc_cgst,eligible_itc_sgst,eligible_itc_igst,total_eligible_itc,gst_paid,cash_payable,variance,variance_reason,source_reference,reconciliation_status,next_action
+2026-04,GSTR-1,ready,669000,0,0,40110,40110,22500,102720,0,0,0,0,0,102720,0,Sales register agrees with outward supply summary,GST-APR-GSTR1,matched,File GSTR-1
+2026-04,GSTR-3B,needs_review,669000,0,0,40110,40110,22500,102720,34200,34200,0,68400,62400,34320,-6000,ITC available exceeds paid challan; verify vendor invoice and challan,GST-APR-3B,variance,Review ITC and challan
+2026-05,GSTR-1,ready,420500,0,0,37845,37845,0,75690,0,0,0,0,0,75690,0,Outward supply summary prepared,GST-MAY-GSTR1,matched,File GSTR-1
+2026-05,GSTR-3B,needs_review,420500,0,0,37845,37845,0,75690,25500,25500,0,51000,0,24690,24690,Payment pending for May,GST-MAY-3B,open,Pay challan
+2026-06,GSTR-1,draft,245000,0,0,22050,22050,0,44100,0,0,0,0,0,44100,0,June invoice draft pending review,GST-JUN-GSTR1,open,Confirm invoice upload

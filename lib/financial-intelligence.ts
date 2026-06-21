@@ -352,7 +352,7 @@ export function buildFinancialIntelligenceAnswer(input: {
 
 export function buildReadinessTrainingGuidance(readiness?: ReadinessProfile) {
   if (!readiness) {
-    return ["Create the client workspace.", "Connect or upload source data.", "Run processing until Intelligence Ready is true."];
+    return ["Add a client.", "Connect or upload source data.", "Run processing until Intelligence Ready is true."];
   }
   const blockers = readiness.blockers ?? {};
   const guidance: string[] = [];

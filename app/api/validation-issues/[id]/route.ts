@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { serviceResponse } from "@/lib/api-response";
 import { IssueResolutionSchema, getRow, resolveValidationIssue } from "@/lib/mvp";
+import { requireFirmRowAccess } from "@/lib/workspace-auth";
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
+  const access = await requireFirmRowAccess(request, "validation_issues", id);
+  if (!access.ok) return serviceResponse(access);
+
   return serviceResponse(await getRow("validation_issues", id));
 }
 
@@ -15,5 +19,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   const { id } = await context.params;
+  const access = await requireFirmRowAccess(request, "validation_issues", id);
+  if (!access.ok) return serviceResponse(access);
+
   return serviceResponse(await resolveValidationIssue(id, parsed.data));
 }

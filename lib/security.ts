@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from "crypto";
 import { env } from "./env";
 
 type Bucket = { count: number; resetAt: number };
@@ -76,4 +76,40 @@ export function timingSafeEqualString(a: string, b: string) {
     result |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
   return result === 0;
+}
+
+function integrationTokenKey() {
+  const secret = env.INTEGRATION_TOKEN_ENCRYPTION_KEY || env.SUPABASE_SERVICE_ROLE_KEY || env.OAUTH_STATE_SECRET || "finvault_dev_integration_secret";
+  return createHash("sha256").update(secret).digest();
+}
+
+export function encryptIntegrationSecret(value?: string | null) {
+  if (!value) {
+    return undefined;
+  }
+
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", integrationTokenKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `v1:${iv.toString("base64url")}:${tag.toString("base64url")}:${encrypted.toString("base64url")}`;
+}
+
+export function decryptIntegrationSecret(value?: unknown) {
+  if (typeof value !== "string" || !value.startsWith("v1:")) {
+    return null;
+  }
+
+  try {
+    const [, ivRaw, tagRaw, encryptedRaw] = value.split(":");
+    if (!ivRaw || !tagRaw || !encryptedRaw) {
+      return null;
+    }
+    const decipher = createDecipheriv("aes-256-gcm", integrationTokenKey(), Buffer.from(ivRaw, "base64url"));
+    decipher.setAuthTag(Buffer.from(tagRaw, "base64url"));
+    const decrypted = Buffer.concat([decipher.update(Buffer.from(encryptedRaw, "base64url")), decipher.final()]);
+    return decrypted.toString("utf8");
+  } catch {
+    return null;
+  }
 }

@@ -361,6 +361,101 @@ create table if not exists advisory_opportunities (
   created_at timestamptz not null default now()
 );
 
+create table if not exists submission_cycles (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  cycle_name text not null,
+  reporting_period text,
+  period_month integer check (period_month between 1 and 12),
+  period_year integer check (period_year between 2000 and 2100),
+  frequency text not null default 'monthly' check (frequency in ('monthly', 'quarterly', 'annual', 'one_time')),
+  due_date date not null,
+  status text not null default 'active' check (status in ('active', 'completed', 'paused', 'cancelled')),
+  owner text,
+  created_by text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists submission_requirements (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  cycle_id uuid not null references submission_cycles(id) on delete cascade,
+  required_item text not null,
+  document_category text not null,
+  priority text not null default 'normal' check (priority in ('low', 'normal', 'high')),
+  instructions text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists submission_requests (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  cycle_id uuid not null references submission_cycles(id) on delete cascade,
+  requirement_id uuid not null references submission_requirements(id) on delete cascade,
+  required_item text not null,
+  document_category text not null,
+  due_date date not null,
+  status text not null default 'awaiting_client' check (status in ('awaiting_client', 'reminder_sent', 'received', 'processing', 'completed', 'escalated', 'cancelled')),
+  reminder_status text not null default 'not_sent' check (reminder_status in ('not_sent', 'friendly_sent', 'follow_up_sent', 'urgent_sent', 'escalated')),
+  last_contacted_at timestamptz,
+  received_document_id uuid references documents(id) on delete set null,
+  received_at timestamptz,
+  secure_upload_token text not null unique,
+  secure_upload_url text,
+  owner text,
+  priority text not null default 'normal' check (priority in ('low', 'normal', 'high')),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists submission_reminders (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  submission_request_id uuid not null references submission_requests(id) on delete cascade,
+  channel text not null check (channel in ('email', 'whatsapp')),
+  tone text not null check (tone in ('friendly', 'follow_up', 'urgent')),
+  subject text,
+  message text not null,
+  status text not null default 'queued' check (status in ('queued', 'sent', 'failed')),
+  sent_by text,
+  sent_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists submission_escalations (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  submission_request_id uuid not null references submission_requests(id) on delete cascade,
+  reason text not null,
+  notify_ca_team boolean not null default true,
+  notify_client boolean not null default true,
+  notify_owner boolean not null default true,
+  status text not null default 'open' check (status in ('open', 'notified', 'resolved')),
+  created_by text,
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+create table if not exists client_upload_links (
+  id uuid primary key default gen_random_uuid(),
+  firm_id uuid not null references firms(id) on delete cascade,
+  client_id uuid not null references clients(id) on delete cascade,
+  submission_request_id uuid not null references submission_requests(id) on delete cascade,
+  token text not null unique,
+  purpose text not null default 'submission_request',
+  upload_url text,
+  status text not null default 'active' check (status in ('active', 'used', 'revoked', 'expired')),
+  expires_at timestamptz,
+  used_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists audit_logs (
   id uuid primary key default gen_random_uuid(),
   firm_id uuid references firms(id) on delete cascade,
@@ -413,6 +508,10 @@ alter table intelligence_datasets add column if not exists year integer;
 alter table intelligence_datasets add column if not exists readiness_status text not null default 'blocked';
 alter table intelligence_datasets add column if not exists data_json jsonb not null default '{}'::jsonb;
 alter table intelligence_datasets add column if not exists source_document_ids uuid[] not null default array[]::uuid[];
+alter table submission_cycles add column if not exists period_month integer;
+alter table submission_cycles add column if not exists period_year integer;
+alter table client_upload_links add column if not exists upload_url text;
+alter table client_upload_links add column if not exists status text not null default 'active';
 
 create index if not exists idx_documents_organization_id on documents(organization_id);
 create index if not exists idx_documents_client_id on documents(client_id);
@@ -434,6 +533,15 @@ create index if not exists idx_normalized_records_client_id on normalized_record
 create index if not exists idx_memory_entities_client_id on memory_entities(client_id);
 create index if not exists idx_memory_relationships_client_id on memory_relationships(client_id);
 create index if not exists idx_intelligence_datasets_client_id on intelligence_datasets(client_id);
+create index if not exists idx_submission_cycles_client_id on submission_cycles(client_id);
+create index if not exists idx_submission_requirements_cycle_id on submission_requirements(cycle_id);
+create index if not exists idx_submission_requests_firm_status on submission_requests(firm_id, status);
+create index if not exists idx_submission_requests_client_id on submission_requests(client_id);
+create index if not exists idx_submission_requests_due_date on submission_requests(due_date);
+create index if not exists idx_submission_reminders_request_id on submission_reminders(submission_request_id);
+create index if not exists idx_submission_escalations_request_id on submission_escalations(submission_request_id);
+create index if not exists idx_client_upload_links_token on client_upload_links(token);
+create index if not exists idx_client_upload_links_request_id on client_upload_links(submission_request_id);
 
 alter table firms enable row level security;
 alter table firm_users enable row level security;
@@ -457,6 +565,12 @@ alter table intelligence_datasets enable row level security;
 alter table reports enable row level security;
 alter table exports enable row level security;
 alter table advisory_opportunities enable row level security;
+alter table submission_cycles enable row level security;
+alter table submission_requirements enable row level security;
+alter table submission_requests enable row level security;
+alter table submission_reminders enable row level security;
+alter table submission_escalations enable row level security;
+alter table client_upload_links enable row level security;
 alter table audit_logs enable row level security;
 
 create or replace function create_processing_job_for_document()

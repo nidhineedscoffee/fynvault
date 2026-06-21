@@ -49,7 +49,7 @@ const copy: Record<AgenticLoadingVariant, { headline: string; subtext: string }>
     subtext: "Connecting metrics into evidence-backed insight."
   },
   publishing: {
-    headline: "Publishing to client workspace...",
+    headline: "Publishing to client portal...",
     subtext: "Moving verified outputs into client visibility."
   },
   ready: {

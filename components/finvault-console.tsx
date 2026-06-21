@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { AgenticGlyph, AgenticLoading } from "@/components/agentic-loading";
@@ -33,6 +33,37 @@ type Issue = { id: string; severity: string; category: string; message: string; 
 type DataSource = { id: string; source_type: string; provider: string; connection_status: string; consent_status?: string; last_sync_at?: string };
 type Report = { id: string; report_type: string; status: string; published_to_client?: boolean; created_at?: string };
 type ExportRow = { id: string; export_type: string; file_format: string; storage_url?: string; created_at?: string };
+type SubmissionRequest = {
+  id: string;
+  client_id: string;
+  client_name?: string;
+  required_item?: string;
+  document_category?: string;
+  due_date?: string;
+  days_overdue?: number;
+  computed_reminder_status?: string;
+  reminder_status?: string;
+  last_contacted_at?: string;
+  owner?: string;
+  priority?: string;
+  status?: string;
+};
+type SubmissionHealth = {
+  pendingUploads: number;
+  overdueClients: number;
+  dueToday: number;
+  highPriority: number;
+  submissionCompletionRate: number;
+  reportsBlocked: number;
+};
+type SubmissionPendingResponse = {
+  ok: boolean;
+  data?: {
+    pending: SubmissionRequest[];
+    health: SubmissionHealth;
+  };
+  error?: string;
+};
 type ExportLayoutColumn = { key: string; label: string; type: string; formula?: string; source?: string };
 type ExportLayout = { id: string; label: string; description: string; columns: ExportLayoutColumn[]; sheets: Array<{ name: string; purpose: string; columns: string[] }>; standardProcess: string[] };
 type IntelligencePayload = {
@@ -44,9 +75,16 @@ type IntelligencePayload = {
   nextBestActions?: string[];
   confidence?: string;
 };
+type AskActionPayload = {
+  sampleFiles?: string[];
+  suggestedPrompts?: string[];
+  syncedSources?: Array<{ provider: string; sourceType: string; message: string; fileCount: number }>;
+  report?: { id: string; reportType: string; status: string };
+  export?: { id: string; exportType: string; fileFormat: string; file?: { filename: string; storageUrl: string } };
+};
 type AskMessage = { role: "user" | "fynny"; text: string; blocked?: boolean; intelligence?: IntelligencePayload };
 type ClientCreateInput = { name: string; businessType?: string; contactEmail?: string };
-type TabId = "ask" | "processing" | "clients" | "sources" | "validation" | "memory" | "reports" | "exports" | "advisory" | "portal" | "settings";
+type TabId = "ask" | "processing" | "clients" | "sources" | "collection" | "validation" | "memory" | "reports" | "exports" | "advisory" | "portal" | "settings";
 type ActionNotice = { tone: "success" | "warning" | "error"; title: string; body: string } | null;
 type SourceCategory = "all" | "upload" | "integration" | "manual";
 type SourceOption = {
@@ -67,6 +105,7 @@ const navItems: Array<{ id: TabId; label: string; icon: string }> = [
   { id: "processing", label: "Processing Center", icon: "tune" },
   { id: "clients", label: "Clients", icon: "groups" },
   { id: "sources", label: "Data Sources", icon: "database" },
+  { id: "collection", label: "Collection Queue", icon: "assignment_late" },
   { id: "reports", label: "Reports", icon: "assessment" },
   { id: "exports", label: "Exports", icon: "file_download" },
   { id: "memory", label: "Financial Memory", icon: "memory" },
@@ -84,7 +123,7 @@ const sourceOptions: SourceOption[] = [
   { id: "slack", sourceType: "email", label: "Slack", provider: "Slack", icon: "tag", category: "integration", action: "connect", description: "Collect approved finance files from client workflow channels." },
   { id: "bank_statement", label: "Bank Statements", provider: "Manual upload", icon: "assured_workload", category: "upload", action: "upload", description: "Process statement files through validation and financial memory." },
   { id: "gst_file", label: "GST Files", provider: "Manual upload", icon: "receipt_long", category: "upload", action: "upload", description: "Validate GST inputs, filing periods, and missing compliance records." },
-  { id: "spreadsheet", label: "Spreadsheets", provider: "Excel / CSV", icon: "table_chart", category: "upload", action: "upload", description: "Normalize trackers, reconciliations, ledgers, and exported reports." },
+  { id: "spreadsheet", sourceType: "spreadsheet", label: "Spreadsheets", provider: "Excel / CSV", icon: "table_chart", category: "upload", action: "upload", description: "Upload CSV spreadsheet exports for trackers, reconciliations, ledgers, and reports." },
   { id: "whatsapp", label: "WhatsApp Files", provider: "Manual collection", icon: "forum", category: "manual", action: "upload", description: "Use safe upload links or forwarded files. No full WhatsApp access requested." }
 ];
 const askSuggestions = [
@@ -93,7 +132,15 @@ const askSuggestions = [
   { icon: "verified_user", title: "Compliance", prompt: "List compliance gaps and missing filing inputs.", body: "Check GST, TDS, and missing validation blockers." },
   { icon: "trending_up", title: "Advisory", prompt: "Find advisory opportunities from financial memory.", body: "Surface tax, working capital, and risk opportunities." },
   { icon: "table_chart", title: "Export Layout", prompt: "Give me the standard CSV and Excel export layout with formulas for this client.", body: "Return model columns, sheets, and evidence checks." },
-  { icon: "dashboard_customize", title: "Portfolio Intelligence", prompt: "Compare this client against readiness, issues, and source coverage.", body: "Summarize what is ready and what still blocks reports.", wide: true }
+  { icon: "mail", title: "Client Demo", prompt: "Give me one client-specific demo using Aster Foods and show all product use cases from Gmail sync to reports.", body: "Get one client story, sample files, prompts, and end-to-end success criteria.", wide: true }
+];
+const clientDemoFlow: Array<{ title: string; body: string; actionLabel: string; tab: TabId; prompt?: string }> = [
+  { title: "Choose Client", body: "Choose `Aster Foods Pvt Ltd` as the active client so every sync, upload, and output stays together.", actionLabel: "Open Clients", tab: "clients" as TabId },
+  { title: "Connect Intake", body: "Connect Gmail as the CA operator, then send the three email sample files or upload the Aster Foods pack.", actionLabel: "Open Sources", tab: "sources" as TabId },
+  { title: "Run Processing", body: "Sync Gmail or upload the pack, then review validation issues, readiness, and stage progress in the pipeline.", actionLabel: "Open Processing", tab: "processing" as TabId },
+  { title: "Test AI", body: "Ask about customers, GST mismatch, overdue invoices, oldest unpaid bill, payroll change, renewal, and bank review.", actionLabel: "Open Ask", tab: "ask" as TabId, prompt: "Who are our top customers this quarter?" },
+  { title: "Generate Outputs", body: "Create GST CSV and MIS Excel outputs once the client reaches Intelligence Ready.", actionLabel: "Open Exports", tab: "exports" as TabId, prompt: "Generate an MIS workbook in Excel." },
+  { title: "Show Advisory", body: "Finish with evidence-backed advisory opportunities to demonstrate the AI layer clearly.", actionLabel: "Run Advisory Prompt", tab: "ask" as TabId, prompt: "What advisory opportunities do you see from verified records?" }
 ];
 
 function emptyState<T>(): ApiState<T> {
@@ -104,10 +151,51 @@ async function readJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json().catch(() => ({}))) as T;
 }
 async function readFilePreview(file: File) {
-  if (!/\.(csv|txt)$/i.test(file.name) && !["text/csv", "text/plain", "application/vnd.ms-excel"].includes(file.type)) {
+  if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") {
+    return readPdfTextPreview(file);
+  }
+  if (!/\.(csv|txt|json|md)$/i.test(file.name) && !["text/csv", "text/plain", "application/json", "text/markdown", "application/vnd.ms-excel"].includes(file.type)) {
     return undefined;
   }
   return file.text().then((text) => text.slice(0, 40_000)).catch(() => undefined);
+}
+async function readPdfTextPreview(file: File) {
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = "";
+    const chunkSize = 8192;
+    for (let index = 0; index < bytes.length; index += chunkSize) {
+      binary += String.fromCharCode(...bytes.slice(index, index + chunkSize));
+    }
+    const literalText = Array.from(binary.matchAll(/\(([^()]{2,500})\)\s*T[jJ]/g))
+      .map((match) => match[1])
+      .join(" ");
+    const hexText = Array.from(binary.matchAll(/<([0-9A-Fa-f]{8,1000})>\s*T[jJ]/g))
+      .map((match) => {
+        const hex = match[1] ?? "";
+        const chars: string[] = [];
+        for (let index = 0; index < hex.length; index += 2) {
+          const code = Number.parseInt(hex.slice(index, index + 2), 16);
+          if (Number.isFinite(code) && code >= 32 && code <= 126) chars.push(String.fromCharCode(code));
+        }
+        return chars.join("");
+      })
+      .join(" ");
+    const cleaned = `${literalText} ${hexText}`
+      .replace(/\\[rn]/g, " ")
+      .replace(/\\([()\\])/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+    return cleaned.length >= 20 ? cleaned.slice(0, 40_000) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function documentCategoryForSource(sourceType: string) {
+  if (sourceType === "bank_statement") return "bank_statement";
+  if (sourceType === "gst_file") return "gst_data";
+  if (["spreadsheet", "csv", "xlsx"].includes(sourceType)) return "other";
+  return "other";
 }
 function apiError(payload: { ok?: boolean; error?: string } | null, fallback: string) {
   if (!payload) return fallback;
@@ -213,6 +301,7 @@ export function FinvaultConsole() {
   const [readiness, setReadiness] = useState<ApiState<ReadinessResponse>>({ loading: false, data: null, error: null });
   const [issues, setIssues] = useState<ApiState<ListResponse<Issue>>>({ loading: false, data: null, error: null });
   const [sources, setSources] = useState<ApiState<ListResponse<DataSource>>>({ loading: false, data: null, error: null });
+  const [submissions, setSubmissions] = useState<ApiState<SubmissionPendingResponse>>({ loading: false, data: null, error: null });
   const [reports, setReports] = useState<ApiState<ListResponse<Report>>>({ loading: false, data: null, error: null });
   const [exports, setExports] = useState<ApiState<ListResponse<ExportRow>>>({ loading: false, data: null, error: null });
   const [asking, setAsking] = useState(false);
@@ -223,12 +312,14 @@ export function FinvaultConsole() {
   const [creatingClient, setCreatingClient] = useState(false);
   const [chatNotice, setChatNotice] = useState<ActionNotice>(null);
   const [chatExporting, setChatExporting] = useState<string | null>(null);
+  const [showFlowGuide, setShowFlowGuide] = useState(false);
 
   async function refresh() {
     setStatus((current) => ({ ...current, loading: true, error: null }));
     setSession((current) => ({ ...current, loading: true, error: null }));
     setClients((current) => ({ ...current, loading: true, error: null }));
     setProcessing((current) => ({ ...current, loading: true, error: null }));
+    setSubmissions((current) => ({ ...current, loading: true, error: null }));
     const [nextStatus, nextSession, nextClients, nextProcessing] = await Promise.all([
       readJson<StatusResponse>("/api/status").catch((error) => ({ error: error instanceof Error ? error.message : "Status unavailable" })),
       readJson<SessionResponse>("/api/auth/session").catch((error) => ({ authenticated: false, error: error instanceof Error ? error.message : "Session unavailable" })),
@@ -245,6 +336,8 @@ export function FinvaultConsole() {
       setSources({ loading: false, data: null, error: null });
       setReports({ loading: false, data: null, error: null });
       setExports({ loading: false, data: null, error: null });
+      const pending = await readJson<SubmissionPendingResponse>("/api/submissions/pending").catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Collection queue unavailable" }));
+      setSubmissions({ loading: false, data: pending, error: apiError(pending, "Collection queue unavailable") });
       return;
     }
     await refreshClient(clientId);
@@ -254,24 +347,33 @@ export function FinvaultConsole() {
     setReadiness((current) => ({ ...current, loading: true, error: null }));
     setIssues((current) => ({ ...current, loading: true, error: null }));
     setSources((current) => ({ ...current, loading: true, error: null }));
+    setSubmissions((current) => ({ ...current, loading: true, error: null }));
     setReports((current) => ({ ...current, loading: true, error: null }));
     setExports((current) => ({ ...current, loading: true, error: null }));
-    const [nextReadiness, nextIssues, nextSources, nextReports, nextExports] = await Promise.all([
+    const [nextReadiness, nextIssues, nextSources, nextSubmissions, nextReports, nextExports] = await Promise.all([
       readJson<ReadinessResponse>(`/api/intelligence-ready/${id}`).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Readiness unavailable" })),
       readJson<ListResponse<Issue>>(`/api/clients/${id}/validation-issues`).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Issues unavailable" })),
       readJson<ListResponse<DataSource>>(`/api/clients/${id}/data-sources`).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Data sources unavailable" })),
+      readJson<SubmissionPendingResponse>("/api/submissions/pending").catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Collection queue unavailable" })),
       readJson<ListResponse<Report>>(`/api/clients/${id}/reports`).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Reports unavailable" })),
       readJson<ListResponse<ExportRow>>(`/api/clients/${id}/exports`).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Exports unavailable" }))
     ]);
     setReadiness({ loading: false, data: nextReadiness, error: apiError(nextReadiness, "Readiness unavailable") });
     setIssues({ loading: false, data: nextIssues, error: apiError(nextIssues, "Issues unavailable") });
     setSources({ loading: false, data: nextSources, error: apiError(nextSources, "Data sources unavailable") });
+    setSubmissions({ loading: false, data: nextSubmissions, error: apiError(nextSubmissions, "Collection queue unavailable") });
     setReports({ loading: false, data: nextReports, error: apiError(nextReports, "Reports unavailable") });
     setExports({ loading: false, data: nextExports, error: apiError(nextExports, "Exports unavailable") });
   }
 
   useEffect(() => {
     void refresh();
+  }, []);
+
+  useEffect(() => {
+    if (window.localStorage.getItem("fynny-first-report-guide-dismissed") !== "true") {
+      setShowFlowGuide(true);
+    }
   }, []);
 
   const clientRows = getArray<Client>(clients.data, "clients");
@@ -284,7 +386,7 @@ export function FinvaultConsole() {
   const providerRows = useMemo(() => Object.entries(status.data?.providers ?? {}), [status.data]);
   const readinessScore = readiness.data?.data?.score ?? 0;
   const isReady = Boolean(readiness.data?.data?.intelligenceReady);
-  const refreshing = status.loading || processing.loading || clients.loading || readiness.loading || issues.loading || sources.loading || reports.loading || exports.loading;
+  const refreshing = status.loading || processing.loading || clients.loading || readiness.loading || issues.loading || sources.loading || submissions.loading || reports.loading || exports.loading;
   const hasMigrationBlocker = processing.error?.includes("processing_jobs") || readiness.error?.includes("processing_jobs");
 
   async function submitAsk(event: FormEvent<HTMLFormElement>) {
@@ -293,11 +395,11 @@ export function FinvaultConsole() {
     if (!cleanQuestion) return;
     setMessages((current) => [...current, { role: "user", text: cleanQuestion }]);
     if (!clientId) {
-      setMessages((current) => [...current, { role: "fynny", text: clientRows.length ? "Choose a client from the portfolio first. Fynny answers only from that client's verified financial memory." : "Create your first client, connect data sources, and Fynny will answer from that client's financial memory.", blocked: true }]);
+      setMessages((current) => [...current, { role: "fynny", text: clientRows.length ? "Pick the client you want to work on. The CA team connects and operates Fynny, and each client record keeps the data and outputs separate." : "Add your first client, then connect sources or upload files so Fynny can process them cleanly.", blocked: true }]);
       return;
     }
     setAsking(true);
-    const payload = await readJson<{ ok?: boolean; data?: { answer?: string; intelligence?: IntelligencePayload; exportModel?: ExportLayout }; error?: string; trainingGuidance?: string[] }>(`/api/clients/${clientId}/ask`, {
+    const payload = await readJson<{ ok?: boolean; data?: { answer?: string; intelligence?: IntelligencePayload; exportModel?: ExportLayout; actions?: AskActionPayload }; error?: string; trainingGuidance?: string[] }>(`/api/clients/${clientId}/ask`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ question: cleanQuestion })
@@ -312,7 +414,20 @@ export function FinvaultConsole() {
     }
     const answer = "data" in payload ? payload.data?.answer : undefined;
     const intelligence = "data" in payload ? payload.data?.intelligence : undefined;
+    const actions = "data" in payload ? payload.data?.actions : undefined;
+    const actionFile = actions?.export?.file;
+    if (actionFile?.storageUrl) {
+      const link = document.createElement("a");
+      link.href = actionFile.storageUrl;
+      link.download = actionFile.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
     setMessages((current) => [...current, { role: "fynny", text: answer ?? "I found intelligence-ready evidence, but no answer text was returned.", intelligence }]);
+    if (actions?.report || actions?.export || actions?.syncedSources?.length) {
+      await refreshClient(clientId);
+    }
   }
 
   async function generateClientExport(exportType: string, fileFormat: "csv" | "xlsx" | "pdf") {
@@ -350,7 +465,7 @@ export function FinvaultConsole() {
   async function createClient(input: ClientCreateInput) {
     const name = input.name.trim();
     if (!name) {
-      setChatNotice({ tone: "warning", title: "Client name needed", body: "Add a client name so Fynny can create a dedicated workspace." });
+      setChatNotice({ tone: "warning", title: "Client name needed", body: "Add a client name so Fynny can set up their private record." });
       return false;
     }
     setCreatingClient(true);
@@ -371,8 +486,8 @@ export function FinvaultConsole() {
       }
       const createdClient = payload.data;
       setClientId(createdClient.id);
-      setChatNotice({ tone: "success", title: "Client workspace created", body: `${createdClient.name} is ready for secure data collection and processing.` });
-      setMessages((current) => [...current, { role: "fynny", text: `${createdClient.name} has been created. Next, connect tools or upload files so I can build financial memory.`, blocked: true }]);
+      setChatNotice({ tone: "success", title: "Client added", body: `${createdClient.name} is ready for processing and reporting.` });
+      setMessages((current) => [...current, { role: "fynny", text: `${createdClient.name} has been created. Next, connect the CA data source or upload files for this client.`, blocked: true }]);
       await refresh();
       await refreshClient(createdClient.id);
       return true;
@@ -386,7 +501,20 @@ export function FinvaultConsole() {
 
   function guideToClient() {
     setActiveTab("clients");
-    setSourceNotice({ tone: "warning", title: "Choose a client first", body: "Every connection is attached to one client workspace so files, syncs, and processing stay cleanly separated." });
+    setSourceNotice({ tone: "warning", title: "Pick a client", body: "The CA team connects and runs Fynny. Choose the client you want this source or file to route into." });
+  }
+
+  function closeFlowGuide(dismiss = false) {
+    if (dismiss) {
+      window.localStorage.setItem("fynny-first-report-guide-dismissed", "true");
+    }
+    setShowFlowGuide(false);
+  }
+
+  function runGuideAction(tab: TabId, prompt?: string) {
+    setActiveTab(tab);
+    if (prompt) setQuestion(prompt);
+    setShowFlowGuide(false);
   }
 
   async function connectSource(source: SourceOption) {
@@ -409,7 +537,7 @@ export function FinvaultConsole() {
       if (payload.ok === false) {
         setSourceNotice({ tone: "error", title: "Connection could not be created", body: payload.error ?? "Please check the source setup and try again." });
       } else {
-        setSourceNotice({ tone: "success", title: `${source.label} connected`, body: "Fynny created a read-only connection and can now sync financial records for this client." });
+        setSourceNotice({ tone: "success", title: `${source.label} connected`, body: "Fynny created a read-only CA connection and will route synced records into this client." });
         if (source.id === "gmail") {
           window.location.href = `/api/sync/gmail?clientId=${encodeURIComponent(clientId)}`;
           return;
@@ -440,6 +568,14 @@ export function FinvaultConsole() {
     setSourceNotice(null);
     try {
       const extractedText = await readFilePreview(file);
+      if (sourceType === "spreadsheet" && !extractedText) {
+        setSourceNotice({
+          tone: "warning",
+          title: "Use CSV for spreadsheet processing",
+          body: "Fynny can process spreadsheet CSV exports now. Export XLS/XLSX to CSV, then upload it here for validation and memory build."
+        });
+        return false;
+      }
       const payload = await readJson<{ ok?: boolean; data?: { id?: string }; error?: string }>(`/api/clients/${clientId}/documents`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -447,7 +583,7 @@ export function FinvaultConsole() {
           name: file.name,
           type: file.type || "document",
           sourceType,
-          documentCategory: sourceType === "bank_statement" ? "bank_statement" : sourceType === "gst_file" ? "gst_data" : "other",
+          documentCategory: documentCategoryForSource(sourceType),
           extractedText,
           metadata: { size: file.size, fileType: file.type, lastModified: file.lastModified, previewCaptured: Boolean(extractedText) }
         })
@@ -469,22 +605,33 @@ export function FinvaultConsole() {
     }
   }
 
-  async function attachFileToChat(file: File) {
+  async function attachFilesToChat(files: File[]) {
     if (!clientId) {
-      setMessages((current) => [...current, { role: "fynny", text: "Choose a client first, then attach a financial file. I will process it before using it as chat context.", blocked: true }]);
+      setMessages((current) => [...current, { role: "fynny", text: "Pick the client first, then attach the financial file. I will process it before using it as chat context.", blocked: true }]);
       guideToClient();
       return;
     }
-    setMessages((current) => [...current, { role: "user", text: `Attached ${file.name}` }]);
-    const uploaded = await uploadDocument(file, "chat_upload");
+    if (!files.length) return;
+
+    const fileList = files.map((file) => file.name).join(", ");
+    setMessages((current) => [...current, { role: "user", text: `Attached ${files.length === 1 ? fileList : `${files.length} files: ${fileList}`}` }]);
+
+    const results: Array<{ name: string; uploaded: boolean }> = [];
+    for (const file of files) {
+      const uploaded = await uploadDocument(file, "chat_upload");
+      results.push({ name: file.name, uploaded });
+    }
+
+    const uploadedCount = results.filter((result) => result.uploaded).length;
+    const failed = results.filter((result) => !result.uploaded).map((result) => result.name);
     setMessages((current) => [
       ...current,
       {
         role: "fynny",
-        text: uploaded
-          ? `${file.name} is queued. I will use it only after Fynny finishes collection, validation, normalization, memory build, and Intelligence Ready checks.`
-          : `I could not queue ${file.name}. Please try another CSV, PDF, spreadsheet, bank statement, GST file, or accounting export.`,
-        blocked: !uploaded
+        text: uploadedCount
+          ? `${uploadedCount} file${uploadedCount === 1 ? "" : "s"} queued for processing. I will use them only after Fynny finishes collection, validation, normalization, memory build, and Intelligence Ready checks.${failed.length ? ` Could not queue: ${failed.join(", ")}.` : ""}`
+          : `I could not queue the selected files. Please try CSV, TXT, PDF, spreadsheet exports, bank statements, GST files, or accounting exports.`,
+        blocked: uploadedCount === 0
       }
     ]);
   }
@@ -497,7 +644,7 @@ export function FinvaultConsole() {
     setSyncingSource(dataSourceId);
     setSourceNotice(null);
     try {
-      const payload = await readJson<{ ok?: boolean; error?: string }>(`/api/clients/${clientId}/data-sources/sync`, {
+      const payload = await readJson<{ ok?: boolean; error?: string; data?: { message?: string; collected?: { fileCount?: number } } }>(`/api/clients/${clientId}/data-sources/sync`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ dataSourceId })
@@ -505,7 +652,7 @@ export function FinvaultConsole() {
       if (payload.ok === false) {
         setSourceNotice({ tone: "error", title: "Sync could not start", body: payload.error ?? "Please reconnect the source and try again." });
       } else {
-        setSourceNotice({ tone: "success", title: "Sync started", body: "Fynny will collect financial records for this client and send them into processing." });
+        setSourceNotice({ tone: "success", title: "Sync complete", body: payload.data?.message ?? "Fynny collected financial records for this client and sent them into processing." });
         await refreshClient(clientId);
       }
     } catch (error) {
@@ -515,12 +662,73 @@ export function FinvaultConsole() {
     }
   }
 
+  async function createMonthlyCycle() {
+    if (!clientId) {
+      guideToClient();
+      return;
+    }
+    const now = new Date();
+    const dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toISOString().slice(0, 10);
+    const payload = await readJson<{ ok?: boolean; error?: string }>("/api/submissions/create-cycle", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        clientId,
+        cycleName: "Monthly MIS",
+        frequency: "monthly",
+        periodMonth: now.getMonth() + 1,
+        periodYear: now.getFullYear(),
+        dueDate,
+        requirements: [
+          { documentCategory: "bank_statement", label: "Bank Statement", priority: "high" },
+          { documentCategory: "sales_register", label: "Sales Register", priority: "high" },
+          { documentCategory: "purchase_register", label: "Purchase Register", priority: "high" },
+          { documentCategory: "gst_data", label: "GST Data", priority: "high" }
+        ]
+      })
+    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Cycle creation failed." }));
+    if (payload.ok === false) {
+      setSourceNotice({ tone: "error", title: "Collection cycle unavailable", body: payload.error ?? "Please check submission table setup." });
+    } else {
+      setSourceNotice({ tone: "success", title: "Monthly MIS cycle created", body: "Fynny is now tracking required documents and reminder status for this client." });
+      await refreshClient(clientId);
+    }
+  }
+
+  async function sendReminder(requestId: string, channel: "email" | "whatsapp" = "email") {
+    const payload = await readJson<{ ok?: boolean; error?: string; data?: { copy?: { email?: string; whatsapp?: string } } }>("/api/submissions/send-reminder", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requestId, channel })
+    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Reminder failed." }));
+    if (payload.ok === false) {
+      setSourceNotice({ tone: "error", title: "Reminder not prepared", body: payload.error ?? "Please try again." });
+    } else {
+      setSourceNotice({ tone: "success", title: "Reminder prepared", body: "Fynny prepared the reminder copy and logged the follow-up. Copy is available in the API response for sending." });
+      await refreshClient(clientId);
+    }
+  }
+
+  async function escalateSubmission(requestId: string) {
+    const payload = await readJson<{ ok?: boolean; error?: string }>("/api/submissions/escalate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requestId })
+    }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Escalation failed." }));
+    if (payload.ok === false) {
+      setSourceNotice({ tone: "error", title: "Escalation not created", body: payload.error ?? "Please try again." });
+    } else {
+      setSourceNotice({ tone: "success", title: "Escalation created", body: "CA team, client, and relationship-owner escalation is now tracked." });
+      await refreshClient(clientId);
+    }
+  }
+
   return (
-    <main className="h-screen overflow-hidden bg-[#f9f9f9] text-[#1a1c1c]">
+    <main className="h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(122,31,43,0.10),transparent_34%),linear-gradient(180deg,#fbfaf8_0%,#f4f1ee_52%,#efebe7_100%)] text-[#1a1c1c]">
       <LiveBanner />
       <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex h-[calc(100vh-84px)] overflow-hidden md:h-[calc(100vh-32px)]">
-        <SideNav activeTab={activeTab} setActiveTab={setActiveTab} authenticated={Boolean(session.data?.authenticated)} />
+        <SideNav activeTab={activeTab} setActiveTab={setActiveTab} authenticated={Boolean(session.data?.authenticated)} openGuide={() => setShowFlowGuide(true)} />
         {activeTab === "ask" ? (
           <AskWorkspace
             clientId={clientId}
@@ -536,11 +744,9 @@ export function FinvaultConsole() {
             setQuestion={setQuestion}
             submitAsk={submitAsk}
             asking={asking}
-            creatingClient={creatingClient}
-            createClient={createClient}
-            notice={chatNotice}
+            openClients={() => setActiveTab("clients")}
             openSources={() => setActiveTab("sources")}
-            uploadDocument={attachFileToChat}
+            uploadDocument={attachFilesToChat}
             uploadingDocument={uploadingDocument}
             generateExport={generateClientExport}
             exporting={chatExporting}
@@ -548,56 +754,85 @@ export function FinvaultConsole() {
         ) : (
           <WorkbenchShell title={titleForTab(activeTab)} subtitle={subtitleForTab(activeTab)} clientId={clientId} setClientId={setClientId} selectedClient={selectedClient} clientRows={clientRows} refresh={refresh} refreshing={refreshing}>
             {refreshing ? <AgenticLoading variant="portfolio" compact className="mb-6" /> : null}
-            {hasMigrationBlocker ? <SystemNotice title="Workspace setup needed" body="Some processing services are not fully configured yet. Finish setup to activate readiness, reports, and Ask Fynny." /> : null}
-            {activeTab === "processing" ? <ProcessingScreen jobs={jobs} error={processing.error} /> : null}
-            {activeTab === "clients" ? <ClientsScreen clients={clientRows} error={clients.error} setClientId={setClientId} setActiveTab={setActiveTab} /> : null}
+            {hasMigrationBlocker ? <SystemNotice title="Setup needed" body="Some processing services are not fully configured yet. Finish setup to activate readiness, reports, and Ask Fynny." /> : null}
+            {activeTab === "processing" ? <ProcessingScreen jobs={jobs} error={processing.error} selectedClient={selectedClient} setActiveTab={setActiveTab} setQuestion={setQuestion} /> : null}
+            {activeTab === "clients" ? <ClientsScreen clients={clientRows} error={clients.error} setClientId={setClientId} setActiveTab={setActiveTab} createClient={createClient} creatingClient={creatingClient} notice={chatNotice} /> : null}
             {activeTab === "sources" ? <SourcesScreen sources={dataSources} error={sources.error} clientId={clientId} selectedClient={selectedClient} connectSource={connectSource} uploadDocument={uploadDocument} syncSource={syncSource} requestingSource={requestingSource} uploadingDocument={uploadingDocument} syncingSource={syncingSource} notice={sourceNotice} setActiveTab={setActiveTab} /> : null}
+            {activeTab === "collection" ? <CollectionScreen pending={submissions.data?.data?.pending ?? []} health={submissions.data?.data?.health} error={submissions.error} selectedClient={selectedClient} createMonthlyCycle={createMonthlyCycle} sendReminder={sendReminder} escalateSubmission={escalateSubmission} notice={sourceNotice} /> : null}
             {activeTab === "validation" ? <ValidationScreen issues={openIssues} error={issues.error} /> : null}
             {activeTab === "memory" ? <MemoryScreen clientId={clientId} isReady={isReady} readiness={readiness.data} /> : null}
             {activeTab === "reports" ? <ReportsScreen reports={reportRows} error={reports.error} isReady={isReady} /> : null}
             {activeTab === "exports" ? <ExportsScreen exports={exportRows} error={exports.error} isReady={isReady} generateExport={generateClientExport} generating={exports.loading} /> : null}
             {activeTab === "advisory" ? <SimpleScreen icon="auto_graph" title={clientId ? (isReady ? "Advisory engine can discover opportunities." : "Advisory waits for Intelligence Ready.") : "Choose a client"} body="Opportunities are generated from verified records, reconciliation state, and financial memory. Fynny will not fabricate recommendations." /> : null}
-            {activeTab === "portal" ? <SimpleScreen icon="approval_delegation" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Choose a client"} body="Client visibility, report publishing, and workspace controls are backed by live services." /> : null}
+            {activeTab === "portal" ? <SimpleScreen icon="approval_delegation" title={clientId ? `${selectedClient?.name ?? "Selected client"} portal context` : "Choose a client"} body="Client visibility, report publishing, and client controls are backed by live services." /> : null}
             {activeTab === "settings" ? <SettingsScreen providers={providerRows} status={status.data} session={session.data} /> : null}
           </WorkbenchShell>
         )}
       </div>
+      <FirstReportGuideDialog
+        open={showFlowGuide}
+        onClose={() => closeFlowGuide(false)}
+        onDismiss={() => closeFlowGuide(true)}
+        onAction={runGuideAction}
+        hasClient={clientRows.length > 0}
+        hasActiveClient={Boolean(clientId)}
+        hasSource={dataSources.length > 0}
+        hasJobs={jobs.length > 0}
+        isReady={isReady}
+        hasOutput={reportRows.length > 0 || exportRows.length > 0}
+      />
     </main>
   );
 }
 
 function LiveBanner() {
   return (
-    <div className="h-8 border-b border-[#e2e2e2] bg-[#f4f3f3] px-4 text-center">
-      <span className="inline-flex h-full items-center text-[11px] font-semibold uppercase tracking-[0.22em] text-[#5f5e5e]">
-        Live workspace - connect tools, upload files, and generate client intelligence.
+    <div className="h-8 border-b border-[#e8dedb] bg-white/70 px-4 text-center backdrop-blur-xl">
+      <span className="inline-flex h-full items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#6c615d]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#7A1F2B] shadow-[0_0_16px_rgba(122,31,43,0.65)]" />
+        Fynny cockpit - collect, process, validate, remember, and deliver client-ready intelligence.
       </span>
     </div>
   );
 }
 
-function SideNav({ activeTab, setActiveTab, authenticated }: { activeTab: TabId; setActiveTab: (tab: TabId) => void; authenticated: boolean }) {
+function SideNav({ activeTab, setActiveTab, authenticated, openGuide }: { activeTab: TabId; setActiveTab: (tab: TabId) => void; authenticated: boolean; openGuide: () => void }) {
   return (
-    <aside className="hidden h-full w-64 shrink-0 flex-col border-r border-[#e2e2e2] bg-[#f4f3f3] px-2 py-4 md:flex">
-      <div className="mb-6 px-4 py-4">
-        <h1 className="text-[28px] font-bold leading-tight tracking-[-0.02em] text-[#5b0617]">Fynny</h1>
-        <p className="mt-1 text-sm text-[#5f5e5e]">Intelligence Platform</p>
+    <aside className="hidden h-full w-72 shrink-0 flex-col border-r border-[#e7ddda] bg-white/78 px-3 py-4 shadow-[18px_0_60px_rgba(48,30,24,0.06)] backdrop-blur-xl md:flex">
+      <div className="mb-5 rounded-[28px] border border-[#eee4e0] bg-[linear-gradient(135deg,#ffffff_0%,#fbf5f3_100%)] px-5 py-5 shadow-[0_20px_55px_rgba(122,31,43,0.08)]">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#111111] text-white shadow-[0_14px_34px_rgba(17,17,17,0.18)]">
+            <Icon name="auto_awesome" className="text-[23px]" filled />
+          </div>
+          <div>
+            <h1 className="text-[27px] font-black leading-none tracking-[-0.05em] text-[#111111]">Fynny</h1>
+            <p className="mt-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7A1F2B]">Financial OS</p>
+          </div>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-[#6d6460]">A premium command center for CA collection, processing, and advisory output.</p>
       </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto">
+      <nav className="custom-scrollbar flex-1 space-y-1 overflow-y-auto pr-1">
         {navItems.map((item) => {
           const active = activeTab === item.id;
           return (
-            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex w-full items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[13px] font-semibold uppercase tracking-[0.08em] transition-all active:scale-[0.98] ${active ? "bg-[#e5e2e1] text-[#5b0617]" : "text-[#5f5e5e] hover:bg-[#e8e8e8]"}`}>
-              <Icon name={item.icon} className="text-[22px]" filled={active} />
+            <button key={item.id} onClick={() => setActiveTab(item.id)} className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3 text-left text-[12px] font-bold uppercase tracking-[0.09em] transition-all duration-300 active:scale-[0.98] ${active ? "bg-[#111111] text-white shadow-[0_18px_42px_rgba(17,17,17,0.16)]" : "text-[#655f5b] hover:bg-[#f3efec] hover:text-[#111111]"}`}>
+              {active ? <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-[#b98b76]" /> : null}
+              <span className={`grid h-8 w-8 place-items-center rounded-xl transition ${active ? "bg-white/12 text-white" : "bg-white text-[#7A1F2B] ring-1 ring-[#eee4e0] group-hover:ring-[#d8c3bb]"}`}>
+                <Icon name={item.icon} className="text-[20px]" filled={active} />
+              </span>
               <span>{item.label}</span>
             </button>
           );
         })}
       </nav>
       <div className="mt-auto border-t border-[#e2e2e2] pt-4">
-        <button onClick={() => setActiveTab("sources")} className="mb-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#700018] px-3 text-[12px] font-bold text-white shadow-[0_10px_24px_rgba(112,0,24,0.16)] transition hover:bg-[#5b0617]">
+        <button onClick={() => setActiveTab("sources")} className="mb-4 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#7A1F2B] px-3 text-[12px] font-black uppercase tracking-[0.08em] text-white shadow-[0_18px_38px_rgba(122,31,43,0.22)] transition hover:-translate-y-0.5 hover:bg-[#5b0617]">
           <Icon name="add_link" className="text-[18px]" />
           Connect Sources
+        </button>
+        <button onClick={openGuide} className="mb-2 flex w-full items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[13px] font-semibold uppercase tracking-[0.08em] text-[#5b0617] hover:bg-[#e8e8e8]">
+          <Icon name="route" className="text-[22px]" />
+          First Report Guide
         </button>
         <button className="flex w-full items-center gap-3 rounded-lg px-4 py-[10px] text-left text-[13px] font-semibold uppercase tracking-[0.08em] text-[#5f5e5e] hover:bg-[#e8e8e8]">
           <Icon name="headset_mic" className="text-[22px]" />
@@ -630,6 +865,120 @@ function MobileNav({ activeTab, setActiveTab }: { activeTab: TabId; setActiveTab
   );
 }
 
+function FirstReportGuideDialog({
+  open,
+  onClose,
+  onDismiss,
+  onAction,
+  hasClient,
+  hasActiveClient,
+  hasSource,
+  hasJobs,
+  isReady,
+  hasOutput
+}: {
+  open: boolean;
+  onClose: () => void;
+  onDismiss: () => void;
+  onAction: (tab: TabId, prompt?: string) => void;
+  hasClient: boolean;
+  hasActiveClient: boolean;
+  hasSource: boolean;
+  hasJobs: boolean;
+  isReady: boolean;
+  hasOutput: boolean;
+}) {
+  if (!open) return null;
+
+  const steps = [
+    {
+      title: "Add your first client",
+      body: "Create or select the client that will own every upload, sync, report, and export.",
+      done: hasClient && hasActiveClient,
+      tab: "clients" as TabId,
+      action: hasClient ? "Choose Client" : "Add Client"
+    },
+    {
+      title: "Connect or upload source data",
+      body: "Connect Gmail, Drive, or Zoho, or upload solid CSV files for bank, sales, GST, purchase, payroll, and contracts.",
+      done: hasSource || hasJobs,
+      tab: "sources" as TabId,
+      action: "Open Sources"
+    },
+    {
+      title: "Run processing and review blockers",
+      body: "Fynny classifies, validates, normalizes, builds memory, and scores readiness before client-facing output.",
+      done: hasJobs && isReady,
+      tab: hasJobs ? "processing" as TabId : "sources" as TabId,
+      action: hasJobs ? "Open Processing" : "Upload Files"
+    },
+    {
+      title: "Ask Fynny for the first output",
+      body: "Use a prompt that can fetch connected sources and generate the requested format when readiness is true.",
+      done: hasOutput,
+      tab: "ask" as TabId,
+      prompt: "Fetch Gmail attachments, process them, and generate an MIS workbook in Excel.",
+      action: "Load Prompt"
+    }
+  ];
+  const nextIndex = Math.max(0, steps.findIndex((step) => !step.done));
+  const activeIndex = nextIndex === -1 ? steps.length - 1 : nextIndex;
+
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-[#111111]/40 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-4xl overflow-hidden rounded-[32px] border border-[#eadada] bg-white shadow-[0_30px_120px_rgba(17,17,17,0.22)]">
+        <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="bg-[#111111] p-7 text-white md:p-8">
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#e6b7bf]">Guided setup</p>
+            <h2 className="mt-4 text-[34px] font-bold leading-tight tracking-[-0.04em] md:text-[44px]">From signup to first report.</h2>
+            <p className="mt-5 text-sm leading-7 text-white/68">Follow this path once. After that, every client follows the same clean operating model: collect, process, validate, remember, ask, report.</p>
+            <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Current next step</p>
+              <p className="mt-2 text-xl font-semibold">{steps[activeIndex]?.title}</p>
+            </div>
+          </div>
+          <div className="p-6 md:p-8">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#700018]">Fynny flow</p>
+                <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[#111111]">Complete the path in order.</h3>
+              </div>
+              <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full bg-[#f4f3f3] text-[#5f5e5e] hover:text-[#5b0617]" aria-label="Close guide">
+                <Icon name="close" className="text-[22px]" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              {steps.map((step, index) => {
+                const active = index === activeIndex;
+                return (
+                  <div key={step.title} className={`rounded-2xl border p-4 transition ${step.done ? "border-emerald-200 bg-emerald-50/60" : active ? "border-[#7a1f2b] bg-[#fff8f8]" : "border-[#ececec] bg-[#f9f9f9]"}`}>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                          <span className={`grid h-8 w-8 place-items-center rounded-full text-[11px] font-bold ${step.done ? "bg-emerald-600 text-white" : active ? "bg-[#700018] text-white" : "bg-[#e8e8e8] text-[#5f5e5e]"}`}>{step.done ? "OK" : index + 1}</span>
+                          <p className="text-[16px] font-bold text-[#111111]">{step.title}</p>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">{step.body}</p>
+                      </div>
+                      <button onClick={() => onAction(step.tab, step.prompt)} className={`shrink-0 rounded-xl px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] transition ${active ? "bg-[#111111] text-white hover:bg-[#5b0617]" : "border border-[#dcc0c0] bg-white text-[#5b0617] hover:border-[#5b0617]"}`}>
+                        {step.action}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex flex-col gap-3 border-t border-[#ececec] pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs leading-5 text-[#5f5e5e]">Tip: use the Aster Foods sample pack when you want a full demo from data collection to MIS and GST exports.</p>
+              <button onClick={onDismiss} className="shrink-0 rounded-xl border border-[#e2e2e2] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5f5e5e] hover:border-[#5b0617] hover:text-[#5b0617]">Do not show again</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function AskWorkspace(props: {
   clientId: string;
   setClientId: (id: string) => void;
@@ -644,11 +993,9 @@ function AskWorkspace(props: {
   setQuestion: (value: string) => void;
   submitAsk: (event: FormEvent<HTMLFormElement>) => void;
   asking: boolean;
-  creatingClient: boolean;
-  createClient: (input: ClientCreateInput) => Promise<boolean>;
-  notice: ActionNotice;
+  openClients: () => void;
   openSources: () => void;
-  uploadDocument: (file: File) => Promise<void>;
+  uploadDocument: (files: File[]) => Promise<void>;
   uploadingDocument: boolean;
   generateExport: (exportType: string, fileFormat: "csv" | "xlsx" | "pdf") => Promise<void>;
   exporting: string | null;
@@ -662,14 +1009,14 @@ function AskWorkspace(props: {
     : "Choose a client";
 
   function handleChatFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (file) void props.uploadDocument(file);
+    if (files.length) void props.uploadDocument(files);
   }
 
   return (
     <main className="flex min-w-0 flex-1 overflow-hidden bg-[#ffffff]">
-      <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} createClient={props.createClient} creatingClient={props.creatingClient} notice={props.notice} />
+      <ClientRail clients={props.clientRows} clientId={props.clientId} setClientId={props.setClientId} openClients={props.openClients} />
       <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#e2e2e2] px-5 md:px-7">
           <div className="flex items-center gap-3">
@@ -698,7 +1045,7 @@ function AskWorkspace(props: {
                 <div className="space-y-3 text-center">
                   <h1 className="text-[34px] font-bold leading-tight tracking-[-0.03em] text-[#1a1c1c] md:text-[48px]">Ask Fynny</h1>
                   <p className="mx-auto max-w-xl text-[15px] leading-7 text-[#5f5e5e]">
-                    Ask short questions. Attach files or connect sources. Fynny answers only from processed financial context.
+                    Ask short questions. The CA team connects sources and uploads files, and Fynny answers only from processed financial context.
                   </p>
                 </div>
                 {latestFynny ? (
@@ -706,7 +1053,16 @@ function AskWorkspace(props: {
                     {latestFynny.text}
                   </div>
                 ) : null}
-                {!props.clientRows.length ? <FirstClientSetup createClient={props.createClient} creatingClient={props.creatingClient} notice={props.notice} /> : null}
+                {!props.clientRows.length ? (
+                  <div className="w-full max-w-xl rounded-2xl border border-[#ececec] bg-white p-5 text-center shadow-[0_18px_60px_rgba(17,17,17,0.06)]">
+                    <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#700018]">Client needed</p>
+                    <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">Add or choose a client from the Clients tab. The CA team operates the integrations, and Fynny keeps each client's records separate.</p>
+                    <button type="button" onClick={props.openClients} className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#111111] px-5 text-[12px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617]">
+                      <Icon name="groups" className="text-[18px]" />
+                      Open Clients
+                    </button>
+                  </div>
+                ) : null}
                 <div className="grid w-full grid-cols-1 gap-3 pt-2 md:grid-cols-3">
                   {askSuggestions.slice(0, 3).map((suggestion) => (
                     <button
@@ -750,10 +1106,10 @@ function AskWorkspace(props: {
             <span className="rounded-full border border-[#ececec] bg-white px-3 py-1">{contextLabel}</span>
             <span className="rounded-full border border-[#ececec] bg-white px-3 py-1">{props.isReady ? "Intelligence ready" : `Readiness ${props.readinessScore}%`}</span>
           </div>
-          <input ref={chatFileInputRef} type="file" className="hidden" accept=".csv,.txt,.pdf,.xlsx,.xls,.json" onChange={handleChatFile} />
+          <input ref={chatFileInputRef} type="file" className="hidden" accept=".csv,.txt,.pdf,.xlsx,.xls,.json" multiple onChange={handleChatFile} />
           <div className="pointer-events-auto mx-auto flex w-full max-w-[720px] items-center gap-2 rounded-2xl border border-[#e8e0e0] bg-white p-2 shadow-[0_16px_50px_rgba(0,0,0,0.1)]">
             <div className="min-w-0 flex-1 px-3">
-              <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask from connected sources or attach a file..." className="w-full border-0 bg-transparent py-3 text-[15px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
+              <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask from processed records or attach a file..." className="w-full border-0 bg-transparent py-3 text-[15px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
             </div>
             <button type="button" onClick={() => chatFileInputRef.current?.click()} disabled={props.uploadingDocument} className="grid h-10 w-10 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] disabled:cursor-wait disabled:opacity-60" aria-label="Attach financial file">{props.uploadingDocument ? <AgenticGlyph variant="validation" /> : <Icon name="attach_file" className="text-[21px]" />}</button>
             <button type="button" onClick={props.openSources} className="hidden h-10 items-center gap-2 rounded-xl px-3 text-[12px] font-semibold text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] sm:flex"><Icon name="add_link" className="text-[18px]" /> Sources</button>
@@ -766,9 +1122,8 @@ function AskWorkspace(props: {
   );
 }
 
-function ClientRail({ clients, clientId, setClientId, createClient, creatingClient, notice }: { clients: Client[]; clientId: string; setClientId: (id: string) => void; createClient: (input: ClientCreateInput) => Promise<boolean>; creatingClient: boolean; notice: ActionNotice }) {
+function ClientRail({ clients, clientId, setClientId, openClients }: { clients: Client[]; clientId: string; setClientId: (id: string) => void; openClients: () => void }) {
   const [query, setQuery] = useState("");
-  const [showCreate, setShowCreate] = useState(!clients.length);
   const filteredClients = clients.filter((client) => {
     const haystack = `${client.name} ${client.business_type ?? ""} ${client.contact_email ?? ""}`.toLowerCase();
     return haystack.includes(query.toLowerCase());
@@ -783,19 +1138,23 @@ function ClientRail({ clients, clientId, setClientId, createClient, creatingClie
       </div>
       <div className="flex-1 overflow-y-auto p-3">
         <div className="flex items-center justify-between px-2 py-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#a0a0a0]">Client Portfolio</p>
-          <button onClick={() => setShowCreate((value) => !value)} className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5b0617] hover:bg-[#eeeeee]">{showCreate ? "Close" : "Add"}</button>
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-[#a0a0a0]">Clients</p>
+          <button onClick={openClients} className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#5b0617] hover:bg-[#eeeeee]">Manage</button>
         </div>
-        {showCreate ? <CreateClientMiniForm createClient={createClient} creatingClient={creatingClient} notice={notice} onDone={() => setShowCreate(false)} /> : null}
         {filteredClients.length ? filteredClients.map((client) => {
           const active = client.id === clientId;
           return (
             <button key={client.id} onClick={() => setClientId(client.id)} className={`mb-2 w-full rounded-xl border p-4 text-left transition ${active ? "border-[#dcc0c0] bg-[#eeeeee]" : "border-transparent hover:bg-[#f4f3f3]"}`}>
               <p className={`truncate text-[18px] font-semibold ${active ? "text-[#5b0617]" : "text-[#111111]"}`}>{client.name}</p>
-              <p className="mt-1 truncate text-[13px] text-[#5f5e5e]">{client.business_type || client.contact_email || "Client workspace"}</p>
+              <p className="mt-1 truncate text-[13px] text-[#5f5e5e]">{client.business_type || client.contact_email || "Client record"}</p>
             </button>
           );
-        }) : <div className="rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-5 text-sm leading-6 text-[#5f5e5e]">{clients.length ? "No clients match that search." : "No clients connected yet. Add or invite your first client to begin."}</div>}
+        }) : (
+          <div className="rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-5 text-sm leading-6 text-[#5f5e5e]">
+            {clients.length ? "No clients match that search." : "No clients yet. Add your first one from the Clients tab."}
+            {!clients.length ? <button onClick={openClients} className="mt-4 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#111111] text-[12px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617]"><Icon name="groups" className="text-[18px]" /> Open Clients</button> : null}
+          </div>
+        )}
       </div>
     </aside>
   );
@@ -938,24 +1297,9 @@ function CreateClientMiniForm({ createClient, creatingClient, notice, onDone }: 
       {notice ? <p className={`mb-3 text-xs leading-5 ${notice.tone === "error" ? "text-[#93000a]" : notice.tone === "success" ? "text-emerald-700" : "text-amber-700"}`}>{notice.body}</p> : null}
       <button disabled={creatingClient} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#111111] text-[12px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617] disabled:cursor-wait disabled:opacity-70">
         {creatingClient ? <AgenticGlyph variant="validation" /> : <Icon name="arrow_forward" className="text-[18px]" />}
-        Create Workspace
+        Add Client
       </button>
     </form>
-  );
-}
-
-function FirstClientSetup({ createClient, creatingClient, notice }: { createClient: (input: ClientCreateInput) => Promise<boolean>; creatingClient: boolean; notice: ActionNotice }) {
-  return (
-    <div className="w-full max-w-2xl rounded-[28px] border border-[#ececec] bg-white p-5 text-left shadow-[0_18px_60px_rgba(17,17,17,0.06)]">
-      <div className="grid gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
-        <div>
-          <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#700018]">Start here</p>
-          <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.02em] text-[#111111]">Create your first client workspace.</h3>
-          <p className="mt-3 text-sm leading-6 text-[#5f5e5e]">Ask Fynny works client by client. Once a client exists, connect tools or upload files to build financial memory.</p>
-        </div>
-        <CreateClientMiniForm createClient={createClient} creatingClient={creatingClient} notice={notice} />
-      </div>
-    </div>
   );
 }
 
@@ -998,7 +1342,7 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
           <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#e8e8e8] text-[18px] font-semibold text-[#5f5e5e]">{initials(selectedClient?.name)}</div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[#1a1c1c]">{selectedClient?.name || (clientId ? "Selected Client" : "No client selected")}</p>
-            <p className="truncate text-xs text-[#5f5e5e]">{selectedClient?.business_type || selectedClient?.contact_email || (clientId ? "Selected workspace" : "Choose a client to begin")}</p>
+            <p className="truncate text-xs text-[#5f5e5e]">{selectedClient?.business_type || selectedClient?.contact_email || (clientId ? "Selected client" : "Choose a client to begin")}</p>
           </div>
         </div>
       </section>
@@ -1031,59 +1375,124 @@ function ClientContextRail({ selectedClient, clientId, readinessScore, sources, 
 
 function WorkbenchShell({ title, subtitle, clientId, setClientId, selectedClient, clientRows, refresh, refreshing, children }: { title: string; subtitle: string; clientId: string; setClientId: (id: string) => void; selectedClient?: Client; clientRows: Client[]; refresh: () => Promise<void>; refreshing: boolean; children: ReactNode }) {
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto bg-[#f9f9f9]">
-      <header className="sticky top-0 z-40 border-b border-[#e2e2e2] bg-white">
-        <div className="mx-auto flex h-[60px] w-full max-w-[1440px] items-center justify-between px-6">
+    <main className="custom-scrollbar min-w-0 flex-1 overflow-y-auto">
+      <header className="sticky top-0 z-40 border-b border-[#e7ddda] bg-white/76 backdrop-blur-2xl">
+        <div className="mx-auto flex min-h-[76px] w-full max-w-[1480px] flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-7">
           <div className="flex min-w-0 items-center gap-5">
-            <h1 className="truncate text-[24px] font-bold tracking-[-0.01em] text-[#5b0617]">{title}</h1>
-            <span className="h-5 w-px bg-[#dcc0c0]" />
-            <p className="hidden truncate text-[16px] text-[#5f5e5e] md:block">{subtitle}</p>
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#111111] text-white shadow-[0_16px_36px_rgba(17,17,17,0.15)]">
+              <Icon name={navItems.find((item) => item.label === title)?.icon ?? "dashboard"} className="text-[24px]" filled />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#7A1F2B]">Fynny workspace</p>
+              <h1 className="truncate text-[28px] font-black leading-tight tracking-[-0.05em] text-[#111111] lg:text-[34px]">{title}</h1>
+              <p className="hidden truncate text-[14px] leading-6 text-[#706763] md:block">{subtitle}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <label className="sr-only" htmlFor="workspace-client-select">Choose client</label>
-            <select id="workspace-client-select" value={clientId} onChange={(event) => setClientId(event.target.value)} className="hidden h-9 w-72 rounded-full border border-[#dcc0c0] bg-[#f4f3f3] px-4 text-sm outline-none focus:border-[#7a1f2b] lg:block">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="sr-only" htmlFor="client-select">Choose client</label>
+            <select id="client-select" value={clientId} onChange={(event) => setClientId(event.target.value)} className="h-11 min-w-0 flex-1 rounded-2xl border border-[#dfccc6] bg-white/80 px-4 text-sm font-semibold text-[#322b29] outline-none shadow-[0_10px_28px_rgba(17,17,17,0.04)] transition focus:border-[#7a1f2b] lg:w-72 lg:flex-none">
               <option value="">{clientRows.length ? "Choose client" : "No clients connected"}</option>
               {clientRows.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
             </select>
-            {selectedClient ? <span className="hidden max-w-40 truncate text-xs font-semibold uppercase tracking-[0.12em] text-[#5f5e5e] xl:inline">{selectedClient.name}</span> : null}
-            <button onClick={() => void refresh()} className="grid h-9 w-9 place-items-center rounded-full text-[#5f5e5e] hover:bg-[#f4f3f3] hover:text-[#5b0617]">{refreshing ? <AgenticGlyph variant="portfolio" /> : <Icon name="refresh" className="text-[22px]" />}</button>
-            <button className="grid h-9 w-9 place-items-center rounded-full text-[#5f5e5e] hover:text-[#5b0617]"><Icon name="notifications" className="text-[24px]" /></button>
-            <button className="grid h-9 w-9 place-items-center rounded-full text-[#5f5e5e] hover:text-[#5b0617]"><Icon name="help_outline" className="text-[24px]" /></button>
-            <div className="grid h-9 w-9 place-items-center rounded-full border border-[#e2e2e2] bg-[#eeeeee] text-[#5f5e5e]"><Icon name="account_circle" className="text-[24px]" /></div>
+            {selectedClient ? <span className="hidden max-w-48 truncate rounded-full border border-[#eadbd6] bg-[#fff8f5] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-[#7A1F2B] xl:inline">{selectedClient.name}</span> : null}
+            <button onClick={() => void refresh()} className="grid h-11 w-11 place-items-center rounded-2xl border border-[#eadbd6] bg-white text-[#655f5b] shadow-[0_10px_28px_rgba(17,17,17,0.04)] transition hover:-translate-y-0.5 hover:text-[#7A1F2B]">{refreshing ? <AgenticGlyph variant="portfolio" /> : <Icon name="refresh" className="text-[22px]" />}</button>
+            <button className="grid h-11 w-11 place-items-center rounded-2xl border border-[#eadbd6] bg-white text-[#655f5b] shadow-[0_10px_28px_rgba(17,17,17,0.04)] transition hover:-translate-y-0.5 hover:text-[#7A1F2B]"><Icon name="notifications" className="text-[24px]" /></button>
+            <button className="grid h-11 w-11 place-items-center rounded-2xl border border-[#eadbd6] bg-white text-[#655f5b] shadow-[0_10px_28px_rgba(17,17,17,0.04)] transition hover:-translate-y-0.5 hover:text-[#7A1F2B]"><Icon name="help_outline" className="text-[24px]" /></button>
+            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[#e8dedb] bg-[#111111] text-white shadow-[0_15px_34px_rgba(17,17,17,0.14)]"><Icon name="account_circle" className="text-[25px]" /></div>
           </div>
         </div>
       </header>
-      <div className="mx-auto max-w-[1440px] space-y-10 p-6">{children}</div>
+      <div className="mx-auto max-w-[1480px] space-y-10 p-5 md:p-7">{children}</div>
     </main>
   );
 }
 
-function ProcessingScreen({ jobs, error }: { jobs: ProcessingJob[]; error: string | null }) {
+function ProcessingScreen({ jobs, error, selectedClient, setActiveTab, setQuestion }: { jobs: ProcessingJob[]; error: string | null; selectedClient?: Client; setActiveTab: (tab: TabId) => void; setQuestion: (value: string) => void }) {
   const active = jobs.filter((job) => ["queued", "processing"].includes(job.status)).length;
-  const blocked = jobs.filter((job) => ["failed", "blocked", "needs_review"].includes(job.status)).length;
+  const blockedJobs = jobs.filter((job) => ["failed", "blocked", "needs_review"].includes(job.status));
+  const blocked = blockedJobs.length;
   const ready = jobs.filter((job) => job.intelligence_ready).length;
+  const blockedClients = new Set(blockedJobs.map((job) => job.client_id).filter(Boolean)).size;
+  const latestJob = jobs[0];
+  const nextAction = !selectedClient
+    ? { title: "Choose the demo client", body: "Pick `Aster Foods Pvt Ltd` first so the demo runs through one complete client story.", label: "Open Clients", tab: "clients" as TabId }
+    : blocked
+      ? { title: "Resolve blockers first", body: "The current client has review items. Open Validation and clear blockers before relying on AI outputs.", label: "Open Validation", tab: "validation" as TabId }
+      : !jobs.length
+        ? { title: "Start collection", body: "No files are in the pipeline yet. Connect Gmail or upload the Aster Foods pack to start processing.", label: "Open Sources", tab: "sources" as TabId }
+        : ready
+          ? { title: "Use intelligence outputs", body: "The pipeline has ready evidence. Move to Ask Fynny, Reports, or Exports to show the product value.", label: "Open Ask", tab: "ask" as TabId }
+          : { title: "Keep processing moving", body: "The pipeline has active jobs. Monitor progress here and switch to Validation if anything needs review.", label: "Refresh Context", tab: "processing" as TabId };
+
+  function goToPrompt(prompt: string) {
+    setQuestion(prompt);
+    setActiveTab("ask");
+  }
+
   return (
     <section className="space-y-16">
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-5">
         <HeroMetric label="Files Collected" value={String(jobs.length)} accent="maroon" progress={jobs.length ? 75 : 0} />
         <HeroMetric label="Processing" value={String(active)} detail={active ? "Active" : "Idle" } accent="gray" progress={active ? 40 : 0} />
         <HeroMetric label="Needs Review" value={String(blocked)} detail={blocked ? "Blocked" : "Clear"} accent="red" progress={blocked ? 24 : 0} urgent={blocked > 0} />
-        <HeroMetric label="Clients Blocked" value={String(blocked ? 1 : 0).padStart(2, "0")} detail="Manual intervention" accent="maroon" progress={blocked ? 18 : 0} />
+        <HeroMetric label="Clients Blocked" value={String(blockedClients).padStart(2, "0")} detail="Manual intervention" accent="maroon" progress={blockedClients ? 18 : 0} />
         <HeroMetric label="Reports Ready" value={String(ready)} detail="Finalized" accent="maroon" progress={ready ? 88 : 0} />
       </div>
+      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card title="Operational Next Step">
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-[#ececec] bg-[#f9f9f9] p-5">
+              <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#700018]">{selectedClient?.name ?? "No active client"}</p>
+              <h4 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] text-[#111111]">{nextAction.title}</h4>
+              <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">{nextAction.body}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button onClick={() => setActiveTab(nextAction.tab)} className="rounded-xl bg-[#111111] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#5b0617]">{nextAction.label}</button>
+              <button onClick={() => goToPrompt("Give me one client-specific demo using Aster Foods and show all product use cases from Gmail sync to reports.")} className="rounded-xl border border-[#dcc0c0] bg-white px-5 py-3 text-sm font-bold text-[#5b0617] transition hover:border-[#5b0617]">Load Demo Flow</button>
+            </div>
+            {latestJob ? <p className="text-xs leading-5 text-[#5f5e5e]">Latest job status: {titleCase(latestJob.status)} at {titleCase(latestJob.current_stage)} on {formatDate(latestJob.created_at)}.</p> : <p className="text-xs leading-5 text-[#5f5e5e]">No pipeline jobs yet. Start with the Aster Foods Gmail attachments or the correlated pack.</p>}
+          </div>
+        </Card>
+        <Card title="Aster Foods Demo Flow">
+          <div className="space-y-4">
+            {clientDemoFlow.map((step, index) => (
+              <div key={step.title} className="flex flex-col gap-3 rounded-2xl border border-[#ececec] bg-[#fcfbfb] p-4 md:flex-row md:items-center md:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#700018]">Step {index + 1}</p>
+                  <p className="mt-1 text-[17px] font-semibold text-[#111111]">{step.title}</p>
+                  <p className="mt-1 text-sm leading-6 text-[#5f5e5e]">{step.body}</p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button onClick={() => setActiveTab(step.tab)} className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">{step.actionLabel}</button>
+                  {step.prompt ? <button onClick={() => goToPrompt(step.prompt ?? "")} className="rounded-full bg-[#700018] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617]">Run Prompt</button> : null}
+                </div>
+              </div>
+            ))}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <a href="/samples/aster-foods/client-demo-playbook.md" target="_blank" rel="noreferrer" className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Open Full Guide</a>
+              <a href="/samples/aster-foods/test_scenarios.md" target="_blank" rel="noreferrer" className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Open Scenario Checks</a>
+              <a href="/samples/fynny-aster-foods-correlated-test-pack.zip" download className="rounded-full bg-[#700018] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617]">Download Demo Pack</a>
+            </div>
+          </div>
+        </Card>
+      </section>
       <section>
         <div className="mb-8 flex items-end justify-between gap-4">
           <div><h2 className="text-[26px] font-semibold tracking-[-0.01em] text-[#5b0617]">Pipeline Health</h2><p className="mt-1 text-[16px] text-[#5f5e5e]">Visual representation of data flow and throughput bottlenecks.</p></div>
-          <button className="hidden rounded-lg bg-[#7a1f2b] px-8 py-3 text-[16px] font-bold text-white md:inline-flex"><Icon name="warning" className="mr-2 text-[22px]" /> Review Blocked Files</button>
+          <button onClick={() => setActiveTab(blocked ? "validation" : jobs.length ? "ask" : "sources")} className="hidden rounded-lg bg-[#7a1f2b] px-8 py-3 text-[16px] font-bold text-white md:inline-flex"><Icon name={blocked ? "warning" : jobs.length ? "psychology" : "upload_file"} className="mr-2 text-[22px]" /> {blocked ? "Review Blocked Files" : jobs.length ? "Open Ask Fynny" : "Start Collection"}</button>
         </div>
         <PipelineHealth jobs={jobs} />
       </section>
       <section>
         <div className="mb-7 flex items-center justify-between gap-4">
           <h2 className="text-[26px] font-semibold tracking-[-0.01em] text-[#5b0617]">Recent Pipeline Activity</h2>
-          <div className="hidden items-center gap-3 md:flex"><div className="flex h-12 w-80 items-center rounded-lg border border-[#dcc0c0] bg-white px-4 text-[#5f5e5e]"><Icon name="search" className="mr-3 text-[22px]" /> Search files or clients...</div><button className="h-12 rounded-lg border border-[#dcc0c0] bg-white px-5 text-[#1a1c1c]"><Icon name="filter_list" className="mr-2 text-[20px]" /> Filter</button></div>
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="rounded-full border border-[#e2e2e2] bg-white px-4 py-2 text-xs font-semibold text-[#5f5e5e]">Queued {active}</span>
+            <span className="rounded-full border border-[#efb8b8] bg-[#fff5f5] px-4 py-2 text-xs font-semibold text-[#93000a]">Blocked {blocked}</span>
+            <span className="rounded-full border border-[#d6eadf] bg-[#f3fbf6] px-4 py-2 text-xs font-semibold text-[#0b6b43]">Ready {ready}</span>
+          </div>
         </div>
-        <DataTable headers={["Client", "Source", "File Name", "Type", "Month", "Stage", "Issue", "Action"]} empty={error ?? "No processing jobs found. Upload client documents to begin the pipeline."} rows={jobs.map((job) => [shortId(job.client_id), titleCase(job.source_type), shortId(job.document_id), "Financial Document", formatDate(job.created_at), titleCase(job.current_stage), job.status === "failed" ? "Needs review" : "-", job.intelligence_ready ? "View" : "Wait"])} />
+        <DataTable headers={["Client", "Source", "File", "Recorded", "Stage", "Status", "Issue", "Action"]} empty={error ?? "No processing jobs found. Upload client documents to begin the pipeline."} rows={jobs.map((job) => [shortId(job.client_id), titleCase(job.source_type), shortId(job.document_id), formatDate(job.created_at), titleCase(job.current_stage), titleCase(job.status), ["failed", "blocked", "needs_review"].includes(job.status) ? "Review needed" : job.intelligence_ready ? "Ready" : "-", ["failed", "blocked", "needs_review"].includes(job.status) ? "Open Validation" : job.intelligence_ready ? "Open Ask" : "Monitor"])} onRowClick={(index) => setActiveTab(["failed", "blocked", "needs_review"].includes(jobs[index]?.status) ? "validation" : jobs[index]?.intelligence_ready ? "ask" : "processing")} />
       </section>
     </section>
   );
@@ -1092,28 +1501,34 @@ function ProcessingScreen({ jobs, error }: { jobs: ProcessingJob[]; error: strin
 function HeroMetric({ label, value, detail, accent, progress, urgent }: { label: string; value: string; detail?: string; accent: "maroon" | "gray" | "red"; progress: number; urgent?: boolean }) {
   const color = accent === "red" ? "#ba1a1a" : accent === "gray" ? "#5f5e5e" : "#700018";
   return (
-    <div className={`relative overflow-hidden rounded border bg-white p-5 shadow-sm ${accent === "red" ? "border-[#ba1a1a]" : "border-[#ececec]"}`}>
-      {urgent ? <div className="absolute right-0 top-0 bg-[#ba1a1a] px-3 py-1 text-[10px] font-bold text-white">URGENT</div> : null}
-      <p className="mb-4 text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]" style={{ color: accent === "red" ? color : undefined }}>{label}</p>
-      <div className="flex items-end justify-between gap-3"><span className="font-[var(--font-platform-mono)] text-[34px] font-semibold tracking-[-0.04em]" style={{ color }}>{value}</span><span className="pb-2 text-[13px] font-semibold text-[#5f5e5e]">{detail ?? "+ live"}</span></div>
-      <div className="mt-6 h-1 overflow-hidden rounded-full bg-[#eeeeee]"><div className="h-full" style={{ width: `${progress}%`, backgroundColor: color }} /></div>
+    <div className={`group relative overflow-hidden rounded-[28px] border bg-white/86 p-5 shadow-[0_24px_70px_rgba(47,35,31,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(47,35,31,0.12)] ${accent === "red" ? "border-[#efb8b8]" : "border-[#eee2de]"}`}>
+      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-20 blur-2xl transition group-hover:opacity-35" style={{ backgroundColor: color }} />
+      {urgent ? <div className="absolute right-4 top-4 rounded-full bg-[#ba1a1a] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">Urgent</div> : null}
+      <p className="mb-5 text-[12px] font-black uppercase tracking-[0.18em] text-[#766b67]" style={{ color: accent === "red" ? color : undefined }}>{label}</p>
+      <div className="flex items-end justify-between gap-3">
+        <span className="font-[var(--font-platform-mono)] text-[38px] font-black tracking-[-0.06em]" style={{ color }}>{value}</span>
+        <span className="rounded-full bg-[#f6f1ee] px-3 py-1 text-[12px] font-bold text-[#655f5b]">{detail ?? "Live"}</span>
+      </div>
+      <div className="mt-7 h-2 overflow-hidden rounded-full bg-[#eee7e3]">
+        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${Math.min(100, Math.max(0, progress))}%`, backgroundColor: color }} />
+      </div>
     </div>
   );
 }
 
 function PipelineHealth({ jobs }: { jobs: ProcessingJob[] }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-[#e2e2e2] bg-[#f4f3f3] p-8">
+    <div className="overflow-x-auto rounded-[30px] border border-[#eee2de] bg-white/78 p-8 shadow-[0_24px_80px_rgba(47,35,31,0.08)] backdrop-blur-xl">
       <div className="relative flex min-w-[1040px] items-start justify-between">
-        <div className="absolute left-8 right-8 top-8 h-px bg-[#dcc0c0]" />
+        <div className="absolute left-8 right-8 top-8 h-px bg-gradient-to-r from-transparent via-[#c9aaa2] to-transparent" />
         {processingStages.map((stage) => {
           const count = jobs.filter((job) => job.current_stage === stage).length;
           const complete = stage === "intelligence_ready" ? jobs.filter((job) => job.intelligence_ready).length : count;
           return (
             <div key={stage} className="relative z-10 flex w-36 flex-col items-center gap-3 text-center">
-              <div className={`grid h-16 w-16 place-items-center rounded-full border-2 bg-white ${count ? "border-[#ba1a1a] text-[#ba1a1a]" : "border-[#700018] text-[#700018]"}`}><Icon name={iconForStage(stage)} className="text-[28px]" /></div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">{titleCase(stage)}</p>
-              <p className="font-[var(--font-platform-mono)] text-[18px] text-[#700018]">{complete || "-"} {stage === "intelligence_ready" ? "Ready" : "units"}</p>
+              <div className={`grid h-16 w-16 place-items-center rounded-2xl border bg-white shadow-[0_18px_38px_rgba(17,17,17,0.08)] transition hover:-translate-y-1 ${count ? "border-[#efb8b8] text-[#ba1a1a]" : "border-[#e7d6d0] text-[#700018]"}`}><Icon name={iconForStage(stage)} className="text-[28px]" /></div>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#655f5b]">{titleCase(stage)}</p>
+              <p className="font-[var(--font-platform-mono)] text-[18px] font-bold text-[#700018]">{complete || "-"} {stage === "intelligence_ready" ? "Ready" : "units"}</p>
             </div>
           );
         })}
@@ -1149,11 +1564,15 @@ function SourcesScreen(props: {
   };
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file) return;
+    if (!files.length) return;
     const source = uploadSourceRef.current ?? selectedSource;
-    void props.uploadDocument(file, source.sourceType ?? (source.id === "manual_upload" ? "manual_upload" : source.id));
+    void (async () => {
+      for (const file of files) {
+        await props.uploadDocument(file, source.sourceType ?? (source.id === "manual_upload" ? "manual_upload" : source.id));
+      }
+    })();
   }
 
   function runPrimaryAction(source = selectedSource) {
@@ -1176,19 +1595,19 @@ function SourcesScreen(props: {
 
   return (
     <section className="space-y-6">
-      <input ref={fileInputRef} onChange={handleFileChange} className="hidden" type="file" accept=".pdf,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.txt" />
+      <input ref={fileInputRef} onChange={handleFileChange} className="hidden" type="file" accept={selectedSource.id === "spreadsheet" ? ".csv,.txt,.json,.md" : ".pdf,.csv,.png,.jpg,.jpeg,.txt,.json,.md"} multiple />
       <div className="overflow-hidden rounded-[32px] border border-[#ececec] bg-[#111111] text-white shadow-[0_24px_80px_rgba(17,17,17,0.12)]">
         <div className="grid gap-8 p-6 md:p-8 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="flex min-h-[320px] flex-col justify-between gap-8">
             <div>
               <p className="text-[12px] font-bold uppercase tracking-[0.24em] text-[#cfa0a6]">Data command center</p>
-              <h2 className="mt-4 max-w-xl text-[38px] font-semibold tracking-[-0.04em] text-white md:text-[54px]">Connect the client stack in minutes.</h2>
-              <p className="mt-5 max-w-xl text-[16px] leading-7 text-white/68">Pick a client, connect Gmail, Drive, Zoho, or upload files. Fynny keeps access read-only and routes every record into processing automatically.</p>
+              <h2 className="mt-4 max-w-xl text-[38px] font-semibold tracking-[-0.04em] text-white md:text-[54px]">Connect the CA stack in minutes.</h2>
+              <p className="mt-5 max-w-xl text-[16px] leading-7 text-white/68">The CA team connects Gmail, Drive, Zoho, or uploads files. Then you route data into the right client for processing and reporting.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <MiniMetric label="Connected" value={String(sourceCounts.connected)} tone="maroon" detail="Live sources" />
               <MiniMetric label="Integrations" value={String(sourceCounts.integrations)} tone="dark" detail="Ready to connect" />
-              <MiniMetric label="Uploads" value={String(sourceCounts.uploads)} tone="dark" detail="CSV, PDF, XLSX" />
+              <MiniMetric label="Uploads" value={String(sourceCounts.uploads)} tone="dark" detail="CSV, PDF, TXT" />
             </div>
           </div>
           <div className="rounded-[28px] border border-white/10 bg-white p-5 text-[#111111] shadow-[0_18px_60px_rgba(0,0,0,0.18)]">
@@ -1198,9 +1617,9 @@ function SourcesScreen(props: {
                   <Icon name="business_center" className="text-[24px]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#777]">Active workspace</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#777]">Active client</p>
                   <p className="truncate text-[19px] font-semibold">{props.selectedClient?.name ?? "No client selected"}</p>
-                  <p className="mt-1 text-sm text-[#666]">{props.selectedClient?.business_type || props.selectedClient?.contact_email || "Choose a client before connecting tools."}</p>
+                  <p className="mt-1 text-sm text-[#666]">{props.selectedClient?.business_type || props.selectedClient?.contact_email || "Choose the client you want this data routed into."}</p>
                 </div>
               </div>
               <button onClick={() => props.setActiveTab("clients")} className="shrink-0 rounded-full border border-[#dcc0c0] bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Choose Client</button>
@@ -1227,16 +1646,22 @@ function SourcesScreen(props: {
               {busy ? <AgenticGlyph variant="validation" /> : <Icon name={selectedSource.action === "connect" ? "add_link" : selectedSource.action === "upload" ? "upload_file" : "ios_share"} className="text-[22px]" />}
               {selectedSource.action === "connect" ? `Connect ${selectedSource.label}` : selectedSource.action === "upload" ? "Upload File" : "Use Upload Link"}
             </button>
-            {selectedSource.category === "upload" ? (
+            {selectedSource.category === "upload" || selectedSource.id === "gmail" ? (
               <div className="mt-4 rounded-2xl border border-[#eadada] bg-white/70 p-3">
-                <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5f5e5e]">Sample data for testing</p>
+                <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#5f5e5e]">{selectedSource.id === "gmail" ? "Email demo attachments" : "Sample data for testing"}</p>
                 <div className="flex flex-wrap justify-center gap-2">
                   <a href="/samples/fynny-aster-foods-correlated-test-pack.zip" download className="rounded-full bg-[#700018] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-white transition hover:bg-[#5b0617]">Aster Foods Pack</a>
                   <a href="/samples/aster-foods/test_scenarios.md" target="_blank" rel="noreferrer" className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Scenario Guide</a>
                   <a href="/samples/fynny-sample-bank-statement.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Bank CSV</a>
                   <a href="/samples/fynny-sample-sales-register.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Sales CSV</a>
                   <a href="/samples/fynny-sample-gst-summary.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">GST CSV</a>
+                  <a href="/samples/email-demo/fynny-email-sales-invoice-solid.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Email Invoice</a>
+                  <a href="/samples/email-demo/fynny-email-contract-renewal.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Email Contract</a>
+                  <a href="/samples/email-demo/fynny-email-gst-summary.csv" download className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Email GST</a>
+                  <a href="/samples/email-demo/test-playbook.md" target="_blank" rel="noreferrer" className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Email Demo Guide</a>
+                  <a href="/samples/aster-foods/client-demo-playbook.md" target="_blank" rel="noreferrer" className="rounded-full border border-[#dcc0c0] bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617]">Full Client Guide</a>
                 </div>
+                {selectedSource.id === "gmail" ? <p className="mt-3 text-center text-xs leading-5 text-[#5f5e5e]">Use one client, send these three Aster Foods files as Gmail attachments, then continue with the full Aster Foods pack to show all product use cases cleanly.</p> : null}
               </div>
             ) : null}
             {selectedSource.action === "manual" ? <p className="mt-3 text-center text-xs leading-5 text-[#5f5e5e]">For MVP, WhatsApp uses upload links, mobile portal, or forwarded files. Fynny does not need full WhatsApp access.</p> : null}
@@ -1296,14 +1721,170 @@ function SourcesScreen(props: {
               </div>
             ))}
           </div>
-        ) : <EmptyState icon="hub" title="No connected sources yet" body={props.error ?? "Choose a client, connect an integration, or upload financial files to begin."} />}
+        ) : <EmptyState icon="hub" title="No connected sources yet" body={props.error ?? "Choose a client, then connect an integration or upload financial files to begin."} />}
       </Card>
     </section>
   );
 }
 
-function ClientsScreen({ clients, error, setClientId, setActiveTab }: { clients: Client[]; error: string | null; setClientId: (id: string) => void; setActiveTab: (tab: TabId) => void }) {
-  return <Card title="Client Workspace"><DataTable headers={["Client", "Business Type", "Contact", "Created", "Action"]} empty={error ?? "No clients connected yet. Add your first client to begin processing."} rows={clients.map((client) => [client.name, client.business_type ?? "-", client.contact_email ?? "-", formatDate(client.created_at), "Open"])} onRowClick={(index) => { const client = clients[index]; if (client) { setClientId(client.id); setActiveTab("ask"); } }} /></Card>;
+function ClientsScreen({
+  clients,
+  error,
+  setClientId,
+  setActiveTab,
+  createClient,
+  creatingClient,
+  notice
+}: {
+  clients: Client[];
+  error: string | null;
+  setClientId: (id: string) => void;
+  setActiveTab: (tab: TabId) => void;
+  createClient: (input: ClientCreateInput) => Promise<boolean>;
+  creatingClient: boolean;
+  notice: ActionNotice;
+}) {
+  return (
+    <section className="space-y-6">
+      <Card title="Add New Client">
+        <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <div className="rounded-2xl border border-[#ececec] bg-[#f9f9f9] p-5">
+            <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#700018]">Start here</p>
+            <h3 className="mt-2 text-[28px] font-bold tracking-[-0.03em] text-[#111111]">Create the client first.</h3>
+            <p className="mt-3 text-sm leading-6 text-[#5f5e5e]">Every upload, Gmail sync, Drive file, Zoho record, report, export, and Ask Fynny answer is routed to the selected client. Clients are scoped to your signed-in firm account.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <MiniMetric label="Step 1" value="Add" tone="maroon" detail="Client" />
+              <MiniMetric label="Step 2" value="Sync" tone="dark" detail="Sources" />
+              <MiniMetric label="Step 3" value="Ask" tone="dark" detail="Reports" />
+            </div>
+          </div>
+          <CreateClientMiniForm createClient={createClient} creatingClient={creatingClient} notice={notice} />
+        </div>
+      </Card>
+      <Card title="Clients">
+        <DataTable
+          headers={["Client", "Business Type", "Contact", "Created", "Action"]}
+          empty={error ?? "No clients yet. Add your first client here, then open Ask Fynny or connect sources."}
+          rows={clients.map((client) => [client.name, client.business_type ?? "-", client.contact_email ?? "-", formatDate(client.created_at), "Open Ask"])}
+          onRowClick={(index) => {
+            const client = clients[index];
+            if (client) {
+              setClientId(client.id);
+              setActiveTab("ask");
+            }
+          }}
+        />
+      </Card>
+    </section>
+  );
+}
+function CollectionScreen({
+  pending,
+  health,
+  error,
+  selectedClient,
+  createMonthlyCycle,
+  sendReminder,
+  escalateSubmission,
+  notice
+}: {
+  pending: SubmissionRequest[];
+  health?: SubmissionHealth;
+  error: string | null;
+  selectedClient?: Client;
+  createMonthlyCycle: () => Promise<void>;
+  sendReminder: (requestId: string, channel?: "email" | "whatsapp") => Promise<void>;
+  escalateSubmission: (requestId: string) => Promise<void>;
+  notice: ActionNotice;
+}) {
+  const overdueCount = health?.overdueClients ?? pending.filter((row) => (row.days_overdue ?? 0) > 0).length;
+  const queueState = pending.length
+    ? overdueCount
+      ? "Follow up on overdue clients first."
+      : "Everything pending is still inside the expected window."
+    : "Create a reporting cycle to activate reminders.";
+  return (
+    <section className="space-y-7">
+      <div className="relative overflow-hidden rounded-[34px] border border-[#eee2de] bg-[#111111] p-7 text-white shadow-[0_28px_90px_rgba(17,17,17,0.18)] md:p-8">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#7A1F2B]/45 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-[#cba39b] to-transparent" />
+        <div className="relative grid gap-6 xl:grid-cols-[1fr_auto] xl:items-end">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#e6c4bd]">Client collection engine</p>
+            <h2 className="mt-3 max-w-3xl text-[34px] font-black leading-[0.98] tracking-[-0.06em] md:text-[52px]">Stop chasing files manually.</h2>
+            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-white/70">Create a reporting cycle, track every required document, prepare professional reminders, and route client uploads straight into processing.</p>
+          </div>
+          <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/50">Queue state</p>
+            <p className="mt-2 max-w-xs text-[18px] font-bold leading-6">{queueState}</p>
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+        <HeroMetric label="Pending Uploads" value={String(health?.pendingUploads ?? pending.length)} accent="maroon" progress={Math.min(100, (health?.pendingUploads ?? pending.length) * 12)} />
+        <HeroMetric label="Overdue Clients" value={String(health?.overdueClients ?? pending.filter((row) => (row.days_overdue ?? 0) > 0).length)} accent={(health?.overdueClients ?? 0) ? "red" : "gray"} progress={(health?.overdueClients ?? 0) ? 70 : 5} urgent={Boolean(health?.overdueClients)} />
+        <HeroMetric label="Due Today" value={String(health?.dueToday ?? 0)} accent="gray" progress={(health?.dueToday ?? 0) ? 45 : 5} />
+        <HeroMetric label="Reports Blocked" value={String(health?.reportsBlocked ?? 0)} accent={(health?.reportsBlocked ?? 0) ? "red" : "gray"} progress={(health?.reportsBlocked ?? 0) ? 60 : 5} />
+        <HeroMetric label="Completion" value={`${health?.submissionCompletionRate ?? 0}%`} accent="maroon" progress={health?.submissionCompletionRate ?? 0} />
+      </div>
+      <Card title="Create Reporting Cycle">
+        <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#7A1F2B]">Monthly operating rhythm</p>
+            <h3 className="mt-2 text-[24px] font-black tracking-[-0.04em] text-[#111111]">{selectedClient ? `Monthly MIS for ${selectedClient.name}` : "Choose a client first"}</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#655f5b]">Required by default: Bank Statement, Sales Register, Purchase Register, and GST Data. Due date is set to the 5th of the current month.</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {["Bank Statement", "Sales Register", "Purchase Register", "GST Data"].map((item) => <span key={item} className="rounded-full border border-[#eadbd6] bg-[#fff8f5] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#7A1F2B]">{item}</span>)}
+            </div>
+          </div>
+          <button onClick={() => void createMonthlyCycle()} className="rounded-2xl bg-[#111111] px-7 py-5 text-[13px] font-black uppercase tracking-[0.1em] text-white shadow-[0_18px_44px_rgba(17,17,17,0.18)] transition hover:-translate-y-0.5 hover:bg-[#5b0617]">Create Monthly MIS Cycle</button>
+        </div>
+        {notice ? <div className="mt-5"><ActionNoticeCard notice={notice} /></div> : null}
+      </Card>
+      <Card title="Collection Queue">
+        {error ? <ActionNoticeCard notice={{ tone: "error", title: "Collection setup needed", body: error }} /> : null}
+        {pending.length ? (
+          <div className="overflow-hidden rounded-[24px] border border-[#eee2de] bg-white shadow-[0_18px_60px_rgba(47,35,31,0.06)]">
+            <div className="flex flex-col gap-3 border-b border-[#f0e6e2] bg-[#faf6f3] px-5 py-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#766b67]">Pending client submissions</p>
+                <p className="mt-1 text-sm text-[#655f5b]">Review the highest-risk missing inputs first, then send reminders or escalate.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#7A1F2B]">{pending.length} open</span>
+                <span className="rounded-full bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#ba1a1a]">{overdueCount} overdue</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] border-collapse text-left">
+              <thead className="bg-white"><tr>{["Client", "Required Item", "Due Date", "Days Overdue", "Reminder Status", "Last Contacted", "Owner", "Action"].map((header) => <th key={header} className="px-5 py-4 text-[11px] font-black uppercase tracking-[0.16em] text-[#766b67]">{header}</th>)}</tr></thead>
+              <tbody className="divide-y divide-[#f3ebe7]">
+                {pending.map((row) => (
+                  <tr key={row.id} className="transition hover:bg-[#fff8f5]">
+                    <td className="px-5 py-5 text-[15px] font-semibold text-[#1a1c1c]">{row.client_name ?? shortId(row.client_id)}</td>
+                    <td className="px-5 py-5 text-[15px] text-[#1a1c1c]">{row.required_item ?? titleCase(row.document_category)}</td>
+                    <td className="px-5 py-5 text-[15px] text-[#5f5e5e]">{row.due_date ?? "-"}</td>
+                    <td className={`px-5 py-5 text-[15px] font-black ${(row.days_overdue ?? 0) > 0 ? "text-[#93000a]" : "text-[#655f5b]"}`}>{row.days_overdue ?? 0}</td>
+                    <td className="px-5 py-5"><span className="rounded-full bg-[#fff8f5] px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[#5b0617]">{titleCase(row.computed_reminder_status ?? row.reminder_status)}</span></td>
+                    <td className="px-5 py-5 text-[15px] text-[#5f5e5e]">{formatDate(row.last_contacted_at)}</td>
+                    <td className="px-5 py-5 text-[15px] text-[#5f5e5e]">{row.owner || "CA Team"}</td>
+                    <td className="px-5 py-5">
+                      <div className="flex gap-2">
+                        <button onClick={() => void sendReminder(row.id, "email")} className="rounded-xl border border-[#dcc0c0] bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617] hover:bg-[#fff8f5]">Email</button>
+                        <button onClick={() => void sendReminder(row.id, "whatsapp")} className="rounded-xl border border-[#dcc0c0] bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617] hover:bg-[#fff8f5]">WhatsApp</button>
+                        <button onClick={() => void escalateSubmission(row.id)} className="rounded-xl bg-[#700018] px-3 py-2 text-[11px] font-black uppercase tracking-[0.08em] text-white shadow-[0_10px_24px_rgba(112,0,24,0.16)] transition hover:-translate-y-0.5 hover:bg-[#5b0617]">Escalate</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </div>
+        ) : <EmptyState icon="assignment_late" title="No Pending Submissions" body={error ?? "Create a reporting cycle to start tracking required client documents and reminders."} />}
+      </Card>
+    </section>
+  );
 }
 function ValidationScreen({ issues, error }: { issues: Issue[]; error: string | null }) {
   return <Card title="Validation Center"><DataTable headers={["Severity", "Category", "Issue", "Status", "Suggested Fix"]} empty={error ?? "No open validation issues for this client."} rows={issues.map((issue) => [titleCase(issue.severity), titleCase(issue.category), issue.message, titleCase(issue.status), issue.suggested_fix ?? "Review source document"])} /></Card>;
@@ -1376,7 +1957,7 @@ function InsightGrid({ readinessScore, issueCount, sourceCount }: { readinessSco
 }
 function MiniMetric({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "maroon" | "red" | "dark" }) {
   const color = tone === "red" ? "#ba1a1a" : tone === "maroon" ? "#700018" : "#111111";
-  return <div className="rounded-xl border border-[#e2e2e2] bg-white p-5"><p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#5f5e5e]">{label}</p><p className="font-[var(--font-platform-mono)] text-[22px] font-semibold" style={{ color }}>{value}</p><p className="mt-2 text-[13px] text-[#5f5e5e]">{detail}</p></div>;
+  return <div className="rounded-[24px] border border-[#eee2de] bg-white/86 p-5 shadow-[0_16px_45px_rgba(47,35,31,0.06)] transition hover:-translate-y-0.5"><p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#766b67]">{label}</p><p className="font-[var(--font-platform-mono)] text-[24px] font-black tracking-[-0.04em]" style={{ color }}>{value}</p><p className="mt-2 text-[13px] leading-5 text-[#655f5b]">{detail}</p></div>;
 }
 function VerifiedSources({ sources }: { sources: DataSource[] }) {
   return <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6"><div className="mb-5 flex items-center justify-between"><p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">Connected Sources</p><div className="flex items-center gap-3">{["gmail", "google_drive", "zoho_books"].map((source) => <span key={source} className={`grid h-9 w-9 place-items-center rounded-xl ring-1 ${sourceLogoTileClass(source)}`}><SourceLogo source={source} className="h-5 w-5" /></span>)}</div></div><div className="space-y-3">{sources.length ? sources.slice(0, 3).map((source) => <SourceCard key={source.id} source={source} />) : <p className="rounded-lg border border-[#e2e2e2] p-4 text-sm text-[#5f5e5e]">No sources yet. Connect read-only data sources first.</p>}</div></div>;
@@ -1388,17 +1969,17 @@ function SourceLine({ source }: { source: DataSource }) {
   return <div className="flex items-center gap-3"><div className={`grid h-10 w-10 place-items-center rounded-lg ring-1 ${sourceLogoTileClass(source.source_type || source.provider)}`}><SourceLogo source={source.source_type || source.provider} className="h-6 w-6" /></div><span className="flex-1 text-[16px] text-[#111111]">{titleCase(source.source_type)}</span><span className="h-2 w-2 rounded-full bg-[#00875a]" /></div>;
 }
 function Card({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="rounded-xl border border-[#ececec] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)]"><div className="border-b border-[#e2e2e2] px-6 py-4"><h3 className="text-[20px] font-semibold tracking-[-0.01em] text-[#5b0617]">{title}</h3></div><div className="p-6">{children}</div></section>;
+  return <section className="overflow-hidden rounded-[30px] border border-[#eee2de] bg-white/88 shadow-[0_26px_80px_rgba(47,35,31,0.08)] backdrop-blur-xl"><div className="border-b border-[#efe4e0] bg-[linear-gradient(180deg,#ffffff_0%,#fbf7f5_100%)] px-6 py-5"><div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#7A1F2B]" /><h3 className="text-[21px] font-black tracking-[-0.03em] text-[#111111]">{title}</h3></div></div><div className="p-6">{children}</div></section>;
 }
 function DataTable({ headers, rows, empty, onRowClick }: { headers: string[]; rows: string[][]; empty: string; onRowClick?: (index: number) => void }) {
   if (!rows.length) return <EmptyState icon="upload_file" title="No Data Connected" body={empty} />;
-  return <div className="overflow-x-auto rounded-xl border border-[#e2e2e2] bg-white"><table className="w-full min-w-[780px] border-collapse text-left"><thead className="bg-[#f8f8f8]"><tr>{headers.map((header) => <th key={header} className="px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#5f5e5e]">{header}</th>)}</tr></thead><tbody className="divide-y divide-[#f8f8f8]">{rows.map((row, rowIndex) => <tr key={rowIndex} onClick={() => onRowClick?.(rowIndex)} className={onRowClick ? "cursor-pointer hover:bg-[#f8f8f8]" : "hover:bg-[#f8f8f8]"}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} className={`px-5 py-5 text-[15px] text-[#1a1c1c] ${cellIndex === 2 ? "font-[var(--font-platform-mono)] text-[#700018]" : ""}`}>{cell}</td>)}</tr>)}</tbody></table></div>;
+  return <div className="overflow-x-auto rounded-[24px] border border-[#eee2de] bg-white shadow-[0_18px_55px_rgba(47,35,31,0.06)]"><table className="w-full min-w-[780px] border-collapse text-left"><thead className="bg-[#faf6f3]"><tr>{headers.map((header) => <th key={header} className="px-5 py-4 text-[11px] font-black uppercase tracking-[0.16em] text-[#766b67]">{header}</th>)}</tr></thead><tbody className="divide-y divide-[#f3ebe7]">{rows.map((row, rowIndex) => <tr key={rowIndex} onClick={() => onRowClick?.(rowIndex)} className={`transition ${onRowClick ? "cursor-pointer hover:bg-[#fff8f5]" : "hover:bg-[#fff8f5]"}`}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} className={`px-5 py-5 text-[15px] text-[#1a1c1c] ${cellIndex === 2 ? "font-[var(--font-platform-mono)] font-semibold text-[#700018]" : ""}`}>{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 function EmptyState({ icon, title, body }: { icon: string; title: string; body: string }) {
-  return <div className="flex min-h-56 flex-col items-center justify-center rounded-xl border border-dashed border-[#dcc0c0] bg-[#f9f9f9] p-8 text-center"><div className="grid h-12 w-12 place-items-center rounded-full bg-white text-[#700018]"><Icon name={icon} className="text-[26px]" /></div><h4 className="mt-5 text-[20px] font-semibold text-[#111111]">{title}</h4><p className="mt-2 max-w-xl text-[15px] leading-7 text-[#5f5e5e]">{body}</p></div>;
+  return <div className="flex min-h-64 flex-col items-center justify-center rounded-[28px] border border-dashed border-[#d8c3bb] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_52%),#fffaf8] p-8 text-center"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-[#700018] shadow-[0_18px_40px_rgba(122,31,43,0.10)]"><Icon name={icon} className="text-[28px]" /></div><h4 className="mt-5 text-[22px] font-black tracking-[-0.03em] text-[#111111]">{title}</h4><p className="mt-2 max-w-xl text-[15px] leading-7 text-[#655f5b]">{body}</p></div>;
 }
 function FieldBox({ label, value }: { label: string; value: string }) {
-  return <div><p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[#5f5e5e]">{label}</p><div className="rounded border border-[#dcc0c0] bg-[#f4f3f3] p-4 text-sm text-[#1a1c1c]">{value}</div></div>;
+  return <div><p className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#766b67]">{label}</p><div className="rounded-2xl border border-[#dcc0c0] bg-[#fbf7f5] p-4 text-sm text-[#1a1c1c]">{value}</div></div>;
 }
 function FactorBar({ label, value }: { label: string; value: number }) {
   return <div><div className="mb-2 flex justify-between text-sm"><span className="text-[#5f5e5e]">{label}</span><span className="font-semibold text-[#700018]">{value}%</span></div><div className="h-2 rounded-full bg-[#eeeeee]"><div className="h-full rounded-full bg-[#700018]" style={{ width: `${Math.min(100, value)}%` }} /></div></div>;
@@ -1450,6 +2031,7 @@ function subtitleForTab(tab: TabId) {
     processing: "Real-time data pipeline integrity",
     clients: "Client visibility and firm workload",
     sources: "Direct read-only source connections",
+    collection: "Client submissions, reminders, and secure upload queue",
     validation: "Missing data and reconciliation issues",
     memory: "Financial events, entities, and relationships",
     reports: "Client-ready intelligence outputs",
@@ -1461,5 +2043,5 @@ function subtitleForTab(tab: TabId) {
   return subtitles[tab];
 }
 function titleForIcon(icon: string) {
-  return icon === "auto_graph" ? "Advisory Workspace" : "Client Portal";
+  return icon === "auto_graph" ? "Advisory Engine" : "Client Portal";
 }

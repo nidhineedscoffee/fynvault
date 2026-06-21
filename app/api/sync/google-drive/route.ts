@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { missingProviderVars } from "@/lib/env";
+import { env, missingProviderVars } from "@/lib/env";
+import { completeOAuthDataSourceConnection } from "@/lib/consent";
 import { exchangeGoogleCode, getGoogleOAuthUrl, validateOAuthState } from "@/lib/integrations/normalizers";
 import { persistIntegrationConnection } from "@/lib/supabase";
 
@@ -56,8 +57,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const resolvedOrganizationId = organizationId ?? stateValidation.payload.organizationId ?? stateValidation.payload.clientId ?? undefined;
+  const resolvedClientId = clientId ?? stateValidation.payload.clientId ?? undefined;
+  const resolvedOrganizationId = organizationId ?? stateValidation.payload.organizationId ?? undefined;
   if (resolvedOrganizationId && !UUID_PATTERN.test(resolvedOrganizationId)) {
+    return NextResponse.json({ status: "error", provider: "google_drive", error: "organizationId must be a valid UUID." }, { status: 400 });
+  }
+  if (resolvedClientId && !UUID_PATTERN.test(resolvedClientId)) {
     return NextResponse.json({ status: "error", provider: "google_drive", error: "clientId must be a valid UUID." }, { status: 400 });
   }
 
@@ -69,11 +74,28 @@ export async function GET(request: Request) {
     refreshToken: tokenResult.refreshToken,
     expiresAt
   });
+  const clientConnection = resolvedClientId
+    ? await completeOAuthDataSourceConnection(resolvedClientId, {
+        sourceType: "google_drive",
+        provider: "Google Drive",
+        expiresAt,
+        accessTokenReceived: Boolean(tokenResult.accessToken),
+        refreshTokenReceived: Boolean(tokenResult.refreshToken),
+        accessToken: tokenResult.accessToken,
+        refreshToken: tokenResult.refreshToken,
+        capabilities: ["drive.readonly", "folder_selection", "financial_file_collection"]
+      })
+    : { ok: false as const, status: 400, error: "clientId is required to attach Google Drive to a client." };
+
+  if (clientConnection.ok) {
+    return NextResponse.redirect(new URL("/?integration=google_drive&status=connected", env.NEXT_PUBLIC_APP_URL));
+  }
 
   return NextResponse.json({
     status: "connected",
     provider: "google_drive",
     persistence,
+    clientConnection,
     normalizedEntities: ["folders", "financial_documents", "spreadsheets", "pdfs", "bank_statements", "gst_files"],
     nextStep: "Fetch approved Drive folders, classify finance files, and route them into Fynny processing."
   });

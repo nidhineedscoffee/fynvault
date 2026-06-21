@@ -1,0 +1,3 @@
+invoice_no,invoice_date,customer_name,gstin,taxable_value,cgst,sgst,igst,total_amount,due_date,payment_status,notes
+FY-EMAIL-001,10-06-26,Fresh Basket India Pvt Ltd,29AAACF1001A1Z5,285000,25650,25650,0,336300,25-06-26,open,Top customer invoice sent over email for receivables and MIS testing
+FY-EMAIL-002,16-06-26,RetailMart South LLP,29AACCR2002B1Z3,198000,17820,17820,0,233640,01-07-26,paid,Second customer invoice for collection-status testing

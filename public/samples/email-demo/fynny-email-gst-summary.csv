@@ -1,0 +1,3 @@
+﻿period,return_type,filing_status,taxable_sales,output_gst,eligible_itc,gst_paid,cash_payable,variance,variance_reason,source_reference,reconciliation_status,next_action
+2026-06,GSTR-1,draft,443000,79740,0,0,79740,0,Email invoices loaded but outward summary needs review,EMAIL-GMAIL-GST-001,open,Confirm June invoices before filing
+2026-06,GSTR-3B,needs_review,443000,79740,31200,0,48540,48540,Challan not paid and ITC support pending,EMAIL-GMAIL-GST-002,open,Collect purchase invoices and pay challan

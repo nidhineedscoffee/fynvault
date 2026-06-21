@@ -3,6 +3,7 @@ import { z } from "zod";
 import { serviceResponse } from "@/lib/api-response";
 import { retryProcessingJob } from "@/lib/processing";
 import { enforceRateLimit, getClientIp, isTrustedOrigin } from "@/lib/security";
+import { requireProcessingJobAccess } from "@/lib/workspace-auth";
 
 const RetrySchema = z.object({
   jobId: z.string().uuid()
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Invalid request payload.", issues: parsed.error.issues }, { status: 400 });
   }
+
+  const access = await requireProcessingJobAccess(request, parsed.data.jobId);
+  if (!access.ok) return serviceResponse(access);
 
   return serviceResponse(await retryProcessingJob(parsed.data.jobId));
 }

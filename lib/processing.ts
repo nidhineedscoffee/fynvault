@@ -53,7 +53,7 @@ function uuidIsValid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-export async function getProcessingOverview(clientId?: string) {
+export async function getProcessingOverview(clientId?: string, firmId?: string) {
   const supabase = createSupabaseServerClient();
   if (!supabase) {
     return serviceUnavailable<unknown>();
@@ -65,6 +65,11 @@ export async function getProcessingOverview(clientId?: string) {
       return badRequest("clientId must be a valid UUID.");
     }
     query = query.eq("client_id", clientId);
+  } else if (firmId) {
+    if (!uuidIsValid(firmId)) {
+      return badRequest("firmId must be a valid UUID.");
+    }
+    query = query.eq("firm_id", firmId);
   }
 
   const { data, error } = await query.order("created_at", { ascending: false }).limit(100);
@@ -88,8 +93,8 @@ export async function getProcessingOverview(clientId?: string) {
   return { ok: true as const, data: { counts, jobs } };
 }
 
-export async function listProcessingJobs(clientId?: string) {
-  return getProcessingOverview(clientId);
+export async function listProcessingJobs(clientId?: string, firmId?: string) {
+  return getProcessingOverview(clientId, firmId);
 }
 
 export async function getProcessingJob(jobId: string) {
@@ -190,7 +195,7 @@ export async function retryProcessingJob(jobId: string) {
   return { ok: true as const, data: { job: jobUpdate.data } };
 }
 
-export async function listValidationIssues(clientId?: string) {
+export async function listValidationIssues(clientId?: string, firmId?: string) {
   const supabase = createSupabaseServerClient();
   if (!supabase) {
     return serviceUnavailable<unknown>();
@@ -202,6 +207,11 @@ export async function listValidationIssues(clientId?: string) {
       return badRequest("clientId must be a valid UUID.");
     }
     query = query.eq("client_id", clientId);
+  } else if (firmId) {
+    if (!uuidIsValid(firmId)) {
+      return badRequest("firmId must be a valid UUID.");
+    }
+    query = query.eq("firm_id", firmId);
   }
 
   const { data, error } = await query;

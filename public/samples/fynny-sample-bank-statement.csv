@@ -1,11 +1,13 @@
-date,description,reference,debit,credit,balance,counterparty,category
-2026-04-01,Opening Balance,OPENING,0,0,850000,,opening
-2026-04-03,Customer Receipt - Acme Retail,UTR240403001,0,245000,1095000,Acme Retail,receivable_collection
-2026-04-05,Vendor Payment - Bright Logistics,NEFT240405882,78500,0,1016500,Bright Logistics,payables
-2026-04-07,GST Challan Payment,CPIN24040791,62400,0,954100,GST Portal,tax_payment
-2026-04-10,Payroll April Advance,IMPS24041032,180000,0,774100,Payroll,payroll
-2026-04-14,Customer Receipt - Northstar Foods,UTR240414901,0,168000,942100,Northstar Foods,receivable_collection
-2026-04-18,Rent Payment - Office,NEFT240418712,95000,0,847100,Urban Workspace,rent
-2026-04-23,Software Subscription,UPI240423552,22500,0,824600,Cloud Apps,software
-2026-04-28,Customer Receipt - Delta Traders,UTR240428221,0,132500,957100,Delta Traders,receivable_collection
-2026-04-30,Closing Balance,CLOSING,0,0,957100,,closing
+﻿transaction_date,value_date,description,reference_no,debit,credit,balance,counterparty,category,linked_document,bank_account,reconciliation_status,review_flag,notes
+2026-04-01,2026-04-01,Opening Balance,OPENING,0,0,850000,,opening,,HDFC-8821,matched,false,Opening balance from bank statement
+2026-04-03,2026-04-03,Customer Receipt - Acme Retail,UTR240403001,0,247800,1097800,Acme Retail Pvt Ltd,receivable_collection,FV-2026-04-001,HDFC-8821,matched,false,Matched to sales invoice
+2026-04-05,2026-04-05,Vendor Payment - Bright Logistics,NEFT240405882,78500,0,1019300,Bright Logistics,payables,BR-APR-009,HDFC-8821,matched,false,Freight vendor payment
+2026-04-07,2026-04-07,GST Challan Payment,CPIN24040791,62400,0,956900,GST Portal,tax_payment,GST-APR-3B,HDFC-8821,variance,true,Payment short against computed GST by 6000
+2026-04-10,2026-04-10,Payroll April Advance,IMPS24041032,180000,0,776900,Payroll,payroll,PAY-APR-ADV,HDFC-8821,matched,false,Payroll advance
+2026-04-14,2026-04-14,Customer Receipt - Northstar Foods,UTR240414901,0,188800,965700,Northstar Foods LLP,receivable_collection,FV-2026-04-002,HDFC-8821,matched,false,Matched to sales invoice
+2026-04-18,2026-04-18,Rent Payment - Office,NEFT240418712,95000,0,870700,Urban Office Partners,rent,RENT-APR,HDFC-8821,matched,false,Fixed office rent
+2026-04-23,2026-04-23,Software Subscription,UPI240423552,22500,0,848200,Cloud Apps,software,SAAS-APR,HDFC-8821,needs_review,true,Missing vendor invoice
+2026-04-28,2026-04-28,Customer Receipt - Delta Traders,UTR240428221,0,147500,995700,Delta Traders,receivable_collection,FV-2026-04-003,HDFC-8821,matched,false,Matched to IGST invoice
+2026-04-30,2026-04-30,Closing Balance,CLOSING,0,0,995700,,closing,,HDFC-8821,matched,false,Closing balance
+2026-05-24,2026-05-24,Part Receipt - Fresh Basket,UTR240524442,0,80000,1075700,Fresh Basket Stores,receivable_collection,FV-2026-05-002,HDFC-8821,partial_match,true,Partial receipt leaves balance outstanding
+2026-06-07,2026-06-07,Vendor Payment - Packaging Hub,NEFT240607333,132000,0,943700,Packaging Hub,payables,PKG-JUN-014,HDFC-8821,matched,false,High-value packaging payment

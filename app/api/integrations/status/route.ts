@@ -12,8 +12,13 @@ export async function GET() {
         missing: missingProviderVars("zoho")
       },
       gmail: {
-        authorizeUrl: getGoogleOAuthUrl(),
-        redirectUri: getGoogleRedirectUri(),
+        authorizeUrl: getGoogleOAuthUrl({ provider: "gmail" }),
+        redirectUri: getGoogleRedirectUri("gmail"),
+        missing: missingProviderVars("google")
+      },
+      googleDrive: {
+        authorizeUrl: getGoogleOAuthUrl({ provider: "google_drive" }),
+        redirectUri: getGoogleRedirectUri("google_drive"),
         missing: missingProviderVars("google")
       }
     }

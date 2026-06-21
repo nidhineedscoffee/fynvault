@@ -23,14 +23,14 @@ export const screenLibrary: StitchScreen[] = [
   },
   {
     slug: "create_your_workspace_finvault",
-    title: "Create Workspace",
+    title: "Add Client",
     phase: "onboarding",
     useWhen: "After sign-in; captures organization context before finance sync begins.",
     primary: true
   },
   {
     slug: "you_re_in_finvault",
-    title: "Workspace Ready",
+    title: "Client Console Ready",
     phase: "onboarding",
     useWhen: "Confirmation screen after organization setup succeeds.",
     primary: true
@@ -46,7 +46,7 @@ export const screenLibrary: StitchScreen[] = [
     slug: "business_discovery",
     title: "Business Discovery",
     phase: "sync",
-    useWhen: "Start of discovery after workspace setup; asks what business data to connect.",
+    useWhen: "Start of discovery after client setup; asks what business data to connect.",
     primary: true
   },
   {

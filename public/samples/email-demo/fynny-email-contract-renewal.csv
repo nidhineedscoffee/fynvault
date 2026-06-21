@@ -1,0 +1,3 @@
+﻿contract_id,client_name,counterparty,contract_type,start_date,renewal_date,monthly_value,annual_value,status,notice_period_days,risk_level,owner,source_reference,next_action
+CON-2026-014,Aster Foods Pvt Ltd,Fresh Basket Stores,Distribution Agreement,2025-07-01,2026-07-01,125000,1500000,renewal_due,45,high,Kabir,EMAIL-GMAIL-CON-001,Prepare renewal proposal and margin review
+CON-2026-018,Aster Foods Pvt Ltd,Northstar Foods LLP,Private Label Supply,2026-01-01,2026-12-31,90000,1080000,active,60,medium,Rhea,EMAIL-GMAIL-CON-002,Monitor volume commitment

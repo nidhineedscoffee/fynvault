@@ -1,0 +1,3 @@
+﻿invoice_no,invoice_date,period,customer_name,customer_gstin,item_category,taxable_value,cgst,sgst,igst,total_amount,amount_received,outstanding_amount,due_date,payment_status,aging_days,source_reference,reconciliation_status,notes
+EMAIL-FV-2026-06-001,2026-06-04,2026-06,Fresh Basket Stores,29AAFCB4412D1Z8,Organic snacks,245000,22050,22050,0,289100,0,289100,2026-06-19,open,2,EMAIL-GMAIL-INV-001,open,Email attachment invoice for Gmail sync demo
+EMAIL-FV-2026-06-002,2026-06-08,2026-06,Acme Retail Pvt Ltd,29ABCDE1234F1Z5,Packaged foods,198000,17820,17820,0,233640,0,233640,2026-06-23,open,0,EMAIL-GMAIL-INV-002,open,Second email invoice to prove batch ingestion

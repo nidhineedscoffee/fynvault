@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { missingProviderVars } from "@/lib/env";
+import { env, missingProviderVars } from "@/lib/env";
+import { completeOAuthDataSourceConnection } from "@/lib/consent";
 import { exchangeGoogleCode, getGoogleOAuthUrl, validateOAuthState } from "@/lib/integrations/normalizers";
 import { persistIntegrationConnection } from "@/lib/supabase";
 
@@ -56,23 +57,45 @@ export async function GET(request: Request) {
     );
   }
 
-  if (organizationId && !UUID_PATTERN.test(organizationId)) {
+  const resolvedClientId = clientId ?? stateValidation.payload.clientId ?? undefined;
+  const resolvedOrganizationId = organizationId ?? stateValidation.payload.organizationId ?? undefined;
+  if (resolvedOrganizationId && !UUID_PATTERN.test(resolvedOrganizationId)) {
     return NextResponse.json({ status: "error", provider: "gmail", error: "organizationId must be a valid UUID." }, { status: 400 });
+  }
+  if (resolvedClientId && !UUID_PATTERN.test(resolvedClientId)) {
+    return NextResponse.json({ status: "error", provider: "gmail", error: "clientId must be a valid UUID." }, { status: 400 });
   }
 
   const expiresAt = tokenResult.expiresIn ? new Date(Date.now() + tokenResult.expiresIn * 1000).toISOString() : undefined;
   const persistence = await persistIntegrationConnection({
     provider: "gmail",
-    organizationId: organizationId ?? stateValidation.payload.organizationId ?? stateValidation.payload.clientId ?? undefined,
+    organizationId: resolvedOrganizationId,
     accessToken: tokenResult.accessToken,
     refreshToken: tokenResult.refreshToken,
     expiresAt
   });
+  const clientConnection = resolvedClientId
+    ? await completeOAuthDataSourceConnection(resolvedClientId, {
+        sourceType: "gmail",
+        provider: "Gmail",
+        expiresAt,
+        accessTokenReceived: Boolean(tokenResult.accessToken),
+        refreshTokenReceived: Boolean(tokenResult.refreshToken),
+        accessToken: tokenResult.accessToken,
+        refreshToken: tokenResult.refreshToken,
+        capabilities: ["gmail.readonly", "financial_email_filters", "attachment_collection"]
+      })
+    : { ok: false as const, status: 400, error: "clientId is required to attach Gmail to a client." };
+
+  if (clientConnection.ok) {
+    return NextResponse.redirect(new URL("/?integration=gmail&status=connected", env.NEXT_PUBLIC_APP_URL));
+  }
 
   return NextResponse.json({
     status: "connected",
     provider: "gmail",
     persistence,
+    clientConnection,
     normalizedEntities: [
       "customer_emails",
       "vendor_emails",
@@ -84,7 +107,7 @@ export async function GET(request: Request) {
     ],
     nextStep: "Fetch permitted Gmail threads, classify finance communication, and attach evidence to graph entities.",
     notes:
-      !organizationId && persistence.persisted === false
+      !resolvedOrganizationId && persistence.persisted === false
         ? "Pass ?organizationId=<uuid> in the OAuth flow callback URL to persist credentials."
         : undefined
   });

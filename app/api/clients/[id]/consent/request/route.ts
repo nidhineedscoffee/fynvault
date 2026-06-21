@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ConsentRequestSchema, requestConsent } from "@/lib/consent";
 import { serviceResponse } from "@/lib/api-response";
 import { enforceRateLimit, getClientIp, isTrustedOrigin } from "@/lib/security";
+import { requireClientAccess } from "@/lib/workspace-auth";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   if (!isTrustedOrigin(request)) {
@@ -26,5 +27,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const { id } = await context.params;
-  return serviceResponse(await requestConsent(id, parsed.data));
+  const access = await requireClientAccess(request, id);
+  if (!access.ok) return serviceResponse(access);
+
+  return serviceResponse(await requestConsent(id, { ...parsed.data, firmId: access.firmId }));
 }

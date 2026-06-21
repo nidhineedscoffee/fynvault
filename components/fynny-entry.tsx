@@ -133,10 +133,10 @@ function OnboardingFlow({ userLabel, onComplete }: { userLabel: string; onComple
 
   const content = useMemo(() => {
     if (step === "firm") {
-      return <ChoiceGrid title="What kind of firm are you?" subtitle="This helps us tailor your workspace." choices={firmTypes} selected={selected.firm as string} onSelect={(value) => setSelected((current) => ({ ...current, firm: value }))} />;
+      return <ChoiceGrid title="What kind of firm are you?" subtitle="This helps us tailor your Fynny console." choices={firmTypes} selected={selected.firm as string} onSelect={(value) => setSelected((current) => ({ ...current, firm: value }))} />;
     }
     if (step === "volume") {
-      return <SplitChoice title="How many active clients do you manage?" subtitle="This helps us configure your portfolio workspace perfectly to scale with your business." choices={clientVolumes} selected={selected.volume as string} onSelect={(value) => setSelected((current) => ({ ...current, volume: value }))} />;
+      return <SplitChoice title="How many active clients do you manage?" subtitle="This helps us configure your client portfolio view to scale with your business." choices={clientVolumes} selected={selected.volume as string} onSelect={(value) => setSelected((current) => ({ ...current, volume: value }))} />;
     }
     if (step === "sources") {
       return <ChipStep title="Where does client information usually come from?" subtitle="Most firms use multiple sources. Pick every source your team handles." items={workflowSources} selected={(selected.sources as string[]) ?? []} onChange={(value) => setSelected((current) => ({ ...current, sources: value }))} />;
@@ -148,9 +148,9 @@ function OnboardingFlow({ userLabel, onComplete }: { userLabel: string; onComple
       return <ChoiceGrid title="How would you like to start?" subtitle="Connect data sources to populate your first client profile securely." choices={dataStarts} selected={selected.connect as string} onSelect={(value) => setSelected((current) => ({ ...current, connect: value }))} wide />;
     }
     if (step === "creating") {
-      return <CreatingWorkspace userLabel={userLabel} />;
+      return <CreatingConsole userLabel={userLabel} />;
     }
-    return <WorkspaceReady onComplete={next} />;
+    return <ConsoleReady onComplete={next} />;
   }, [step, selected, userLabel]);
 
   return (
@@ -254,7 +254,7 @@ function ChipStep({ title, subtitle, items, selected, onChange }: { title: strin
   );
 }
 
-function CreatingWorkspace({ userLabel }: { userLabel: string }) {
+function CreatingConsole({ userLabel }: { userLabel: string }) {
   return (
     <section className="mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-[1200px] items-center justify-center px-6 pb-32 pt-8 md:px-16">
       <div className="grid w-full items-center gap-16 md:grid-cols-[0.8fr_1fr]">
@@ -270,12 +270,12 @@ function CreatingWorkspace({ userLabel }: { userLabel: string }) {
           ))}
         </div>
         <div>
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#5f5e5e]">Creating workspace</p>
+          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#5f5e5e]">Preparing console</p>
           <h1 className="font-[var(--font-source-serif)] text-[32px] font-semibold leading-[1.25] tracking-[-0.01em] text-[#111111] md:text-[48px]">Preparing intelligence for {userLabel}.</h1>
           <div className="mt-10 space-y-5 text-lg text-[#564242]">
             <p>Configuring secure collection rules.</p>
             <p>Preparing validation and processing stages.</p>
-            <p>Connecting financial memory workspace.</p>
+            <p>Connecting financial memory layer.</p>
           </div>
         </div>
       </div>
@@ -283,13 +283,13 @@ function CreatingWorkspace({ userLabel }: { userLabel: string }) {
   );
 }
 
-function WorkspaceReady({ onComplete }: { onComplete: () => void }) {
+function ConsoleReady({ onComplete }: { onComplete: () => void }) {
   return (
     <section className="relative grid min-h-screen place-items-center overflow-hidden px-6 py-20 text-center">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_35%)]" />
       <div className="relative z-10 max-w-2xl">
         <Icon name="check_circle" className="mb-4 text-6xl text-[#7a1f2b]" />
-        <h1 className="font-[var(--font-source-serif)] text-[36px] font-semibold leading-[1.18] tracking-[-0.01em] text-[#111111] md:text-[56px]">Your intelligence workspace is ready.</h1>
+        <h1 className="font-[var(--font-source-serif)] text-[36px] font-semibold leading-[1.18] tracking-[-0.01em] text-[#111111] md:text-[56px]">Your intelligence console is ready.</h1>
         <p className="mt-5 text-lg leading-8 text-[#5f5e5e]">Let's bring in your first client.</p>
         <div className="mt-16 flex flex-col items-center justify-center gap-4 md:flex-row">
           <button onClick={onComplete} className="flex w-full items-center justify-center gap-2 rounded bg-[#111111] px-8 py-4 text-sm font-semibold uppercase tracking-[0.05em] text-white transition hover:bg-[#5b0617] md:w-auto">
@@ -298,7 +298,7 @@ function WorkspaceReady({ onComplete }: { onComplete: () => void }) {
           </button>
           <button onClick={onComplete} className="flex w-full items-center justify-center gap-2 rounded border border-[#e2e2e2] bg-transparent px-8 py-4 text-sm font-semibold uppercase tracking-[0.05em] text-[#111111] transition hover:border-[#111111] md:w-auto">
             <Icon name="explore" className="text-lg" />
-            Open Workspace
+            Open Console
           </button>
         </div>
       </div>

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { serviceResponse } from "@/lib/api-response";
-import { AskMvpSchema, answerMvpQuestion } from "@/lib/mvp";
+import { AskMvpSchema } from "@/lib/mvp";
+import { handleAskQuestion } from "@/lib/ask-orchestrator";
+import { requireClientAccess } from "@/lib/workspace-auth";
 
 async function clientIdFrom(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
@@ -16,5 +18,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const id = await clientIdFrom(request, context);
-  return serviceResponse(await answerMvpQuestion(id, parsed.data));
+  const access = await requireClientAccess(request, id);
+  if (!access.ok) return serviceResponse(access);
+
+  return serviceResponse(await handleAskQuestion(id, { ...parsed.data, firmId: access.firmId }));
 }

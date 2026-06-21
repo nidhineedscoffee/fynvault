@@ -2,6 +2,22 @@
 
 Fynny is a secure data collection and processing layer for CA firms. It collects scattered client financial data only with client consent, processes it into clean financial records, builds financial memory, and gates intelligence products behind an Intelligence Ready score.
 
+## Project Overview
+
+Fynny is built for CA firms that struggle with client financial data being scattered across emails, spreadsheets, accounting exports, bank statements, GST files, and shared drives. Instead of manually collecting, cleaning, reconciling, and reformatting that data every time a report or advisory output is needed, Fynny creates a single controlled processing flow.
+
+The product helps a CA team connect read-only sources, route data into a client workspace, validate and normalize records, build financial memory, and then unlock intelligence features like Ask Fynny, advisory insights, reports, and exports only when the data is ready. This reduces manual follow-up, lowers reporting risk, and makes it easier to move from raw files to client-ready outputs.
+
+## Idea, Stack, And Tools Used
+
+- Product idea: a CA-first financial data pipeline that turns scattered client inputs into verified, usable intelligence.
+- Frontend: Next.js 15, React 19, TypeScript, Tailwind CSS.
+- Backend: Next.js API routes with TypeScript service modules.
+- Database and auth-ready backend: Supabase.
+- Integrations: Gmail, Google Drive, Zoho Books, plus manual uploads for CSV, PDF, GST, bank, payroll, and accounting files.
+- Validation and orchestration: custom processing pipeline for collection, classification, extraction, validation, normalization, memory build, and Intelligence Ready checks.
+- AI layer: Ask Fynny and evidence-based intelligence flows designed to explain verified records without inventing financial facts.
+
 ## Backbone
 
 ```text

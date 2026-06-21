@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { serviceResponse } from "@/lib/api-response";
 import { CalculationSchema, calculateFinancialSnapshot } from "@/lib/mvp";
+import { requireClientAccess } from "@/lib/workspace-auth";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const body = await request.json().catch(() => ({}));
@@ -10,5 +11,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const { id } = await context.params;
-  return serviceResponse(await calculateFinancialSnapshot(id, parsed.data));
+  const access = await requireClientAccess(request, id);
+  if (!access.ok) return serviceResponse(access);
+
+  return serviceResponse(await calculateFinancialSnapshot(id, { ...parsed.data, firmId: access.firmId }));
 }

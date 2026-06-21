@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { collectAndProcessDataSource } from "./integration-sync";
+import { decryptIntegrationSecret, encryptIntegrationSecret } from "./security";
 import { createSupabaseServerClient } from "./supabase";
 
 export const SourceTypeSchema = z.enum([
@@ -41,6 +43,8 @@ export const DataSourceConnectSchema = z.object({
 export const DataSourceSyncSchema = z.object({
   dataSourceId: z.string().uuid()
 });
+
+export const OAuthSourceTypeSchema = z.enum(["gmail", "google_drive", "zoho_books"]);
 
 function unavailable<T>() {
   return { ok: false as const, status: 503, error: "Supabase is not configured." };
@@ -194,7 +198,7 @@ export async function connectDataSource(clientId: string, input: z.infer<typeof 
           source_type: input.sourceType,
           access_scope: "read_only",
           status: "approved",
-          approved_by: "workspace_user",
+          approved_by: "firm_user",
           approved_at: new Date().toISOString()
         })
         .select("*")
@@ -264,6 +268,14 @@ export async function syncDataSource(clientId: string, dataSourceId: string) {
   }
 
   const now = new Date().toISOString();
+  const metadata = (dataSource.metadata ?? {}) as Record<string, unknown>;
+  const accessToken = decryptIntegrationSecret(metadata.encryptedAccessToken);
+
+  if (["gmail", "google_drive", "zoho_books"].includes(dataSource.source_type) && !accessToken) {
+    await supabase.from("data_sources").update({ connection_status: "error" }).eq("id", dataSourceId);
+    return fail(409, "This source needs to be reconnected before sync. OAuth access token is missing or expired.");
+  }
+
   const [sourceUpdate, logInsert] = await Promise.all([
     supabase.from("data_sources").update({ connection_status: "syncing", last_sync_at: now }).eq("id", dataSourceId).select("*").single(),
     supabase
@@ -287,6 +299,68 @@ export async function syncDataSource(clientId: string, dataSourceId: string) {
     return dbError(logInsert.error);
   }
 
+  if (accessToken && ["gmail", "google_drive", "zoho_books"].includes(dataSource.source_type)) {
+    try {
+      const collected = await collectAndProcessDataSource({
+        clientId,
+        accessToken,
+        dataSource: {
+          id: dataSource.id,
+          firm_id: dataSource.firm_id,
+          source_type: dataSource.source_type,
+          provider: dataSource.provider,
+          metadata
+        }
+      });
+      const completedAt = new Date().toISOString();
+      const status = collected.errors.length ? "needs_review" : "connected";
+      const { data: syncedSource, error: syncUpdateError } = await supabase
+        .from("data_sources")
+        .update({
+          connection_status: status,
+          last_sync_at: completedAt,
+          metadata: {
+            ...metadata,
+            lastSync: {
+              completedAt,
+              fileCount: collected.fileCount,
+              errors: collected.errors.slice(0, 5)
+            }
+          }
+        })
+        .eq("id", dataSourceId)
+        .select("*")
+        .single();
+      if (syncUpdateError) return dbError(syncUpdateError);
+      await supabase
+        .from("ingestion_logs")
+        .update({ file_count: collected.fileCount, status: collected.errors.length ? "needs_review" : "completed" })
+        .eq("id", logInsert.data.id);
+
+      return {
+        ok: true as const,
+        data: {
+          dataSource: syncedSource,
+          ingestionLog: { ...logInsert.data, file_count: collected.fileCount, status: collected.errors.length ? "needs_review" : "completed" },
+          collected,
+          message: collected.fileCount
+            ? `Synced ${collected.fileCount} financial item${collected.fileCount === 1 ? "" : "s"} into processing.`
+            : "Sync completed. No matching financial files were found with the approved filters."
+        }
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Provider sync failed.";
+      await Promise.all([
+        supabase
+          .from("data_sources")
+          .update({ connection_status: "error", metadata: { ...metadata, lastSync: { completedAt: new Date().toISOString(), error: errorMessage } } })
+          .eq("id", dataSourceId),
+        supabase.from("ingestion_logs").update({ status: "failed" }).eq("id", logInsert.data.id)
+      ]);
+      return fail(502, errorMessage);
+    }
+  }
+
   return {
     ok: true as const,
     data: {
@@ -295,4 +369,134 @@ export async function syncDataSource(clientId: string, dataSourceId: string) {
       message: "Read-only sync requested. Collection rules restrict ingestion to financial documents only."
     }
   };
+}
+
+export async function completeOAuthDataSourceConnection(clientId: string, input: {
+  sourceType: z.infer<typeof OAuthSourceTypeSchema>;
+  provider: string;
+  expiresAt?: string;
+  accessTokenReceived?: boolean;
+  refreshTokenReceived?: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  capabilities?: string[];
+}) {
+  const invalid = validateClientId(clientId);
+  if (invalid) {
+    return invalid;
+  }
+
+  const supabase = createSupabaseServerClient();
+  if (!supabase) {
+    return unavailable<unknown>();
+  }
+
+  const { data: client, error: clientError } = await supabase.from("clients").select("id,firm_id").eq("id", clientId).maybeSingle();
+  if (clientError) {
+    return dbError(clientError);
+  }
+  if (!client) {
+    return fail(404, "Client not found.");
+  }
+
+  const now = new Date().toISOString();
+  const metadata: Record<string, unknown> = {
+    oauthConnectedAt: now,
+    expiresAt: input.expiresAt,
+    accessTokenReceived: Boolean(input.accessTokenReceived),
+    refreshTokenReceived: Boolean(input.refreshTokenReceived),
+    capabilities: input.capabilities ?? []
+  };
+  const encryptedAccessToken = encryptIntegrationSecret(input.accessToken);
+  const encryptedRefreshToken = encryptIntegrationSecret(input.refreshToken);
+  if (encryptedAccessToken) metadata.encryptedAccessToken = encryptedAccessToken;
+  if (encryptedRefreshToken) metadata.encryptedRefreshToken = encryptedRefreshToken;
+
+  const { data: existing } = await supabase
+    .from("data_sources")
+    .select("id,metadata")
+    .eq("client_id", clientId)
+    .eq("source_type", input.sourceType)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existing?.id) {
+    const { data, error } = await supabase
+      .from("data_sources")
+      .update({
+        provider: input.provider,
+        connection_status: "connected",
+        consent_status: "approved",
+        last_sync_at: now,
+        metadata: { ...((existing.metadata as Record<string, unknown> | null) ?? {}), ...metadata }
+      })
+      .eq("id", existing.id)
+      .select("*")
+      .single();
+
+    if (error) {
+      return dbError(error);
+    }
+
+    await supabase.from("ingestion_logs").insert({
+      firm_id: client.firm_id,
+      client_id: clientId,
+      data_source_id: existing.id,
+      action: "oauth_connected",
+      file_count: 0,
+      status: "completed"
+    });
+
+    return { ok: true as const, data: { dataSource: data } };
+  }
+
+  const { data: consent, error: consentError } = await supabase
+    .from("consent_grants")
+    .insert({
+      firm_id: client.firm_id,
+      client_id: clientId,
+      source_type: input.sourceType,
+      access_scope: "read_only",
+      status: "approved",
+      approved_by: "oauth_callback",
+      approved_at: now
+    })
+    .select("*")
+    .single();
+
+  if (consentError) {
+    return dbError(consentError);
+  }
+
+  const { data, error } = await supabase
+    .from("data_sources")
+    .insert({
+      firm_id: client.firm_id,
+      client_id: clientId,
+      source_type: input.sourceType,
+      provider: input.provider,
+      connection_status: "connected",
+      consent_status: "approved",
+      last_sync_at: now,
+      consent_grant_id: consent.id,
+      metadata
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    return dbError(error);
+  }
+
+  await supabase.from("ingestion_logs").insert({
+    firm_id: client.firm_id,
+    client_id: clientId,
+    data_source_id: data.id,
+    action: "oauth_connected",
+    file_count: 0,
+    status: "completed"
+  });
+
+  return { ok: true as const, data: { dataSource: data } };
 }
