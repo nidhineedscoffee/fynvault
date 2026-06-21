@@ -51,6 +51,7 @@ type ActionNotice = { tone: "success" | "warning" | "error"; title: string; body
 type SourceCategory = "all" | "upload" | "integration" | "manual";
 type SourceOption = {
   id: string;
+  sourceType?: string;
   label: string;
   provider: string;
   icon: string;
@@ -77,8 +78,8 @@ const sourceOptions: SourceOption[] = [
   { id: "gmail", label: "Gmail", provider: "Google", icon: "mail", category: "integration", action: "connect", description: "Connect Gmail for financial emails and attachments only." },
   { id: "google_drive", label: "Google Drive", provider: "Google", icon: "add_to_drive", category: "integration", action: "connect", description: "Connect Drive folders and pull financial files into processing." },
   { id: "zoho_books", label: "Zoho Books", provider: "Zoho", icon: "account_balance", category: "integration", action: "connect", description: "Bring books, invoices, customers, and accounting exports into Fynny." },
-  { id: "tally_export", label: "Tally", provider: "Tally", icon: "receipt_long", category: "integration", action: "connect", description: "Connect Tally exports and ledgers for processing, validation, and MIS intelligence." },
-  { id: "slack", label: "Slack", provider: "Slack", icon: "tag", category: "integration", action: "connect", description: "Collect approved finance files from client workflow channels." },
+  { id: "tally", label: "Tally", provider: "Tally", icon: "receipt_long", category: "integration", action: "connect", description: "Connect Tally exports and ledgers for processing, validation, and MIS intelligence." },
+  { id: "slack", sourceType: "email", label: "Slack", provider: "Slack", icon: "tag", category: "integration", action: "connect", description: "Collect approved finance files from client workflow channels." },
   { id: "bank_statement", label: "Bank Statements", provider: "Manual upload", icon: "assured_workload", category: "upload", action: "upload", description: "Process statement files through validation and financial memory." },
   { id: "gst_file", label: "GST Files", provider: "Manual upload", icon: "receipt_long", category: "upload", action: "upload", description: "Validate GST inputs, filing periods, and missing compliance records." },
   { id: "spreadsheet", label: "Spreadsheets", provider: "Excel / CSV", icon: "table_chart", category: "upload", action: "upload", description: "Normalize trackers, reconciliations, ledgers, and exported reports." },
@@ -397,12 +398,24 @@ export function FinvaultConsole() {
       const payload = await readJson<{ ok?: boolean; data?: { dataSource?: DataSource }; error?: string }>(`/api/clients/${clientId}/data-sources/connect`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sourceType: source.id, provider: source.provider })
+        body: JSON.stringify({ sourceType: source.sourceType ?? source.id, provider: source.provider })
       });
       if (payload.ok === false) {
         setSourceNotice({ tone: "error", title: "Connection could not be created", body: payload.error ?? "Please check the source setup and try again." });
       } else {
         setSourceNotice({ tone: "success", title: `${source.label} connected`, body: "Fynny created a read-only connection and can now sync financial records for this client." });
+        if (source.id === "gmail") {
+          window.location.href = `/api/sync/gmail?clientId=${encodeURIComponent(clientId)}`;
+          return;
+        }
+        if (source.id === "google_drive") {
+          window.location.href = `/api/sync/google-drive?clientId=${encodeURIComponent(clientId)}`;
+          return;
+        }
+        if (source.id === "zoho_books") {
+          window.location.href = `/api/sync/zoho?clientId=${encodeURIComponent(clientId)}`;
+          return;
+        }
       }
       await refreshClient(clientId);
     } catch (error) {
@@ -1120,6 +1133,7 @@ function SourcesScreen(props: {
   const [activeCategory, setActiveCategory] = useState<SourceCategory>("all");
   const [selectedSource, setSelectedSource] = useState<SourceOption>(sourceOptions[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadSourceRef = useRef<SourceOption>(sourceOptions[0]);
   const visibleSources = sourceOptions.filter((source) => activeCategory === "all" || source.category === activeCategory);
   const busy = props.uploadingDocument || props.requestingSource === selectedSource.id;
   const sourceCounts = {
@@ -1132,12 +1146,14 @@ function SourcesScreen(props: {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    void props.uploadDocument(file, selectedSource.id === "manual_upload" ? "manual_upload" : selectedSource.id);
+    const source = uploadSourceRef.current ?? selectedSource;
+    void props.uploadDocument(file, source.sourceType ?? (source.id === "manual_upload" ? "manual_upload" : source.id));
   }
 
   function runPrimaryAction(source = selectedSource) {
     setSelectedSource(source);
     if (source.action === "upload") {
+      uploadSourceRef.current = source;
       fileInputRef.current?.click();
       return;
     }
@@ -1236,7 +1252,7 @@ function SourcesScreen(props: {
             const active = selectedSource.id === source.id;
             const loading = props.requestingSource === source.id || (props.uploadingDocument && active);
             return (
-              <button key={source.id} onClick={() => setSelectedSource(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
+              <button key={source.id} onClick={() => runPrimaryAction(source)} className={`group rounded-2xl border bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#7a1f2b] hover:shadow-[0_18px_40px_rgba(17,17,17,0.06)] ${active ? "border-[#7a1f2b] shadow-[0_18px_40px_rgba(17,17,17,0.06)]" : "border-[#e2e2e2]"}`}>
                 <div className="mb-5 flex items-start justify-between gap-3">
                   <div className={`grid h-14 w-14 place-items-center rounded-2xl ring-1 ${sourceLogoTileClass(source.id, active)}`}>{loading ? <AgenticGlyph variant="validation" /> : <SourceLogo source={source.id} className="h-8 w-8" />}</div>
                   <span className="rounded-full bg-[#f4f3f3] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[#5f5e5e]">{source.action === "connect" ? "direct" : source.category}</span>

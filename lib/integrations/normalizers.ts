@@ -16,11 +16,13 @@ export type GmailSyncResult = {
   categories: string[];
 };
 
-type OAuthProvider = "zoho" | "gmail";
+type OAuthProvider = "zoho" | "gmail" | "google_drive";
 
 type OAuthStatePayload = {
   provider: OAuthProvider;
   createdAt: number;
+  clientId?: string;
+  organizationId?: string;
 };
 
 type TokenExchangeFailure = {
@@ -30,8 +32,8 @@ type TokenExchangeFailure = {
   error: unknown;
 };
 
-function oauthState(provider: OAuthProvider) {
-  const payload = Buffer.from(JSON.stringify({ provider, createdAt: Date.now() })).toString("base64url");
+function oauthState(provider: OAuthProvider, context?: { clientId?: string; organizationId?: string }) {
+  const payload = Buffer.from(JSON.stringify({ provider, createdAt: Date.now(), ...context })).toString("base64url");
   const sig = signOAuthState(payload);
   return `${payload}.${sig}`;
 }
@@ -55,7 +57,7 @@ export function decodeOAuthState(state: string | null): OAuthStatePayload | null
     const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (
       parsed &&
-      (parsed.provider === "zoho" || parsed.provider === "gmail") &&
+      (parsed.provider === "zoho" || parsed.provider === "gmail" || parsed.provider === "google_drive") &&
       typeof parsed.createdAt === "number"
     ) {
       return parsed as OAuthStatePayload;
@@ -70,11 +72,11 @@ export function getZohoRedirectUri() {
   return `${env.NEXT_PUBLIC_APP_URL}/api/sync/zoho`;
 }
 
-export function getGoogleRedirectUri() {
-  return `${env.NEXT_PUBLIC_APP_URL}/api/sync/gmail`;
+export function getGoogleRedirectUri(provider: "gmail" | "google_drive" = "gmail") {
+  return `${env.NEXT_PUBLIC_APP_URL}/api/sync/${provider === "google_drive" ? "google-drive" : "gmail"}`;
 }
 
-export function getZohoOAuthUrl() {
+export function getZohoOAuthUrl(context?: { clientId?: string; organizationId?: string }) {
   if (!hasZohoConfig()) {
     return null;
   }
@@ -86,24 +88,28 @@ export function getZohoOAuthUrl() {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("prompt", "consent");
-  url.searchParams.set("state", oauthState("zoho"));
+  url.searchParams.set("state", oauthState("zoho", context));
   url.searchParams.set("redirect_uri", getZohoRedirectUri());
   return url.toString();
 }
 
-export function getGoogleOAuthUrl() {
+export function getGoogleOAuthUrl(options: { provider?: "gmail" | "google_drive"; clientId?: string; organizationId?: string } = {}) {
   if (!hasGoogleConfig()) {
     return null;
   }
+  const provider = options.provider ?? "gmail";
+  const scope = provider === "google_drive"
+    ? "openid email profile https://www.googleapis.com/auth/drive.readonly"
+    : "openid email profile https://www.googleapis.com/auth/gmail.readonly";
 
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", env.GOOGLE_CLIENT_ID ?? "");
-  url.searchParams.set("redirect_uri", getGoogleRedirectUri());
+  url.searchParams.set("redirect_uri", getGoogleRedirectUri(provider));
   url.searchParams.set("response_type", "code");
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("prompt", "consent");
-  url.searchParams.set("state", oauthState("gmail"));
-  url.searchParams.set("scope", "openid email profile https://www.googleapis.com/auth/gmail.readonly");
+  url.searchParams.set("state", oauthState(provider, { clientId: options.clientId, organizationId: options.organizationId }));
+  url.searchParams.set("scope", scope);
   return url.toString();
 }
 
@@ -153,7 +159,7 @@ export function validateOAuthState(state: string | null, expectedProvider: OAuth
     return { ok: false as const, reason: "OAuth state expired. Restart the connection flow." };
   }
 
-  return { ok: true as const };
+  return { ok: true as const, payload };
 }
 
 export async function exchangeZohoCode(code: string) {
@@ -208,7 +214,7 @@ export async function exchangeZohoCode(code: string) {
   };
 }
 
-export async function exchangeGoogleCode(code: string) {
+export async function exchangeGoogleCode(code: string, provider: "gmail" | "google_drive" = "gmail") {
   if (!hasGoogleConfig()) {
     return {
       configured: false,
@@ -220,7 +226,7 @@ export async function exchangeGoogleCode(code: string) {
     grant_type: "authorization_code",
     client_id: env.GOOGLE_CLIENT_ID ?? "",
     client_secret: env.GOOGLE_CLIENT_SECRET ?? "",
-    redirect_uri: getGoogleRedirectUri(),
+    redirect_uri: getGoogleRedirectUri(provider),
     code
   });
 

@@ -11,13 +11,14 @@ export async function GET(request: Request) {
   const error = url.searchParams.get("error");
   const state = url.searchParams.get("state");
   const organizationId = url.searchParams.get("organizationId");
+  const clientId = url.searchParams.get("clientId");
 
   if (error) {
     return NextResponse.json({ status: "error", provider: "zoho", error }, { status: 400 });
   }
 
   if (!code) {
-    const oauthUrl = getZohoOAuthUrl();
+    const oauthUrl = getZohoOAuthUrl({ clientId: clientId ?? undefined, organizationId: organizationId ?? undefined });
 
     if (!oauthUrl) {
       return NextResponse.json(
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
   const expiresAt = tokenResult.expiresIn ? new Date(Date.now() + tokenResult.expiresIn * 1000).toISOString() : undefined;
   const persistence = await persistIntegrationConnection({
     provider: "zoho",
-    organizationId: organizationId ?? undefined,
+    organizationId: organizationId ?? stateValidation.payload.organizationId ?? stateValidation.payload.clientId ?? undefined,
     accessToken: tokenResult.accessToken,
     refreshToken: tokenResult.refreshToken,
     expiresAt
