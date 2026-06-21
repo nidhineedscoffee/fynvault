@@ -219,6 +219,7 @@ export function FinvaultConsole() {
   const [syncingSource, setSyncingSource] = useState<string | null>(null);
   const [creatingClient, setCreatingClient] = useState(false);
   const [chatNotice, setChatNotice] = useState<ActionNotice>(null);
+  const [chatExporting, setChatExporting] = useState<string | null>(null);
 
   async function refresh() {
     setStatus((current) => ({ ...current, loading: true, error: null }));
@@ -316,6 +317,8 @@ export function FinvaultConsole() {
       setSourceNotice({ tone: "warning", title: "Choose a client", body: "Select a client before generating exports." });
       return;
     }
+    const exportKey = `${exportType}-${fileFormat}`;
+    setChatExporting(exportKey);
     setExports((current) => ({ ...current, loading: true, error: null }));
     const payload = await readJson<{ ok?: boolean; data?: ExportRow & { file?: { filename: string; storageUrl: string } }; error?: string }>(`/api/clients/${clientId}/exports`, {
       method: "POST",
@@ -324,9 +327,21 @@ export function FinvaultConsole() {
     }).catch((error) => ({ ok: false, error: error instanceof Error ? error.message : "Export generation failed." }));
     if (payload.ok === false) {
       setExports((current) => ({ ...current, loading: false, error: payload.error ?? "Export generation failed." }));
+      setChatExporting(null);
       return;
     }
+    const exported = "data" in payload ? payload.data : undefined;
+    const downloadUrl = exported?.file?.storageUrl ?? exported?.storage_url;
+    if (downloadUrl) {
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = exported?.file?.filename ?? `fynny-${exportType}.${fileFormat === "xlsx" ? "xls" : fileFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
     await refreshClient(clientId);
+    setChatExporting(null);
   }
 
   async function createClient(input: ClientCreateInput) {
@@ -508,6 +523,8 @@ export function FinvaultConsole() {
             openSources={() => setActiveTab("sources")}
             uploadDocument={attachFileToChat}
             uploadingDocument={uploadingDocument}
+            generateExport={generateClientExport}
+            exporting={chatExporting}
           />
         ) : (
           <WorkbenchShell title={titleForTab(activeTab)} subtitle={subtitleForTab(activeTab)} clientId={clientId} setClientId={setClientId} selectedClient={selectedClient} clientRows={clientRows} refresh={refresh} refreshing={refreshing}>
@@ -614,6 +631,8 @@ function AskWorkspace(props: {
   openSources: () => void;
   uploadDocument: (file: File) => Promise<void>;
   uploadingDocument: boolean;
+  generateExport: (exportType: string, fileFormat: "csv" | "xlsx" | "pdf") => Promise<void>;
+  exporting: string | null;
 }) {
   const chatFileInputRef = useRef<HTMLInputElement>(null);
   const hasUserQuestion = props.messages.some((message) => message.role === "user");
@@ -698,7 +717,7 @@ function AskWorkspace(props: {
                         <span className="rounded-full bg-[#f9f9f9] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5f5e5e]">{props.selectedClient?.name ?? "No client"}</span>
                       </div>
                       <p className="text-[16px] leading-8 text-[#1a1c1c]">{message.text}</p>
-                      {message.intelligence ? <CompactModelPanel intelligence={message.intelligence} /> : null}
+                      {message.intelligence ? <CompactModelPanel intelligence={message.intelligence} isReady={props.isReady} generateExport={props.generateExport} exporting={props.exporting} /> : null}
                     </article>
                   )
                 )}
@@ -811,10 +830,16 @@ function FinancialModelPanel({ intelligence }: { intelligence: IntelligencePaylo
   );
 }
 
-function CompactModelPanel({ intelligence }: { intelligence: IntelligencePayload }) {
+function CompactModelPanel({ intelligence, isReady, generateExport, exporting }: { intelligence: IntelligencePayload; isReady: boolean; generateExport: (exportType: string, fileFormat: "csv" | "xlsx" | "pdf") => Promise<void>; exporting: string | null }) {
   const layout = intelligence.exportLayout;
   const formulas = intelligence.formulas ?? [];
   const checks = intelligence.processChecks ?? [];
+  const exportType = layout?.id ?? "client_summary";
+  const exportActions = [
+    { format: "csv" as const, label: "CSV", icon: "table_rows" },
+    { format: "xlsx" as const, label: "Excel", icon: "table_chart" },
+    { format: "pdf" as const, label: "PDF", icon: "picture_as_pdf" }
+  ];
   return (
     <div className="mt-4 rounded-2xl border border-[#f0e6e6] bg-[#fbfaf9] p-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -825,6 +850,26 @@ function CompactModelPanel({ intelligence }: { intelligence: IntelligencePayload
       <div className="mt-3 grid gap-2 text-xs leading-5 text-[#5f5e5e] md:grid-cols-2">
         <p><span className="font-semibold text-[#1a1c1c]">Formula:</span> {formulas[0] ? `${formulas[0].label} = ${formulas[0].formula}` : "No formula required for this response."}</p>
         <p><span className="font-semibold text-[#1a1c1c]">Check:</span> {checks[0] ?? "Uses processed uploads and connected sources only."}</p>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#eee1e1] pt-4">
+        <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5b0617]">Export</span>
+        {exportActions.map((action) => {
+          const key = `${exportType}-${action.format}`;
+          const busy = exporting === key;
+          return (
+            <button
+              key={action.format}
+              type="button"
+              disabled={!isReady || Boolean(exporting)}
+              onClick={() => void generateExport(exportType, action.format)}
+              className="inline-flex items-center gap-2 rounded-full border border-[#dcc0c0] bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#5b0617] transition hover:border-[#5b0617] hover:bg-[#fff7f7] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? <AgenticGlyph variant="validation" /> : <Icon name={action.icon} className="text-[16px]" />}
+              {busy ? "Generating" : action.label}
+            </button>
+          );
+        })}
+        {!isReady ? <span className="text-xs text-[#5f5e5e]">Exports unlock after Intelligence Ready.</span> : null}
       </div>
     </div>
   );
