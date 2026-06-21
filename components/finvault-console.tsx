@@ -724,10 +724,10 @@ export function FinvaultConsole() {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(122,31,43,0.10),transparent_34%),linear-gradient(180deg,#fbfaf8_0%,#f4f1ee_52%,#efebe7_100%)] text-[#1a1c1c]">
+    <main className="h-[100dvh] overflow-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(122,31,43,0.10),transparent_34%),linear-gradient(180deg,#fbfaf8_0%,#f4f1ee_52%,#efebe7_100%)] text-[#1a1c1c]">
       <LiveBanner />
       <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
-      <div className="flex h-[calc(100vh-84px)] overflow-hidden md:h-[calc(100vh-32px)]">
+      <div className="flex h-[calc(100dvh-84px)] overflow-hidden md:h-[calc(100dvh-32px)]">
         <SideNav activeTab={activeTab} setActiveTab={setActiveTab} authenticated={Boolean(session.data?.authenticated)} openGuide={() => setShowFlowGuide(true)} />
         {activeTab === "ask" ? (
           <AskWorkspace
@@ -851,11 +851,11 @@ function SideNav({ activeTab, setActiveTab, authenticated, openGuide }: { active
 
 function MobileNav({ activeTab, setActiveTab }: { activeTab: TabId; setActiveTab: (tab: TabId) => void }) {
   return (
-    <nav className="flex h-[52px] gap-2 overflow-x-auto border-b border-[#e2e2e2] bg-white px-3 py-2 md:hidden">
+    <nav className="flex h-[52px] gap-2 overflow-x-auto border-b border-[#e2e2e2] bg-white/88 px-3 py-2 backdrop-blur-xl md:hidden">
       {navItems.map((item) => {
         const active = activeTab === item.id;
         return (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex shrink-0 items-center gap-2 rounded-full px-4 text-[11px] font-bold uppercase tracking-[0.08em] transition ${active ? "bg-[#111111] text-white" : "bg-[#f4f3f3] text-[#5f5e5e]"}`}>
+          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex shrink-0 items-center gap-2 rounded-full px-3 text-[10px] font-bold uppercase tracking-[0.08em] transition sm:px-4 sm:text-[11px] ${active ? "bg-[#111111] text-white" : "bg-[#f4f3f3] text-[#5f5e5e]"}`}>
             <Icon name={item.icon} className="text-[18px]" filled={active} />
             {item.label}
           </button>
@@ -925,42 +925,42 @@ function FirstReportGuideDialog({
   const activeIndex = nextIndex === -1 ? steps.length - 1 : nextIndex;
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-[#111111]/40 px-4 backdrop-blur-sm">
-      <section className="w-full max-w-4xl overflow-hidden rounded-[32px] border border-[#eadada] bg-white shadow-[0_30px_120px_rgba(17,17,17,0.22)]">
-        <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="bg-[#111111] p-7 text-white md:p-8">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#e6b7bf]">Guided setup</p>
-            <h2 className="mt-4 text-[34px] font-bold leading-tight tracking-[-0.04em] md:text-[44px]">From signup to first report.</h2>
-            <p className="mt-5 text-sm leading-7 text-white/68">Follow this path once. After that, every client follows the same clean operating model: collect, process, validate, remember, ask, report.</p>
-            <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/50">Current next step</p>
-              <p className="mt-2 text-xl font-semibold">{steps[activeIndex]?.title}</p>
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-[#111111]/42 px-3 py-4 backdrop-blur-sm sm:px-5">
+      <section className="custom-scrollbar max-h-[calc(100dvh-32px)] w-full max-w-[680px] overflow-y-auto rounded-[24px] border border-[#eadada] bg-white shadow-[0_30px_120px_rgba(17,17,17,0.24)]">
+        <div className="grid gap-0 md:grid-cols-[0.78fr_1.22fr]">
+          <div className="bg-[#111111] p-5 text-white sm:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#e6b7bf]">Guided setup</p>
+            <h2 className="mt-3 text-[26px] font-black leading-[1.02] tracking-[-0.05em] sm:text-[32px]">From signup to first report.</h2>
+            <p className="mt-4 text-xs leading-6 text-white/68 sm:text-[13px]">Follow this path once. Every client then follows the same clean operating model: collect, process, validate, remember, ask, report.</p>
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/50">Current next step</p>
+              <p className="mt-2 text-[16px] font-bold leading-6">{steps[activeIndex]?.title}</p>
             </div>
           </div>
-          <div className="p-6 md:p-8">
-            <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="p-5 sm:p-6">
+            <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#700018]">Fynny flow</p>
-                <h3 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[#111111]">Complete the path in order.</h3>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#700018]">Fynny flow</p>
+                <h3 className="mt-1 text-xl font-black tracking-[-0.03em] text-[#111111]">Complete the path in order.</h3>
               </div>
-              <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full bg-[#f4f3f3] text-[#5f5e5e] hover:text-[#5b0617]" aria-label="Close guide">
-                <Icon name="close" className="text-[22px]" />
+              <button onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f4f3f3] text-[#5f5e5e] hover:text-[#5b0617]" aria-label="Close guide">
+                <Icon name="close" className="text-[20px]" />
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {steps.map((step, index) => {
                 const active = index === activeIndex;
                 return (
-                  <div key={step.title} className={`rounded-2xl border p-4 transition ${step.done ? "border-emerald-200 bg-emerald-50/60" : active ? "border-[#7a1f2b] bg-[#fff8f8]" : "border-[#ececec] bg-[#f9f9f9]"}`}>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div key={step.title} className={`rounded-2xl border p-3 transition ${step.done ? "border-emerald-200 bg-emerald-50/60" : active ? "border-[#7a1f2b] bg-[#fff8f8]" : "border-[#ececec] bg-[#f9f9f9]"}`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-3">
-                          <span className={`grid h-8 w-8 place-items-center rounded-full text-[11px] font-bold ${step.done ? "bg-emerald-600 text-white" : active ? "bg-[#700018] text-white" : "bg-[#e8e8e8] text-[#5f5e5e]"}`}>{step.done ? "OK" : index + 1}</span>
-                          <p className="text-[16px] font-bold text-[#111111]">{step.title}</p>
+                        <div className="flex items-start gap-3">
+                          <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-black ${step.done ? "bg-emerald-600 text-white" : active ? "bg-[#700018] text-white" : "bg-[#e8e8e8] text-[#5f5e5e]"}`}>{step.done ? "OK" : index + 1}</span>
+                          <p className="text-[13px] font-black leading-5 text-[#111111] sm:text-[14px]">{step.title}</p>
                         </div>
-                        <p className="mt-2 text-sm leading-6 text-[#5f5e5e]">{step.body}</p>
+                        <p className="mt-1.5 pl-10 text-xs leading-5 text-[#5f5e5e]">{step.body}</p>
                       </div>
-                      <button onClick={() => onAction(step.tab, step.prompt)} className={`shrink-0 rounded-xl px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] transition ${active ? "bg-[#111111] text-white hover:bg-[#5b0617]" : "border border-[#dcc0c0] bg-white text-[#5b0617] hover:border-[#5b0617]"}`}>
+                      <button onClick={() => onAction(step.tab, step.prompt)} className={`shrink-0 rounded-xl px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.08em] transition ${active ? "bg-[#111111] text-white hover:bg-[#5b0617]" : "border border-[#dcc0c0] bg-white text-[#5b0617] hover:border-[#5b0617]"}`}>
                         {step.action}
                       </button>
                     </div>
@@ -968,9 +968,9 @@ function FirstReportGuideDialog({
                 );
               })}
             </div>
-            <div className="mt-6 flex flex-col gap-3 border-t border-[#ececec] pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs leading-5 text-[#5f5e5e]">Tip: use the Aster Foods sample pack when you want a full demo from data collection to MIS and GST exports.</p>
-              <button onClick={onDismiss} className="shrink-0 rounded-xl border border-[#e2e2e2] px-4 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-[#5f5e5e] hover:border-[#5b0617] hover:text-[#5b0617]">Do not show again</button>
+            <div className="mt-4 flex flex-col gap-3 border-t border-[#ececec] pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[11px] leading-5 text-[#5f5e5e]">Tip: use the Aster Foods pack for a complete collection-to-report demo.</p>
+              <button onClick={onDismiss} className="shrink-0 rounded-xl border border-[#e2e2e2] px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#5f5e5e] hover:border-[#5b0617] hover:text-[#5b0617]">Do not show again</button>
             </div>
           </div>
         </div>
@@ -1029,7 +1029,7 @@ function AskWorkspace(props: {
         <div className="custom-scrollbar flex-1 overflow-y-auto px-5 pb-36 pt-8 md:px-8">
           <div className="mx-auto w-full max-w-[820px]">
             {!hasUserQuestion ? (
-              <section className="flex min-h-[calc(100vh-230px)] flex-col items-center justify-center space-y-7">
+              <section className="flex min-h-[calc(100dvh-230px)] flex-col items-center justify-center space-y-7">
                 <div className="relative grid h-28 w-28 place-items-center md:h-36 md:w-36">
                   <div className="absolute inset-0 rounded-full border border-[#ececec] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_62%)]" />
                   <div className="absolute h-20 w-20 rounded-full bg-[#7a1f2b]/10 blur-2xl" />
@@ -1402,7 +1402,7 @@ function WorkbenchShell({ title, subtitle, clientId, setClientId, selectedClient
           </div>
         </div>
       </header>
-      <div className="mx-auto max-w-[1480px] space-y-10 p-5 md:p-7">{children}</div>
+      <div className="mx-auto max-w-[1480px] space-y-7 p-4 sm:p-5 md:space-y-10 md:p-7">{children}</div>
     </main>
   );
 }
@@ -1969,14 +1969,14 @@ function SourceLine({ source }: { source: DataSource }) {
   return <div className="flex items-center gap-3"><div className={`grid h-10 w-10 place-items-center rounded-lg ring-1 ${sourceLogoTileClass(source.source_type || source.provider)}`}><SourceLogo source={source.source_type || source.provider} className="h-6 w-6" /></div><span className="flex-1 text-[16px] text-[#111111]">{titleCase(source.source_type)}</span><span className="h-2 w-2 rounded-full bg-[#00875a]" /></div>;
 }
 function Card({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="overflow-hidden rounded-[30px] border border-[#eee2de] bg-white/88 shadow-[0_26px_80px_rgba(47,35,31,0.08)] backdrop-blur-xl"><div className="border-b border-[#efe4e0] bg-[linear-gradient(180deg,#ffffff_0%,#fbf7f5_100%)] px-6 py-5"><div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#7A1F2B]" /><h3 className="text-[21px] font-black tracking-[-0.03em] text-[#111111]">{title}</h3></div></div><div className="p-6">{children}</div></section>;
+  return <section className="overflow-hidden rounded-[24px] border border-[#eee2de] bg-white/88 shadow-[0_20px_60px_rgba(47,35,31,0.07)] backdrop-blur-xl sm:rounded-[30px] sm:shadow-[0_26px_80px_rgba(47,35,31,0.08)]"><div className="border-b border-[#efe4e0] bg-[linear-gradient(180deg,#ffffff_0%,#fbf7f5_100%)] px-4 py-4 sm:px-6 sm:py-5"><div className="flex items-center gap-3"><span className="h-2 w-2 rounded-full bg-[#7A1F2B]" /><h3 className="text-[18px] font-black tracking-[-0.03em] text-[#111111] sm:text-[21px]">{title}</h3></div></div><div className="p-4 sm:p-6">{children}</div></section>;
 }
 function DataTable({ headers, rows, empty, onRowClick }: { headers: string[]; rows: string[][]; empty: string; onRowClick?: (index: number) => void }) {
   if (!rows.length) return <EmptyState icon="upload_file" title="No Data Connected" body={empty} />;
   return <div className="overflow-x-auto rounded-[24px] border border-[#eee2de] bg-white shadow-[0_18px_55px_rgba(47,35,31,0.06)]"><table className="w-full min-w-[780px] border-collapse text-left"><thead className="bg-[#faf6f3]"><tr>{headers.map((header) => <th key={header} className="px-5 py-4 text-[11px] font-black uppercase tracking-[0.16em] text-[#766b67]">{header}</th>)}</tr></thead><tbody className="divide-y divide-[#f3ebe7]">{rows.map((row, rowIndex) => <tr key={rowIndex} onClick={() => onRowClick?.(rowIndex)} className={`transition ${onRowClick ? "cursor-pointer hover:bg-[#fff8f5]" : "hover:bg-[#fff8f5]"}`}>{row.map((cell, cellIndex) => <td key={`${rowIndex}-${cellIndex}`} className={`px-5 py-5 text-[15px] text-[#1a1c1c] ${cellIndex === 2 ? "font-[var(--font-platform-mono)] font-semibold text-[#700018]" : ""}`}>{cell}</td>)}</tr>)}</tbody></table></div>;
 }
 function EmptyState({ icon, title, body }: { icon: string; title: string; body: string }) {
-  return <div className="flex min-h-64 flex-col items-center justify-center rounded-[28px] border border-dashed border-[#d8c3bb] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_52%),#fffaf8] p-8 text-center"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-white text-[#700018] shadow-[0_18px_40px_rgba(122,31,43,0.10)]"><Icon name={icon} className="text-[28px]" /></div><h4 className="mt-5 text-[22px] font-black tracking-[-0.03em] text-[#111111]">{title}</h4><p className="mt-2 max-w-xl text-[15px] leading-7 text-[#655f5b]">{body}</p></div>;
+  return <div className="flex min-h-52 flex-col items-center justify-center rounded-[24px] border border-dashed border-[#d8c3bb] bg-[radial-gradient(circle_at_center,rgba(122,31,43,0.08),transparent_52%),#fffaf8] p-5 text-center sm:min-h-64 sm:rounded-[28px] sm:p-8"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-[#700018] shadow-[0_18px_40px_rgba(122,31,43,0.10)] sm:h-14 sm:w-14"><Icon name={icon} className="text-[26px] sm:text-[28px]" /></div><h4 className="mt-4 text-[19px] font-black tracking-[-0.03em] text-[#111111] sm:mt-5 sm:text-[22px]">{title}</h4><p className="mt-2 max-w-xl text-[14px] leading-6 text-[#655f5b] sm:text-[15px] sm:leading-7">{body}</p></div>;
 }
 function FieldBox({ label, value }: { label: string; value: string }) {
   return <div><p className="mb-2 text-[12px] font-black uppercase tracking-[0.12em] text-[#766b67]">{label}</p><div className="rounded-2xl border border-[#dcc0c0] bg-[#fbf7f5] p-4 text-sm text-[#1a1c1c]">{value}</div></div>;
