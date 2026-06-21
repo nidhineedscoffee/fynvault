@@ -134,6 +134,13 @@ const askSuggestions = [
   { icon: "table_chart", title: "Export Layout", prompt: "Give me the standard CSV and Excel export layout with formulas for this client.", body: "Return model columns, sheets, and evidence checks." },
   { icon: "mail", title: "Client Demo", prompt: "Give me one client-specific demo using Aster Foods and show all product use cases from Gmail sync to reports.", body: "Get one client story, sample files, prompts, and end-to-end success criteria.", wide: true }
 ];
+const askTypingPrompts = [
+  "Generate April MIS report in Excel...",
+  "Find overdue invoices and cash-flow risk...",
+  "Fetch Gmail attachments and process GST files...",
+  "Create a client-ready advisory summary...",
+  "Export cleaned bank and sales records as CSV..."
+];
 const clientDemoFlow: Array<{ title: string; body: string; actionLabel: string; tab: TabId; prompt?: string }> = [
   { title: "Choose Client", body: "Choose `Aster Foods Pvt Ltd` as the active client so every sync, upload, and output stays together.", actionLabel: "Open Clients", tab: "clients" as TabId },
   { title: "Connect Intake", body: "Connect Gmail as the CA operator, then send the three email sample files or upload the Aster Foods pack.", actionLabel: "Open Sources", tab: "sources" as TabId },
@@ -1001,12 +1008,39 @@ function AskWorkspace(props: {
   exporting: string | null;
 }) {
   const chatFileInputRef = useRef<HTMLInputElement>(null);
+  const [askInputFocused, setAskInputFocused] = useState(false);
+  const [typingPromptIndex, setTypingPromptIndex] = useState(0);
+  const [typingPromptLength, setTypingPromptLength] = useState(0);
+  const [typingDeleting, setTypingDeleting] = useState(false);
   const hasUserQuestion = props.messages.some((message) => message.role === "user");
   const latestFynny = [...props.messages].reverse().find((message) => message.role === "fynny");
   const visibleMessages = hasUserQuestion ? props.messages : [];
   const contextLabel = props.clientId
     ? `${props.dataSources.length} source${props.dataSources.length === 1 ? "" : "s"} connected`
     : "Choose a client";
+  const activeTypingPrompt = askTypingPrompts[typingPromptIndex] ?? askTypingPrompts[0];
+  const typedPlaceholder = activeTypingPrompt.slice(0, typingPromptLength);
+  const showTypingPlaceholder = !props.question && !askInputFocused;
+
+  useEffect(() => {
+    if (!showTypingPlaceholder) return;
+    const atEnd = typingPromptLength >= activeTypingPrompt.length;
+    const atStart = typingPromptLength <= 0;
+    const delay = atEnd && !typingDeleting ? 1200 : atStart && typingDeleting ? 260 : typingDeleting ? 28 : 48;
+    const timer = window.setTimeout(() => {
+      if (atEnd && !typingDeleting) {
+        setTypingDeleting(true);
+        return;
+      }
+      if (atStart && typingDeleting) {
+        setTypingDeleting(false);
+        setTypingPromptIndex((index) => (index + 1) % askTypingPrompts.length);
+        return;
+      }
+      setTypingPromptLength((length) => length + (typingDeleting ? -1 : 1));
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [activeTypingPrompt.length, showTypingPlaceholder, typingDeleting, typingPromptLength]);
 
   function handleChatFile(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -1108,8 +1142,21 @@ function AskWorkspace(props: {
           </div>
           <input ref={chatFileInputRef} type="file" className="hidden" accept=".csv,.txt,.pdf,.xlsx,.xls,.json" multiple onChange={handleChatFile} />
           <div className="pointer-events-auto mx-auto flex w-full max-w-[720px] items-center gap-2 rounded-2xl border border-[#e8e0e0] bg-white p-2 shadow-[0_16px_50px_rgba(0,0,0,0.1)]">
-            <div className="min-w-0 flex-1 px-3">
-              <input value={props.question} onChange={(event) => props.setQuestion(event.target.value)} placeholder="Ask from processed records or attach a file..." className="w-full border-0 bg-transparent py-3 text-[15px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0" />
+            <div className="relative min-w-0 flex-1 px-3">
+              {showTypingPlaceholder ? (
+                <div className="pointer-events-none absolute inset-x-3 top-1/2 flex -translate-y-1/2 items-center overflow-hidden text-[15px] text-[#8b8581]">
+                  <span className="truncate">{typedPlaceholder}</span>
+                  <span className="ml-0.5 h-5 w-px animate-pulse bg-[#7A1F2B]" />
+                </div>
+              ) : null}
+              <input
+                value={props.question}
+                onChange={(event) => props.setQuestion(event.target.value)}
+                onFocus={() => setAskInputFocused(true)}
+                onBlur={() => setAskInputFocused(false)}
+                placeholder={showTypingPlaceholder ? "" : "Ask from processed records or attach a file..."}
+                className="w-full border-0 bg-transparent py-3 text-[15px] text-[#1a1c1c] outline-none placeholder:text-[#5f5e5e]/50 focus:ring-0"
+              />
             </div>
             <button type="button" onClick={() => chatFileInputRef.current?.click()} disabled={props.uploadingDocument} className="grid h-10 w-10 place-items-center rounded-xl text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] disabled:cursor-wait disabled:opacity-60" aria-label="Attach financial file">{props.uploadingDocument ? <AgenticGlyph variant="validation" /> : <Icon name="attach_file" className="text-[21px]" />}</button>
             <button type="button" onClick={props.openSources} className="hidden h-10 items-center gap-2 rounded-xl px-3 text-[12px] font-semibold text-[#5f5e5e] transition hover:bg-[#f4f3f3] hover:text-[#5b0617] sm:flex"><Icon name="add_link" className="text-[18px]" /> Sources</button>
